@@ -1,0 +1,749 @@
+translationUnit ::= translationUnitItem+ EOF
+
+translationUnitItem ::= externalDeclaration
+                      | PreprocessingDirective
+                      | Comment
+
+externalDeclaration ::= declaration
+                      | usingDeclaration
+                      | usingDirective
+                      | asmDefinition
+                      | namespaceAliasDefinition
+                      | templateDeclaration
+                      | explicitInstantiation
+                      | explicitSpecialization
+                      | linkageSpecification
+                      | namespaceDefinition
+
+functionDefinition ::= declarationSpecifiers? declarator ctorInitializer? functionBody
+                     | declarationSpecifiers? declarator functionTryBlock
+
+functionBody ::= compoundStatement
+
+functionTryBlock ::= 'try' ctorInitializer? functionBody handlerSeq
+
+ctorInitializer ::= ':' memInitializerList
+
+memInitializerList ::= memInitializer ( ',' memInitializer )*
+
+memInitializer ::= memInitializerId '(' expressionList? ')'
+
+memInitializerId ::= '::'? nestedNameSpecifier? className
+                   | Identifier
+
+declaration ::= declarationSpecifiers initDeclaratorList? ';'
+              | declarationSpecifiers declarator ctorInitializer? functionBody
+              | declarationSpecifiers declarator functionTryBlock
+
+declarationList ::= declaration+
+
+declarationSpecifiers ::= declarationNoTypeQualifier+
+                        | declarationQualifier* declarationTypeSpecifier declarationQualifier*
+
+declarationNoTypeQualifier ::= functionSpecifier
+
+declarationQualifier ::= storageClassSpecifier
+                       | functionSpecifier
+                       | 'friend'
+                       | 'typedef'
+                       | cvQualifier
+
+declarationTypeSpecifier ::= builtinSimpleTypeSpecifier+
+                           | userSimpleTypeSpecifier
+                           | classSpecifier
+                           | enumSpecifier
+                           | elaboratedTypeSpecifier
+
+declSpecifier ::= storageClassSpecifier
+                | typeSpecifier
+                | functionSpecifier
+                | 'friend'
+                | 'typedef'
+
+storageClassSpecifier ::= 'auto' | 'register' | 'static' | 'extern' | 'mutable'
+
+functionSpecifier ::= 'inline' | 'virtual' | 'explicit'
+
+typeSpecifier ::= simpleTypeSpecifier
+                | classSpecifier
+                | enumSpecifier
+                | elaboratedTypeSpecifier
+                | cvQualifier
+
+simpleTypeSpecifier ::= qualifiedTemplateType
+                      | '::'? nestedNameSpecifier? Identifier '<' templateArgumentList? '>'
+                      | '::'? nestedNameSpecifier? typeName
+                      | '::'? nestedNameSpecifier templateId
+                      | '::'? nestedNameSpecifier 'template' templateId
+                      | 'char' | 'wchar_t' | 'bool'
+                      | 'short' | 'int' | 'long'
+                      | 'signed' | 'unsigned'
+                      | 'float' | 'double' | 'void'
+
+builtinSimpleTypeSpecifier ::= 'char' | 'wchar_t' | 'bool'
+                             | 'short' | 'int' | 'long'
+                             | 'signed' | 'unsigned'
+                             | 'float' | 'double' | 'void'
+
+userSimpleTypeSpecifier ::= qualifiedTemplateType
+                          | '::'? nestedNameSpecifier? Identifier '<' templateArgumentList? '>'
+                          | '::'? nestedNameSpecifier? typeName
+                          | '::'? nestedNameSpecifier templateId
+                          | '::'? nestedNameSpecifier 'template' templateId
+
+qualifiedTemplateType ::= '::'? nestedNameSpecifier? Identifier '<' templateArgumentList? '>' qualifiedTypeTail+
+
+qualifiedTypeTail ::= '::' Identifier
+
+typeName ::= className
+           | enumName
+           | typedefName
+
+className ::= Identifier
+            | templateId
+
+enumName ::= Identifier
+
+typedefName ::= Identifier
+
+elaboratedTypeSpecifier ::= classKey '::'? nestedNameSpecifier? Identifier
+                          | 'enum' '::'? nestedNameSpecifier? Identifier
+                          | 'typename' '::'? nestedNameSpecifier Identifier
+                          | 'typename' '::'? nestedNameSpecifier 'template'? templateId
+
+classKey ::= 'class' | 'struct' | 'union'
+
+cvQualifier ::= 'const' | 'volatile'
+
+classSpecifier ::= classHead '{' memberSpecification? '}'
+
+classHead ::= classKey Identifier? baseClause?
+            | classKey nestedNameSpecifier Identifier baseClause?
+            | classKey nestedNameSpecifier? templateId baseClause?
+
+baseClause ::= ':' baseSpecifierList
+
+baseSpecifierList ::= baseSpecifier ( ',' baseSpecifier )*
+
+baseSpecifier ::= '::'? nestedNameSpecifier? className
+                | 'virtual' accessSpecifier? '::'? nestedNameSpecifier? className
+                | accessSpecifier 'virtual'? '::'? nestedNameSpecifier? className
+
+accessSpecifier ::= 'private' | 'protected' | 'public'
+
+memberSpecification ::= memberSpecificationItem+
+
+memberSpecificationItem ::= memberDeclaration
+                          | Comment
+                          | accessSpecifier ':'
+
+memberDeclaration ::= declarator ctorInitializer? functionBody ';'?
+                    | declaration
+                    | declarationSpecifiers? memberDeclaratorList? ';'
+                    | '::'? nestedNameSpecifier 'template'? unqualifiedId ';'
+                    | usingDeclaration
+                    | templateDeclaration
+
+memberDeclaratorList ::= memberDeclarator ( ',' memberDeclarator )*
+
+memberDeclarator ::= declarator pureSpecifier?
+                   | declarator constantInitializer?
+                   | Identifier? ':' constantExpression
+
+pureSpecifier ::= '=' IntegerConstant
+
+constantInitializer ::= '=' constantExpression
+
+enumSpecifier ::= 'enum' Identifier? '{' enumeratorList '}'
+                | 'enum' Identifier
+
+enumeratorList ::= enumeratorDefinition ( ',' enumeratorDefinition )*
+
+enumeratorDefinition ::= enumerator
+                       | enumerator '=' constantExpression
+
+enumerator ::= Identifier
+
+namespaceDefinition ::= namedNamespaceDefinition
+                      | unnamedNamespaceDefinition
+
+namedNamespaceDefinition ::= originalNamespaceDefinition
+                           | extensionNamespaceDefinition
+
+originalNamespaceDefinition ::= 'namespace' Identifier '{' namespaceBody '}'
+
+extensionNamespaceDefinition ::= 'namespace' originalNamespaceName '{' namespaceBody '}'
+
+unnamedNamespaceDefinition ::= 'namespace' '{' namespaceBody '}'
+
+namespaceBody ::= declarationSeq?
+
+namespaceName ::= originalNamespaceName
+                | namespaceAlias
+
+originalNamespaceName ::= Identifier
+
+namespaceAlias ::= Identifier
+
+namespaceAliasDefinition ::= 'namespace' Identifier '=' qualifiedNamespaceSpecifier ';'
+
+qualifiedNamespaceSpecifier ::= '::'? nestedNameSpecifier? namespaceName
+
+usingDeclaration ::= 'using' 'typename'? '::'? nestedNameSpecifier unqualifiedId ';'
+                   | 'using' '::' unqualifiedId ';'
+
+usingDirective ::= 'using' 'namespace' '::'? nestedNameSpecifier? namespaceName ';'
+
+linkageSpecification ::= 'extern' StringLiteral '{' declarationSeq? '}'
+                       | 'extern' StringLiteral declaration
+
+asmDefinition ::= 'asm' '(' StringLiteral ')' ';'
+
+initDeclaratorList ::= initDeclarator ( ',' initDeclarator )*
+
+initDeclarator ::= declarator initializer?
+
+declarator ::= pointer? directDeclarator
+             | ptrOperator declarator
+
+directDeclarator ::= directDeclaratorCore directDeclaratorSuffix*
+
+directDeclaratorCore ::= declaratorId
+                       | '(' declarator ')'
+
+directDeclaratorSuffix ::= '(' parameterDeclarationClause ')' cvQualifierSeq? exceptionSpecification?
+                         | '[' constantExpression? ']'
+
+declaratorId ::= idExpression
+
+ptrOperator ::= '*' cvQualifierSeq?
+              | '&'
+              | '::'? nestedNameSpecifier '*' cvQualifierSeq?
+
+cvQualifierSeq ::= cvQualifier+
+
+nestedNameSpecifier ::= nestedNameElement+
+
+nestedNameElement ::= classOrNamespaceName '::'
+                    | classOrNamespaceName '::' 'template'
+
+classOrNamespaceName ::= className
+                       | namespaceName
+
+idExpression ::= unqualifiedId
+               | qualifiedId
+
+unqualifiedId ::= Identifier
+                | operatorFunctionId
+                | conversionFunctionId
+                | '~' className
+                | templateId
+
+qualifiedId ::= '::'? nestedNameSpecifier 'template'? unqualifiedId
+              | '::' Identifier
+              | '::' operatorFunctionId
+              | '::' templateId
+
+operatorFunctionId ::= 'operator' Operator
+
+conversionFunctionId ::= 'operator' conversionTypeId
+
+conversionTypeId ::= typeSpecifierSeq conversionDeclarator?
+
+conversionDeclarator ::= ptrOperator conversionDeclarator?
+
+typeSpecifierSeq ::= typeSpecifier+
+
+parameterDeclarationClause ::= parameterDeclarationClauseBody?
+
+parameterDeclarationClauseBody ::= parameterDeclarationList ( ',' '...' )?
+                                 | '...'
+
+parameterDeclarationList ::= parameterDeclaration ( ',' parameterDeclaration )*
+
+parameterDeclaration ::= declarationSpecifiers declarator
+                       | declarationSpecifiers declarator '=' assignmentExpression
+                       | declarationSpecifiers abstractDeclarator?
+                       | declarationSpecifiers abstractDeclarator? '=' assignmentExpression
+
+exceptionSpecification ::= 'throw' '(' typeIdList? ')'
+
+typeIdList ::= typeId ( ',' typeId )*
+
+typeId ::= typeSpecifierSeq abstractDeclarator?
+
+abstractDeclarator ::= ptrOperator abstractDeclarator?
+                     | directAbstractDeclarator
+
+directAbstractDeclarator ::= directAbstractDeclaratorCore directAbstractDeclaratorSuffix*
+
+directAbstractDeclaratorCore ::= '(' abstractDeclarator ')'
+                               | '(' parameterDeclarationClause ')' cvQualifierSeq? exceptionSpecification?
+                               | '[' constantExpression? ']'
+
+directAbstractDeclaratorSuffix ::= '(' parameterDeclarationClause ')' cvQualifierSeq? exceptionSpecification?
+                                 | '[' constantExpression? ']'
+
+pointer ::= '*' typeQualifierList?
+          | '*' typeQualifierList? pointer
+
+typeQualifierList ::= typeQualifier+
+
+typeQualifier ::= cvQualifier
+
+templateDeclaration ::= 'export'? 'template' '<' templateParameterList '>' declaration
+
+templateParameterList ::= templateParameter ( ',' templateParameter )*
+
+templateParameter ::= typeParameter
+                    | parameterDeclaration
+
+typeParameter ::= 'class' Identifier?
+                | 'class' Identifier? '=' typeId
+                | 'typename' Identifier?
+                | 'typename' Identifier? '=' typeId
+                | 'template' '<' templateParameterList '>' 'class' Identifier?
+                | 'template' '<' templateParameterList '>' 'class' Identifier? '=' idExpression
+
+templateId ::= templateName '<' templateArgumentList? '>'
+
+templateName ::= Identifier
+
+templateArgumentList ::= templateArgument ( ',' templateArgument )*
+
+templateArgument ::= typeId
+                   | idExpression
+                   | IntegerConstant
+                   | FloatingConstant
+                   | CharacterConstant
+                   | StringLiteral
+                   | booleanLiteral
+
+explicitInstantiation ::= 'template' declaration
+
+explicitSpecialization ::= 'template' '<' '>' declaration
+
+initializer ::= '=' initializerClause
+              | '(' expressionList ')'
+
+initializerClause ::= assignmentExpression
+                    | '{' initializerList? ','? '}'
+                    | '{' '}'
+
+initializerList ::= initializerClause ( ',' initializerClause )*
+
+statement ::= labeledStatement
+            | expressionStatement
+            | compoundStatement
+            | selectionStatement
+            | iterationStatement
+            | jumpStatement
+            | declarationStatement
+            | tryBlock
+            | Comment
+
+labeledStatement ::= Identifier ':' statement
+                   | 'case' constantExpression ':' statement
+                   | 'default' ':' statement
+
+expressionStatement ::= expression? ';'
+
+compoundStatement ::= '{' blockItem* '}'
+
+blockItem ::= statement
+            | declaration
+
+declarationStatement ::= blockDeclaration
+
+simpleDeclaration ::= declarationSpecifiers initDeclaratorList? ';'
+
+blockDeclaration ::= simpleDeclaration
+                   | asmDefinition
+                   | namespaceAliasDefinition
+                   | usingDeclaration
+                   | usingDirective
+
+selectionStatement ::= 'if' '(' condition ')' statement 'else' statement
+                     | 'if' '(' condition ')' statement
+                     | 'switch' '(' condition ')' statement
+
+condition ::= expression
+
+iterationStatement ::= 'while' '(' condition ')' statement
+                     | 'do' statement 'while' '(' expression ')' ';'
+                     | 'for' '(' forInitStatement condition? ';' expression? ')' statement
+
+forInitStatement ::= simpleDeclaration
+                   | expressionStatement
+
+jumpStatement ::= 'goto' Identifier ';'
+                | 'continue' ';'
+                | 'break' ';'
+                | 'return' expression? ';'
+
+tryBlock ::= 'try' compoundStatement handlerSeq
+
+handlerSeq ::= handler+
+
+handler ::= 'catch' '(' exceptionDeclaration ')' compoundStatement
+
+exceptionDeclaration ::= typeSpecifierSeq declarator
+                       | typeSpecifierSeq abstractDeclarator
+                       | typeSpecifierSeq
+                       | '...'
+
+throwExpression ::= 'throw' assignmentExpression?
+
+expression ::= assignmentExpression ( ',' assignmentExpression )*
+
+assignmentExpression ::= conditionalExpression assignmentOperator assignmentExpression
+                       | conditionalExpression
+                       | throwExpression
+
+assignmentOperator ::= '=' | '*=' | '/=' | '%=' | '+=' | '-=' | '<<=' | '>>=' | '&=' | '^=' | '|='
+
+conditionalExpression ::= logicalOrExpression '?' expression ':' conditionalExpression
+                        | logicalOrExpression
+
+constantExpression ::= conditionalExpression
+
+logicalOrExpression ::= logicalAndExpression ( '||' logicalAndExpression )*
+
+logicalAndExpression ::= inclusiveOrExpression ( '&&' inclusiveOrExpression )*
+
+inclusiveOrExpression ::= exclusiveOrExpression ( '|' exclusiveOrExpression )*
+
+exclusiveOrExpression ::= andExpression ( '^' andExpression )*
+
+andExpression ::= equalityExpression ( '&' equalityExpression )*
+
+equalityExpression ::= relationalExpression ( ( '==' | '!=' ) relationalExpression )*
+
+relationalExpression ::= shiftExpression ( ( '<' | '>' | '<=' | '>=' ) shiftExpression )*
+
+shiftExpression ::= additiveExpression ( ( '<<' | '>>' ) additiveExpression )*
+
+additiveExpression ::= multiplicativeExpression ( ( '+' | '-' ) multiplicativeExpression )*
+
+multiplicativeExpression ::= pmExpression ( ( '*' | '/' | '%' ) pmExpression )*
+
+pmExpression ::= castExpression ( ( '.*' | '->*' ) castExpression )*
+
+castExpression ::= unaryExpression
+                 | '(' typeId ')' castExpression
+
+unaryExpression ::= postfixExpression
+                  | '++' castExpression
+                  | '--' castExpression
+                  | unaryOperator castExpression
+                  | 'sizeof' unaryExpression
+                  | 'sizeof' '(' typeId ')'
+                  | 'dynamic_cast' '<' typeId '>' '(' expression ')'
+                  | 'static_cast' '<' typeId '>' '(' expression ')'
+                  | 'reinterpret_cast' '<' typeId '>' '(' expression ')'
+                  | 'const_cast' '<' typeId '>' '(' expression ')'
+                  | 'typeid' '(' expression ')'
+                  | 'typeid' '(' typeId ')'
+                  | newExpression
+                  | deleteExpression
+
+unaryOperator ::= '&' | '*' | '+' | '-' | '~' | '!'
+
+newExpression ::= '::'? 'new' newPlacement? newTypeId newInitializer?
+                | '::'? 'new' newPlacement? '(' typeId ')' newInitializer?
+
+newPlacement ::= '(' expressionList ')'
+
+newTypeId ::= typeSpecifierSeq newDeclarator?
+
+newDeclarator ::= ptrOperator newDeclarator?
+                | directNewDeclarator
+
+directNewDeclarator ::= '[' expression ']' directNewDeclaratorSuffix*
+
+directNewDeclaratorSuffix ::= '[' constantExpression ']'
+
+newInitializer ::= '(' expressionList? ')'
+
+deleteExpression ::= '::'? 'delete' castExpression
+                   | '::'? 'delete' '[' ']' castExpression
+
+postfixExpression ::= primaryExpression postfixSuffix*
+
+postfixSuffix ::= '[' expression ']'
+                | '(' argumentExpressionList? ')'
+                | '.' 'template'? idExpression
+                | '->' 'template'? idExpression
+                | '.' pseudoDestructorName
+                | '->' pseudoDestructorName
+                | '++'
+                | '--'
+
+primaryExpression ::= literal
+                    | 'this'
+                    | '(' expression ')'
+                    | idExpression
+
+literal ::= IntegerConstant
+          | CharacterConstant
+          | FloatingConstant
+          | StringLiteral
+          | booleanLiteral
+
+booleanLiteral ::= 'false' | 'true'
+
+pseudoDestructorName ::= '::'? nestedNameSpecifier? typeName '::' '~' typeName
+                       | '::'? nestedNameSpecifier 'template' templateId '::' '~' typeName
+                       | '::'? nestedNameSpecifier? '~' typeName
+
+argumentExpressionList ::= assignmentExpression ( ',' assignmentExpression )*
+
+expressionList ::= assignmentExpression ( ',' assignmentExpression )*
+
+declarationSeq ::= translationUnitItem+
+
+Ignore ::= WhiteSpace
+        /* ws: definition */
+
+<?TOKENS?>
+
+EOF ::= $
+
+Identifier ::= IdentifierName - ( Keyword | ConstantKeyword )
+
+IdentifierName ::= IdentifierStart IdentifierPart*
+
+IdentifierStart ::= [A-Z]
+                  | '_'
+                  | [a-z]
+                  | [#xC0-#xD6]
+                  | [#xD8-#xF6]
+                  | [#xF8-#x2FF]
+                  | [#x370-#x37D]
+                  | [#x37F-#x1FFF]
+                  | [#x200C-#x200D]
+                  | [#x2070-#x218F]
+                  | [#x2C00-#x2FEF]
+                  | [#x3001-#xD7FF]
+                  | [#xF900-#xFDCF]
+                  | [#xFDF0-#xFFFD]
+                  | [#x10000-#xEFFFF]
+
+IdentifierPart ::= IdentifierStart
+                 | [0-9]
+                 | #xB7
+                 | [#x0300-#x036F]
+                 | [#x203F-#x2040]
+
+Keyword ::= 'auto'
+          | 'asm'
+          | 'break'
+          | 'bool'
+          | 'case'
+          | 'catch'
+          | 'char'
+          | 'class'
+          | 'const'
+          | 'const_cast'
+          | 'continue'
+          | 'default'
+          | 'delete'
+          | 'do'
+          | 'double'
+          | 'dynamic_cast'
+          | 'else'
+          | 'enum'
+          | 'explicit'
+          | 'export'
+          | 'extern'
+          | 'false'
+          | 'float'
+          | 'for'
+          | 'friend'
+          | 'goto'
+          | 'if'
+          | 'inline'
+          | 'int'
+          | 'long'
+          | 'mutable'
+          | 'namespace'
+          | 'new'
+          | 'operator'
+          | 'private'
+          | 'protected'
+          | 'public'
+          | 'register'
+          | 'reinterpret_cast'
+          | 'return'
+          | 'short'
+          | 'signed'
+          | 'sizeof'
+          | 'static'
+          | 'static_cast'
+          | 'struct'
+          | 'switch'
+          | 'template'
+          | 'this'
+          | 'throw'
+          | 'true'
+          | 'try'
+          | 'typedef'
+          | 'typeid'
+          | 'typename'
+          | 'union'
+          | 'unsigned'
+          | 'using'
+          | 'virtual'
+          | 'void'
+          | 'volatile'
+          | 'wchar_t'
+          | 'while'
+
+ConstantKeyword ::= 'false' | 'true'
+
+Operator ::= 'new' | 'delete' | 'new[]' | 'delete[]'
+           | '[]' | '()'
+           | '+' | '-' | '*' | '/' | '%' | '^' | '&' | '|' | '~'
+           | '!' | '=' | '<' | '>'
+           | '+=' | '-=' | '*=' | '/=' | '%='
+           | '^=' | '&=' | '|='
+           | '<<' | '>>' | '>>=' | '<<='
+           | '==' | '!=' | '<=' | '>='
+           | '&&' | '||'
+           | '++' | '--'
+           | ',' | '->*' | '->'
+           | '(' | ')' | '[' | ']'
+
+IntegerConstant ::= '0' ( [xX] [0-9a-fA-F]+
+                            | [bB] [01]+
+                            | [0-7]+
+                            )?
+                    | [1-9] [0-9]*
+
+DecimalConstant ::= [1-9] [0-9]*
+
+OctalConstant ::= '0' [0-7]*
+
+HexadecimalConstant ::= '0' [xX] [0-9a-fA-F]+
+
+BinaryConstant ::= '0' [bB] [01]+
+
+FloatingConstant ::= DecimalFloatingConstant
+                   | HexadecimalFloatingConstant
+
+DecimalFloatingConstant ::= [0-9]+ '.' [0-9]* ExponentPart? FloatSuffix?
+                          | '.' [0-9]+ ExponentPart? FloatSuffix?
+                          | [0-9]+ ExponentPart FloatSuffix?
+                          | [0-9]+ FloatSuffix
+
+ExponentPart ::= [eE] [+#x2D]? [0-9]+
+
+FloatSuffix ::= [fFlL]
+
+HexadecimalFloatingConstant ::= '0' [xX] HexadecimalPrefix BinaryExponentPart FloatSuffix?
+                              | '0' [xX] HexadecimalPrefix BinaryExponentPart FloatSuffix?
+
+HexadecimalPrefix ::= [0-9a-fA-F]+ '.' [0-9a-fA-F]*
+                   | '.' [0-9a-fA-F]+
+                   | [0-9a-fA-F]+
+
+BinaryExponentPart ::= [pP] [+#x2D]? [0-9]+
+
+CharacterConstant ::= '\\'? "'" CChar+ "'"
+
+CChar ::= [!-~]
+        | #x20
+        | EscapeSequence
+
+EscapeSequence ::= SimpleEscapeSequence
+                 | OctalEscapeSequence
+                 | HexadecimalEscapeSequence
+                 | UniversalCharacterName
+
+SimpleEscapeSequence ::= '\\' ['"\?\\abfnrtv]
+
+OctalEscapeSequence ::= '\\' [0-7] [0-7]? [0-7]?
+
+HexadecimalEscapeSequence ::= '\\' [xX] [0-9a-fA-F]+
+
+UniversalCharacterName ::= '\\' 'u' [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F]
+                         | '\\' 'U' [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F]
+                                   [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F]
+
+StringLiteral ::= '"' SChar* '"'
+
+SChar ::= [!#-~]
+        | #x20
+        | #x9
+        | EscapeSequence
+
+WhiteSpace ::= ( Space | NewLine )+
+
+Space ::= #x20
+        | #x9
+        | #xB
+        | #xC
+
+NewLine ::= #xA
+          | #xD
+          | #xD #xA
+
+Comment ::= MultiLineComment
+          | SingleLineComment
+
+MultiLineComment ::= '/*' ( .* - ( .* '*/' .* ) ) '*/'
+
+SingleLineComment ::= '//' SingleLineCommentChar* ( NewLine | EOF )
+
+SingleLineCommentChar ::= #x9
+                        | [#x20-#xD7FF]
+                        | [#xE000-#xFFFD]
+                        | [#x10000-#x10FFFF]
+
+PreprocessingDirective ::= PpControlLine
+                         | PpIfLine
+                         | PpElifLine
+                         | PpElseLine
+                         | PpEndifLine
+                         | PpEmptyLine
+
+PpControlLine ::= '#' Space* 'define' Space+ IdentifierName PpDefineTail
+                | '#' Space* 'undef' Space+ IdentifierName Space* ( NewLine | EOF )
+                | '#' Space* 'include' Space+ PpHeaderName Space* ( NewLine | EOF )
+                | '#' Space* 'line' Space+ IntegerConstant ( Space+ PpHeaderName )? Space* ( NewLine | EOF )
+                | '#' Space* 'error' ( Space+ PpTokenSequence )? Space* ( NewLine | EOF )
+                | '#' Space* 'pragma' ( Space+ PpTokenSequence )? Space* ( NewLine | EOF )
+
+PpDefineTail ::= ( Space+ PpTokenSequence )? Space* ( NewLine | EOF )
+               | '(' Space* PpParameterList? Space* ')' ( Space+ PpTokenSequence )? Space* ( NewLine | EOF )
+
+PpParameterList ::= IdentifierName ( Space* ',' Space* IdentifierName )* ( Space* ',' Space* '...' )?
+                  | '...'
+
+PpIfLine ::= '#' Space* 'if' Space+ PpTokenSequence? Space* ( NewLine | EOF )
+           | '#' Space* 'ifdef' Space+ IdentifierName Space* ( NewLine | EOF )
+           | '#' Space* 'ifndef' Space+ IdentifierName Space* ( NewLine | EOF )
+
+PpElifLine ::= '#' Space* 'elif' Space+ PpTokenSequence? Space* ( NewLine | EOF )
+
+PpElseLine ::= '#' Space* 'else' Space* ( NewLine | EOF )
+
+PpEndifLine ::= '#' Space* 'endif' Space* ( NewLine | EOF )
+
+PpEmptyLine ::= '#' Space* ( NewLine | EOF )
+
+PpHeaderName ::= '<' PpAngleHeaderChar+ '>'
+               | '"' PpQuoteHeaderChar* '"'
+
+PpAngleHeaderChar ::= [#x20-#x3D]
+                    | [#x3F-#x7E]
+                    | #x9
+
+PpQuoteHeaderChar ::= [#x20-#x21]
+                    | [#x23-#x7E]
+                    | #x9
+
+PpTokenSequence ::= PpTokenChar+
+
+PpTokenChar ::= [#x20-#x7E]
+              | #x9

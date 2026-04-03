@@ -1,0 +1,4 @@
+{
+  "shouldParse": true,
+  "mustContain": ["<operatorFunctionId>", "<declarationQualifier><TOKEN>friend</TOKEN>", "<EOF/>"]
+}

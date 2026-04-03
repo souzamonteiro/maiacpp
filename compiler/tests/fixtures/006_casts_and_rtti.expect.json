@@ -1,0 +1,4 @@
+{
+  "shouldParse": true,
+  "mustContain": ["dynamic_cast", "static_cast", "<deleteExpression>", "<EOF/>"]
+}

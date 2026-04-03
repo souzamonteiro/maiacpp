@@ -1,0 +1,4 @@
+{
+  "shouldParse": true,
+  "mustContain": ["<classSpecifier>", "<ctorInitializer>", "<cvQualifierSeq>", "<EOF/>"]
+}
