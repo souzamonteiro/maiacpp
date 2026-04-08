@@ -21,11 +21,11 @@
 ┌──────────────────────────────────────────────────────────────────┐
 │              C++98 Compiler  (new — JavaScript)                  │
 │                                                                  │
-│   ┌─────────┐   ┌─────────┐   ┌──────────┐   ┌──────────────┐  │
-│   │  Lexer  │──▶│ Parser  │──▶│  Sema /  │──▶│   C Emitter  │  │
-│   │(ready)  │   │(ready)  │   │ TypeSys  │   │              │  │
-│   └─────────┘   └─────────┘   └──────────┘   └──────┬───────┘  │
-└──────────────────────────────────────────────────────┼──────────┘
+│   ┌─────────┐   ┌─────────┐   ┌──────────┐   ┌──────────────┐    │
+│   │  Lexer  │──▶│ Parser  │──▶│  Sema /  │──▶│   C Emitter  │    │
+│   │(ready)  │   │(ready)  │   │ TypeSys  │   │              │    │
+│   └─────────┘   └─────────┘   └──────────┘   └──────┬───────┘    │
+└──────────────────────────────────────────────────────┼───────────┘
                                                        │
                                            Extended C  │
                                      (try/catch/throw  │
@@ -34,9 +34,9 @@
 ┌──────────────────────────────────────────────────────────────────┐
 │              C Compiler  (existing — JavaScript)                 │
 │                                                                  │
-│   ┌─────────┐   ┌─────────┐   ┌──────────────────────────────┐  │
-│   │  Lexer  │──▶│ Parser  │──▶│        WAT Emitter           │  │
-│   └─────────┘   └─────────┘   └──────────────┬───────────────┘  │
+│   ┌─────────┐   ┌─────────┐   ┌──────────────────────────────┐   │
+│   │  Lexer  │──▶│ Parser  │──▶│        WAT Emitter           │   │
+│   └─────────┘   └─────────┘   └──────────────┬───────────────┘   │
 └──────────────────────────────────────────────┼───────────────────┘
                                                │
                                                ▼
@@ -66,12 +66,12 @@ The C++ transpiler will emit calls to these functions — they must exist first.
 ```c
 /* All functions the C++ compiler will call */
 
-void  __exc_push(void);        /* enter a try block          */
-void  __exc_pop(void);         /* exit a try block           */
+void  __exc_push(void);        /* enter a try block            */
+void  __exc_pop(void);         /* exit a try block             */
 int   __exc_active(void);      /* is an exception propagating? */
 int   __exc_type(void);        /* type ID of current exception */
 void* __exc_data(void);        /* pointer to exception object  */
-void  __exc_throw(int type, void* data);  /* never returns    */
+void  __exc_throw(int type, void* data);  /* never returns     */
 void  __exc_clear(void);       /* clear after successful catch */
 ```
 
@@ -741,14 +741,14 @@ void foo() {
 ## Implementation Priority
 
 ```
-Phase 1  ▓▓▓▓▓▓▓▓▓▓  runtime.wat skeleton          (do first — unblocks testing)
-Phase 3  ▓▓▓▓▓▓▓▓░░  class → struct                 (core feature)
+Phase 1  ▓▓▓▓▓▓▓▓▓▓  runtime.wat skeleton            (do first — unblocks testing)
+Phase 3  ▓▓▓▓▓▓▓▓░░  class → struct                  (core feature)
 Phase 5  ▓▓▓▓▓▓▓░░░  constructors / destructors      (required for any class)
 Phase 4  ▓▓▓▓▓▓░░░░  try / catch / throw             (already designed)
 Phase 2  ▓▓▓▓▓░░░░░  sema / type system / mangling   (needed before Phase 6)
 Phase 6  ▓▓▓▓░░░░░░  templates                       (needed for STL-like code)
 Phase 7  ▓▓▓░░░░░░░  namespaces                      (straightforward)
-Phase 8  ▓▓▓░░░░░░░  operator overloading             (useful but deferrable)
+Phase 8  ▓▓▓░░░░░░░  operator overloading            (useful but deferrable)
 Phase 9  ▓▓░░░░░░░░  static members                  (low complexity, defer)
 ```
 
