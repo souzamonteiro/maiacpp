@@ -1,0 +1,795 @@
+# C++98 → C (Extended) → WAT Compiler: Implementation Roadmap
+
+> **Context:** You already have:
+> - A working C → WAT compiler (JavaScript)
+> - A compiler-compiler that generates parsers/lexers from EBNF/W3C grammars
+> - A working C++98 parser
+>
+> **Goal:** Implement a C++98 → C (extended) transpiler in JavaScript,
+> reusing the existing C → WAT backend.
+
+---
+
+## Architecture Overview
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                        C++98 Source                              │
+└────────────────────────────┬─────────────────────────────────────┘
+                             │
+                             ▼
+┌──────────────────────────────────────────────────────────────────┐
+│              C++98 Compiler  (new — JavaScript)                  │
+│                                                                  │
+│   ┌─────────┐   ┌─────────┐   ┌──────────┐   ┌──────────────┐  │
+│   │  Lexer  │──▶│ Parser  │──▶│  Sema /  │──▶│   C Emitter  │  │
+│   │(ready)  │   │(ready)  │   │ TypeSys  │   │              │  │
+│   └─────────┘   └─────────┘   └──────────┘   └──────┬───────┘  │
+└──────────────────────────────────────────────────────┼──────────┘
+                                                       │
+                                           Extended C  │
+                                     (try/catch/throw  │
+                                      new/delete/etc)  │
+                                                       ▼
+┌──────────────────────────────────────────────────────────────────┐
+│              C Compiler  (existing — JavaScript)                 │
+│                                                                  │
+│   ┌─────────┐   ┌─────────┐   ┌──────────────────────────────┐  │
+│   │  Lexer  │──▶│ Parser  │──▶│        WAT Emitter           │  │
+│   └─────────┘   └─────────┘   └──────────────┬───────────────┘  │
+└──────────────────────────────────────────────┼───────────────────┘
+                                               │
+                                               ▼
+                                    ┌──────────────────┐
+                                    │   runtime.wat    │  (handwritten)
+                                    │  __exc_push      │
+                                    │  __exc_pop       │
+                                    │  __exc_throw     │
+                                    │  __malloc/__free │
+                                    └────────┬─────────┘
+                                             │  (linked)
+                                             ▼
+                                    ┌──────────────────┐
+                                    │   output.wasm    │
+                                    └──────────────────┘
+```
+
+---
+
+## Phase 1 — Exception Runtime (Start Here)
+
+Before writing any C++ transpilation, write `runtime.wat` by hand.
+The C++ transpiler will emit calls to these functions — they must exist first.
+
+### 1.1 Exception Runtime Contract
+
+```c
+/* All functions the C++ compiler will call */
+
+void  __exc_push(void);        /* enter a try block          */
+void  __exc_pop(void);         /* exit a try block           */
+int   __exc_active(void);      /* is an exception propagating? */
+int   __exc_type(void);        /* type ID of current exception */
+void* __exc_data(void);        /* pointer to exception object  */
+void  __exc_throw(int type, void* data);  /* never returns    */
+void  __exc_clear(void);       /* clear after successful catch */
+```
+
+### 1.2 Exception Type ID Convention
+
+Type IDs are `#define` constants emitted by the C++ compiler per translation unit:
+
+```c
+/* generated by C++ compiler — one per exception class */
+#define EXC_std_exception     1
+#define EXC_MyException       2
+#define EXC_IOException       3
+```
+
+For inheritance (`catch (BaseException&)` catching derived), emit a hierarchy table:
+
+```c
+/* also generated — pairs of (derived_id, base_id) */
+int __exc_hierarchy[][2] = {
+    { EXC_MyException, EXC_std_exception },
+    { EXC_IOException, EXC_std_exception },
+    { 0, 0 }  /* sentinel */
+};
+
+/* runtime checks this table in __exc_matches() */
+int __exc_matches(int thrown_type, int catch_type);
+```
+
+### 1.3 runtime.wat Skeleton
+
+```wat
+(module
+  ;; --- exception state ---
+  (global $exc_active (mut i32) (i32.const 0))
+  (global $exc_type   (mut i32) (i32.const 0))
+  (global $exc_data   (mut i32) (i32.const 0))
+
+  ;; --- try stack (depth counter) ---
+  (global $exc_depth  (mut i32) (i32.const 0))
+
+  (func $__exc_push (export "__exc_push")
+    (global.set $exc_depth
+      (i32.add (global.get $exc_depth) (i32.const 1)))
+  )
+
+  (func $__exc_pop (export "__exc_pop")
+    (global.set $exc_depth
+      (i32.sub (global.get $exc_depth) (i32.const 1)))
+  )
+
+  (func $__exc_active (export "__exc_active") (result i32)
+    (global.get $exc_active)
+  )
+
+  (func $__exc_type (export "__exc_type") (result i32)
+    (global.get $exc_type)
+  )
+
+  (func $__exc_data (export "__exc_data") (result i32)
+    (global.get $exc_data)
+  )
+
+  (func $__exc_throw (export "__exc_throw")
+    (param $type i32) (param $data i32)
+    (global.set $exc_type   (local.get $type))
+    (global.set $exc_data   (local.get $data))
+    (global.set $exc_active (i32.const 1))
+    ;; WASM has no longjmp — caller must check __exc_active after every call
+    (return)
+  )
+
+  (func $__exc_clear (export "__exc_clear")
+    (global.set $exc_active (i32.const 0))
+    (global.set $exc_type   (i32.const 0))
+    (global.set $exc_data   (i32.const 0))
+  )
+
+  ;; --- memory (malloc/free stubs — replace with real allocator) ---
+  (memory (export "memory") 1)
+  (global $heap_ptr (mut i32) (i32.const 4096))
+
+  (func $__malloc (export "__malloc") (param $size i32) (result i32)
+    (local $ptr i32)
+    (global.get $heap_ptr)
+    (local.set $ptr)
+    (global.set $heap_ptr
+      (i32.add (global.get $heap_ptr) (local.get $size)))
+    (local.get $ptr)
+  )
+
+  (func $__free (export "__free") (param $ptr i32)
+    ;; stub — replace with real free
+  )
+)
+```
+
+---
+
+## Phase 2 — Semantic Analysis & Type System
+
+The AST is ready. Before emitting C, you need a symbol table and type resolver.
+
+### 2.1 Symbol Table Structure
+
+```javascript
+class SymbolTable {
+  constructor(parent = null) {
+    this.parent  = parent;   // enclosing scope
+    this.symbols = new Map();
+  }
+
+  define(name, symbol) { this.symbols.set(name, symbol); }
+
+  lookup(name) {
+    return this.symbols.get(name)
+      ?? this.parent?.lookup(name)
+      ?? null;
+  }
+
+  child() { return new SymbolTable(this); }
+}
+
+// Symbol kinds
+const Kind = {
+  VARIABLE:  'variable',
+  FUNCTION:  'function',
+  CLASS:     'class',
+  TEMPLATE:  'template',
+  NAMESPACE: 'namespace',
+  TYPEDEF:   'typedef',
+};
+```
+
+### 2.2 Type Representation
+
+```javascript
+class Type {
+  constructor(kind, name) {
+    this.kind = kind;   // 'int'|'float'|'double'|'char'|'bool'
+                        // 'pointer'|'reference'|'class'|'template_instance'
+    this.name = name;
+  }
+}
+
+class PointerType extends Type {
+  constructor(base) {
+    super('pointer', base.name + '*');
+    this.base = base;
+  }
+}
+
+class ClassType extends Type {
+  constructor(name, decl) {
+    super('class', name);
+    this.decl   = decl;    // ClassDecl AST node
+    this.vtable = [];      // list of virtual methods
+    this.bases  = [];      // base classes (in order)
+  }
+}
+```
+
+### 2.3 Name Mangling
+
+```javascript
+function mangle(name, paramTypes, namespace = []) {
+  // namespace prefix
+  const ns = namespace.length
+    ? namespace.map(n => n.length + n).join('') + '_'
+    : '';
+
+  // type codes
+  const codes = paramTypes.map(typeCode).join('');
+
+  return `${ns}${name}${codes ? '__' + codes : ''}`;
+}
+
+function typeCode(type) {
+  const map = {
+    int:    'i',  unsigned: 'u',  long:   'l',
+    float:  'f',  double:   'd',  char:   'c',
+    bool:   'b',  void:     'v',
+  };
+  if (map[type.name])   return map[type.name];
+  if (type.kind === 'pointer')   return 'p' + typeCode(type.base);
+  if (type.kind === 'reference') return 'r' + typeCode(type.base);
+  // class: Nlen + name
+  return 'N' + type.name.length + type.name;
+}
+
+// Examples:
+// print(int)          → print__i
+// print(float)        → print__f
+// print(int, int)     → print__ii
+// MyNS::foo(MyClass*) → MyNS_foo__pN7MyClass
+```
+
+---
+
+## Phase 3 — Class → Struct Transpilation
+
+### 3.1 Simple Class (No Inheritance)
+
+```cpp
+/* C++98 */
+class Point {
+public:
+    int x, y;
+    Point(int x, int y);
+    int distSq();
+};
+```
+
+```c
+/* C generated */
+typedef struct Point {
+    int x;
+    int y;
+} Point;
+
+void Point_init__ii(Point* self, int x, int y);
+int  Point_distSq(Point* self);
+```
+
+**Rule:** every method gets a `self` pointer as its first parameter.
+
+### 3.2 Single Inheritance
+
+```cpp
+/* C++98 */
+class Animal { public: int age; };
+class Dog : public Animal { public: char name[32]; };
+```
+
+```c
+/* C generated */
+typedef struct Animal { int age; } Animal;
+
+typedef struct Dog {
+    Animal __base;    /* MUST be first field — enables safe cast */
+    char   name[32];
+} Dog;
+
+/* safe upcast: Dog* → Animal* is just (Animal*)dog_ptr */
+```
+
+### 3.3 Virtual Methods / Vtable
+
+```cpp
+/* C++98 */
+class Shape {
+public:
+    virtual double area() = 0;
+    virtual void   draw();
+};
+
+class Circle : public Shape {
+    double r;
+public:
+    double area() override;
+    void   draw() override;
+};
+```
+
+```c
+/* C generated */
+
+/* --- vtable type --- */
+typedef struct Shape_vtable {
+    double (*area)(void* self);
+    void   (*draw)(void* self);
+} Shape_vtable;
+
+/* --- base struct --- */
+typedef struct Shape {
+    Shape_vtable* __vptr;   /* always first field */
+} Shape;
+
+/* --- derived struct --- */
+typedef struct Circle {
+    Shape  __base;          /* vtable inherited via __base */
+    double r;
+} Circle;
+
+/* --- method implementations --- */
+double Circle_area(void* self) { /* ... */ }
+void   Circle_draw(void* self) { /* ... */ }
+
+/* --- vtable instance (one per class, static) --- */
+Shape_vtable __Circle_vtable = {
+    Circle_area,
+    Circle_draw,
+};
+
+/* --- constructor sets vptr --- */
+void Circle_init(Circle* self, double r) {
+    self->__base.__vptr = &__Circle_vtable;
+    self->r = r;
+}
+
+/* --- virtual call: shape->area() --- */
+/* emitted as: */
+shape->__base.__vptr->area(shape);
+```
+
+### 3.4 Multiple Inheritance (Offset Adjustment)
+
+```cpp
+class A { int x; };   /* size 4, offset 0 */
+class B { int y; };   /* size 4            */
+class C : public A, public B {};
+```
+
+```c
+typedef struct C {
+    A __base_A;   /* offset 0 */
+    B __base_B;   /* offset 4 ← B* must point HERE */
+} C;
+
+/* Upcast C* → B* requires pointer arithmetic */
+/* emitted by compiler at every implicit C*→B* conversion: */
+B* b_ptr = (B*)( (char*)c_ptr + offsetof(C, __base_B) );
+```
+
+> ⚠️ **Important:** track the offset of each base in the C++ compiler's
+> class layout table. Every implicit cast must emit the adjustment.
+
+---
+
+## Phase 4 — Exception Transpilation
+
+### 4.1 try / catch
+
+```cpp
+/* C++98 */
+try {
+    foo();
+    bar();
+} catch (MyException& e) {
+    handle(e);
+} catch (OtherException& e) {
+    recover(e);
+}
+```
+
+```c
+/* C generated */
+__exc_push();
+    foo();
+    if (!__exc_active()) bar();
+__exc_pop();
+
+if (__exc_active()) {
+    if (__exc_type() == EXC_MyException) {
+        MyException* e = (MyException*)__exc_data();
+        __exc_clear();
+        handle(e);
+    } else if (__exc_type() == EXC_OtherException) {
+        OtherException* e = (OtherException*)__exc_data();
+        __exc_clear();
+        recover(e);
+    }
+    /* if no catch matched, exception keeps propagating */
+}
+```
+
+> **Key rule:** after every `call` inside a try block, emit
+> `if (!__exc_active())` before continuing. The compiler must
+> insert these guards automatically when traversing the try body.
+
+### 4.2 throw
+
+```cpp
+throw MyException("error message");
+```
+
+```c
+MyException* __exc_obj = (MyException*)__malloc(sizeof(MyException));
+MyException_init__pchar(__exc_obj, "error message");
+__exc_throw(EXC_MyException, __exc_obj);
+/* unreachable — but emit no code after this */
+```
+
+### 4.3 Nested try
+
+```cpp
+try {
+    try { foo(); } catch (Inner& e) { bar(); }
+    baz();
+} catch (Outer& e) { qux(); }
+```
+
+```c
+/* outer */
+__exc_push();
+
+    /* inner */
+    __exc_push();
+        foo();
+    __exc_pop();
+    if (__exc_active()) {
+        if (__exc_type() == EXC_Inner) {
+            Inner* e = (Inner*)__exc_data();
+            __exc_clear();
+            bar();
+        }
+    }
+
+    if (!__exc_active()) baz();
+
+__exc_pop();
+if (__exc_active()) {
+    if (__exc_type() == EXC_Outer) {
+        Outer* e = (Outer*)__exc_data();
+        __exc_clear();
+        qux();
+    }
+}
+```
+
+---
+
+## Phase 5 — RAII / Constructors / Destructors
+
+### 5.1 Stack Objects
+
+```cpp
+void foo() {
+    MyObj obj("hello");   /* constructor */
+    bar();
+    /* destructor runs automatically at end of scope */
+}
+```
+
+```c
+void foo() {
+    MyObj obj;
+    MyObj_init__pchar(&obj, "hello");
+
+    bar();
+
+    /* destructor always runs — exception or not */
+    MyObj_destroy(&obj);
+}
+```
+
+For multiple objects, destroy in **reverse declaration order**:
+
+```c
+void foo() {
+    A a;  A_init(&a);
+    B b;  B_init(&b);
+    C c;  C_init(&c);
+
+    /* ... body ... */
+
+    C_destroy(&c);   /* reverse order */
+    B_destroy(&b);
+    A_destroy(&a);
+}
+```
+
+### 5.2 Copy Constructor and operator=
+
+```cpp
+MyObj b = a;          /* copy constructor */
+c = a;                /* operator=        */
+void fn(MyObj x) {}   /* pass by value → copy */
+fn(a);
+```
+
+```c
+MyObj b;
+MyObj_copy_init(&b, &a);      /* copy constructor */
+
+MyObj_assign(&c, &a);         /* operator= */
+
+/* pass by value → pass pointer + emit copy */
+MyObj __tmp;
+MyObj_copy_init(&__tmp, &a);
+fn(&tmp);
+MyObj_destroy(&__tmp);        /* destroy temp after call */
+```
+
+### 5.3 new / delete
+
+```cpp
+MyObj* p = new MyObj(42);
+delete p;
+
+int* arr = new int[10];
+delete[] arr;
+```
+
+```c
+MyObj* p = (MyObj*)__malloc(sizeof(MyObj));
+MyObj_init__i(p, 42);
+
+MyObj_destroy(p);
+__free(p);
+
+int* arr = (int*)__malloc(sizeof(int) * 10);
+
+__free(arr);   /* no element destructors for primitives */
+```
+
+---
+
+## Phase 6 — Templates
+
+### 6.1 Strategy: Clone AST + Substitute
+
+Templates are resolved **at compile time** — one C function per instantiation.
+
+```cpp
+template<typename T>
+T add(T a, T b) { return a + b; }
+
+add<int>(1, 2);
+add<float>(1.0f, 2.0f);
+```
+
+```c
+/* C generated — one function per instantiation */
+int   add__i(int a,   int b)   { return a + b; }
+float add__f(float a, float b) { return a + b; }
+```
+
+### 6.2 Template Classes
+
+```cpp
+template<typename T>
+class Stack {
+    T   data[100];
+    int top;
+public:
+    void push(T val);
+    T    pop();
+};
+
+Stack<int>   si;
+Stack<float> sf;
+```
+
+```c
+/* one struct per instantiation */
+typedef struct Stack__i { int   data[100]; int top; } Stack__i;
+typedef struct Stack__f { float data[100]; int top; } Stack__f;
+
+void Stack__i_push(Stack__i* self, int val)   { /* ... */ }
+int  Stack__i_pop (Stack__i* self)            { /* ... */ }
+
+void Stack__f_push(Stack__f* self, float val) { /* ... */ }
+float Stack__f_pop(Stack__f* self)            { /* ... */ }
+```
+
+### 6.3 Template Instantiation Algorithm (JavaScript)
+
+```javascript
+class TemplateInstantiator {
+  constructor() {
+    this.cache = new Map();  // "TemplName__typeCode" → emitted?
+  }
+
+  instantiate(templateDecl, typeArgs, emitter) {
+    const key = mangle(templateDecl.name, typeArgs);
+    if (this.cache.has(key)) return key;   // already emitted
+
+    // clone AST and substitute type parameters
+    const ast = cloneAST(templateDecl.body);
+    substituteTypes(ast, templateDecl.params, typeArgs);
+
+    // emit the concrete C code
+    emitter.emitFunction(key, ast);
+    this.cache.set(key, true);
+    return key;
+  }
+}
+```
+
+---
+
+## Phase 7 — Namespaces
+
+```cpp
+namespace Geo {
+    namespace D2 {
+        class Point { int x, y; };
+        void draw(Point& p);
+    }
+}
+
+Geo::D2::Point p;
+Geo::D2::draw(p);
+```
+
+```c
+/* flatten: namespace separator → __ */
+typedef struct Geo__D2__Point { int x; int y; } Geo__D2__Point;
+void Geo__D2__draw(Geo__D2__Point* p);
+```
+
+---
+
+## Phase 8 — Operator Overloading
+
+Map each operator to a mangled function name:
+
+| C++ Expression | C Generated |
+|---|---|
+| `a + b` | `T__add(&a, &b)` |
+| `a += b` | `T__iadd(&a, &b)` |
+| `a[i]` | `T__index(&a, i)` |
+| `*a` | `T__deref(&a)` |
+| `a()` | `T__call(&a, ...)` |
+| `cout << x` | `ostream__lshift(&cout, x)` |
+| `(bool)a` | `T__bool(&a)` |
+
+> **Watch out for implicit conversions:** `if (obj)` silently calls
+> `operator bool`. The type system pass must detect and insert these.
+
+---
+
+## Phase 9 — Static Members
+
+```cpp
+class Counter {
+    static int total;
+public:
+    static int getTotal();
+    Counter() { total++; }
+};
+int Counter::total = 0;
+```
+
+```c
+/* static member → global with mangled name */
+int Counter__total = 0;
+
+int Counter__getTotal() {
+    return Counter__total;
+}
+
+void Counter_init(Counter* self) {
+    Counter__total++;
+}
+```
+
+**Static local variable** (initialized only once):
+
+```cpp
+void foo() { static MyObj obj; }
+```
+
+```c
+void foo() {
+    static int      __obj_ready = 0;
+    static MyObj    obj;
+    if (!__obj_ready) {
+        MyObj_init(&obj);
+        __obj_ready = 1;
+    }
+}
+```
+
+---
+
+## Implementation Priority
+
+```
+Phase 1  ▓▓▓▓▓▓▓▓▓▓  runtime.wat skeleton          (do first — unblocks testing)
+Phase 3  ▓▓▓▓▓▓▓▓░░  class → struct                 (core feature)
+Phase 5  ▓▓▓▓▓▓▓░░░  constructors / destructors      (required for any class)
+Phase 4  ▓▓▓▓▓▓░░░░  try / catch / throw             (already designed)
+Phase 2  ▓▓▓▓▓░░░░░  sema / type system / mangling   (needed before Phase 6)
+Phase 6  ▓▓▓▓░░░░░░  templates                       (needed for STL-like code)
+Phase 7  ▓▓▓░░░░░░░  namespaces                      (straightforward)
+Phase 8  ▓▓▓░░░░░░░  operator overloading             (useful but deferrable)
+Phase 9  ▓▓░░░░░░░░  static members                  (low complexity, defer)
+```
+
+---
+
+## What to Leave Out (First Version)
+
+| Feature | Reason |
+|---|---|
+| Virtual inheritance / diamond | Very high complexity, rare in practice |
+| RTTI (`dynamic_cast`, `typeid`) | Requires runtime type tables |
+| Exception specifications (`throw(T)`) | Deprecated even in C++98 |
+| Full STL | Implement a minimal subset only if needed |
+
+Emit a **clear compiler error** for these — never silently miscompile.
+
+---
+
+## File Structure Suggestion
+
+```
+cpp-compiler/
+├── lexer.js              (ready — from your compiler-compiler)
+├── parser.js             (ready — from your compiler-compiler)
+├── symtable.js           (Phase 2)
+├── typesys.js            (Phase 2)
+├── mangle.js             (Phase 2)
+├── sema.js               (Phase 2 — walks AST, resolves types)
+├── emitter/
+│   ├── class.js          (Phase 3)
+│   ├── exceptions.js     (Phase 4)
+│   ├── constructors.js   (Phase 5)
+│   ├── templates.js      (Phase 6)
+│   ├── namespaces.js     (Phase 7)
+│   ├── operators.js      (Phase 8)
+│   └── statics.js        (Phase 9)
+├── compiler.js           (orchestrates all phases)
+└── runtime/
+    └── runtime.wat       (Phase 1 — handwritten)
+```
+
+---
+
+*Roadmap synthesized from design session — C++98 subset targeting C (extended) → WAT via existing C compiler.*
