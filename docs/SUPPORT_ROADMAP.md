@@ -71,6 +71,16 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - Emit non-stub bodies for core expressions/statements used by baseline tests.
    - Tighten behavior for parser failures (strict mode option).
 
+## Phase 4 Progress (Current)
+
+- Added source-backed global function extraction with body hints.
+- Implemented safe incremental lowering in C backend for simple global returns:
+   - pattern: `return <arith_expr_using_params>;`
+   - no function-call lowering yet (still stubbed for safety).
+- Added lowering regression fixture:
+   - `compiler/tests/fixtures/012_global_simple_return_lowering.cpp`
+   - Validates emitted body contains `return a + b;` for `add__ii`.
+
 4. WAT backend expansion:
    - Generate function stubs for global functions systematically.
    - Incremental lowering for arithmetic, calls, and local variable flow.

@@ -349,6 +349,31 @@ function stripClassLikeBlocks(segment) {
 function inferGlobalFunctions(source) {
   const functions = [];
 
+  function inferSimpleReturnExpr(body, params) {
+    const clean = String(body || '')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/.*$/gm, '')
+      .trim();
+
+    const m = clean.match(/^return\s+([^;]+);\s*$/);
+    if (!m) return null;
+    const expr = m[1].trim();
+    if (!expr) return null;
+
+    // Keep lowering conservative: no function calls, no namespace qualifiers.
+    if (/\b[A-Za-z_][A-Za-z0-9_]*\s*\(/.test(expr)) return null;
+    if (/::/.test(expr)) return null;
+
+    // Allow only identifiers from params and arithmetic/logic tokens.
+    const ids = expr.match(/[A-Za-z_][A-Za-z0-9_]*/g) || [];
+    const allowed = new Set((params || []).map((p) => p.name));
+    for (const id of ids) {
+      if (!allowed.has(id)) return null;
+    }
+
+    return expr;
+  }
+
   function scanSegment(segment, nsPath = []) {
     const nsRx = /\bnamespace\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{/g;
     let m;
@@ -371,12 +396,23 @@ function inferGlobalFunctions(source) {
       if (!name) continue;
       if (['if', 'for', 'while', 'switch', 'catch'].includes(name)) continue;
       const params = parseParamList(fm[4]);
+
+      const open = fm.index + fm[0].lastIndexOf('{');
+      const close = findMatchingBrace(plain, open);
+      const bodyText = close > open ? plain.slice(open + 1, close) : '';
+      const simpleReturnExpr = inferSimpleReturnExpr(bodyText, params);
+
       functions.push({
         name,
         returnType,
         params,
-        namespacePath: [...nsPath]
+        namespacePath: [...nsPath],
+        simpleReturnExpr
       });
+
+      if (close > open) {
+        fnRx.lastIndex = close + 1;
+      }
     }
   }
 
@@ -919,11 +955,15 @@ class CppToCTranspiler {
       const mangled = mangle(fn.name, sigTypes, null, fn.namespacePath || []);
       this.em.line(`${fn.returnType} ${mangled}(${paramsText || 'void'}) {`);
       this.em.level += 1;
-      for (const p of fn.params || []) {
-        this.em.line(`(void)${p.name};`);
-      }
-      if (fn.returnType !== 'void') {
-        this.em.line(`return (${fn.returnType})0;`);
+      if (fn.simpleReturnExpr && fn.returnType !== 'void') {
+        this.em.line(`return ${fn.simpleReturnExpr};`);
+      } else {
+        for (const p of fn.params || []) {
+          this.em.line(`(void)${p.name};`);
+        }
+        if (fn.returnType !== 'void') {
+          this.em.line(`return (${fn.returnType})0;`);
+        }
       }
       this.em.level -= 1;
       this.em.line('}');
