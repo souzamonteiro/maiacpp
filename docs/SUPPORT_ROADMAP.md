@@ -260,8 +260,17 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
 - Replaced whole-body regex matching for the first deterministic helper group with a structured local evaluator:
    - parses a small statement subset for no-param `int` helpers
    - evaluates local int bindings, simple object construction (`C x(...)`), `Box<int>` index assignment/access, direct method calls (`obj.get()` / `obj.value()`), arithmetic/comparison/conjunction, and `execute(..., add|multiply)`.
-- Current limitation remains explicit for harder runtime helpers:
-   - `casts` and `new/delete/placement-new` are still recognized through constrained fallback patterns while full semantic lowering is pending.
+
+## Phase 23 Progress (Current)
+
+- Extended the structured helper evaluator to cover the remaining baseline runtime helpers:
+   - `new T(...)` for constrained object/int allocation cases
+   - `dynamic_cast<Derived*>(ptr)` success path for known allocated object identity
+   - `static_cast<int>(float_literal)` truncation behavior
+   - pointer dereference, arrow method calls, `delete`, explicit destructor call, and placement-new on a local buffer.
+- Added focused fixture:
+   - `compiler/tests/fixtures/036_wat_structured_cast_newdelete_helpers.cpp`
+   - Ensures `run_cast_tests` and `run_new_delete_tests` are proven through the structured evaluator path and no longer emitted as trivial zero stubs.
 
 4. WAT backend expansion:
    - Generate function stubs for global functions systematically.

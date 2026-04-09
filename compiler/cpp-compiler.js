@@ -605,7 +605,51 @@ function inferGlobalFunctions(source) {
       return out;
     }
 
+    function parseIfStatement(text) {
+      const t = String(text || '');
+      const head = t.match(/^if\s*\(/);
+      if (!head) return null;
+      let i = head[0].length;
+      let depthParen = 1;
+      for (; i < t.length; i += 1) {
+        const ch = t[i];
+        if (ch === '(') depthParen += 1;
+        else if (ch === ')') {
+          depthParen -= 1;
+          if (depthParen === 0) break;
+        }
+      }
+      if (depthParen !== 0) return null;
+      const condText = t.slice(head[0].length, i).trim();
+      let j = i + 1;
+      while (j < t.length && /\s/.test(t[j])) j += 1;
+      if (t[j] !== '{') return null;
+      let depthBrace = 1;
+      let k = j + 1;
+      for (; k < t.length; k += 1) {
+        const ch = t[k];
+        if (ch === '{') depthBrace += 1;
+        else if (ch === '}') {
+          depthBrace -= 1;
+          if (depthBrace === 0) break;
+        }
+      }
+      if (depthBrace !== 0) return null;
+      return {
+        condText,
+        blockText: t.slice(j + 1, k),
+        consumed: k + 1
+      };
+    }
+
     const env = new Map();
+
+    function asComparableInt(value) {
+      if (!value) return null;
+      if (value.kind === 'int') return value.value | 0;
+      if (value.kind === 'pointer') return value.target ? 1 : 0;
+      return null;
+    }
 
     function evalExpr(exprText) {
       const expr = trimOuterParens(exprText);
@@ -613,6 +657,10 @@ function inferGlobalFunctions(source) {
 
       if (/^[-+]?\d+$/.test(expr)) {
         return { kind: 'int', value: Number.parseInt(expr, 10) | 0 };
+      }
+
+      if (/^[-+]?(?:\d+\.\d*|\d*\.\d+)$/.test(expr)) {
+        return { kind: 'float', value: Number.parseFloat(expr) };
       }
 
       if (/^(add|multiply|execute)$/.test(expr)) {
@@ -627,6 +675,24 @@ function inferGlobalFunctions(source) {
       if (methodCall) {
         const obj = env.get(methodCall[1]);
         if (obj && obj.kind === 'object') return { kind: 'int', value: obj.value | 0 };
+        return null;
+      }
+
+      const arrowMethod = expr.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*->\s*(get|value)\s*\(\s*\)$/);
+      if (arrowMethod) {
+        const obj = env.get(arrowMethod[1]);
+        if (obj && obj.kind === 'pointer' && obj.target && obj.target.kind === 'object') {
+          return { kind: 'int', value: obj.target.value | 0 };
+        }
+        return null;
+      }
+
+      const deref = expr.match(/^\*\s*([A-Za-z_][A-Za-z0-9_]*)$/);
+      if (deref) {
+        const ptr = env.get(deref[1]);
+        if (ptr && ptr.kind === 'pointer' && ptr.target && ptr.target.kind === 'int') {
+          return { kind: 'int', value: ptr.target.value | 0 };
+        }
         return null;
       }
 
@@ -650,8 +716,20 @@ function inferGlobalFunctions(source) {
       if (eqSplit) {
         const left = evalExpr(eqSplit[0]);
         const right = evalExpr(eqSplit[1]);
-        if (!left || !right || left.kind !== 'int' || right.kind !== 'int') return null;
-        return { kind: 'int', value: left.value === right.value ? 1 : 0 };
+        const leftValue = asComparableInt(left);
+        const rightValue = asComparableInt(right);
+        if (leftValue == null || rightValue == null) return null;
+        return { kind: 'int', value: leftValue === rightValue ? 1 : 0 };
+      }
+
+      const neSplit = splitTopLevel(expr, '!=');
+      if (neSplit) {
+        const left = evalExpr(neSplit[0]);
+        const right = evalExpr(neSplit[1]);
+        const leftValue = asComparableInt(left);
+        const rightValue = asComparableInt(right);
+        if (leftValue == null || rightValue == null) return null;
+        return { kind: 'int', value: leftValue !== rightValue ? 1 : 0 };
       }
 
       const plusSplit = splitTopLevel(expr, '+');
@@ -679,17 +757,78 @@ function inferGlobalFunctions(source) {
         }
       }
 
+      const dynamicCast = expr.match(/^dynamic_cast\s*<\s*([A-Za-z_][A-Za-z0-9_]*)\s*\*\s*>\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)$/);
+      if (dynamicCast) {
+        const ptr = env.get(dynamicCast[2]);
+        if (ptr && ptr.kind === 'pointer' && ptr.target && ptr.target.kind === 'object' && ptr.target.className === dynamicCast[1]) {
+          return { kind: 'pointer', target: ptr.target };
+        }
+        return { kind: 'int', value: 0 };
+      }
+
+      const staticCastInt = expr.match(/^static_cast\s*<\s*int\s*>\s*\(\s*([^\)]+)\s*\)$/);
+      if (staticCastInt) {
+        const value = evalExpr(staticCastInt[1]);
+        if (!value) return null;
+        if (value.kind === 'float') {
+          return { kind: 'int', value: value.value < 0 ? Math.ceil(value.value) : Math.floor(value.value) };
+        }
+        if (value.kind === 'int') return { kind: 'int', value: value.value | 0 };
+        return null;
+      }
+
       return null;
     }
 
     let rest = clean;
     while (rest.length > 0) {
+      const pointerNewDerived = rest.match(/^(?:[A-Za-z_][A-Za-z0-9_:<>]*)\*\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*new\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*([^\)]+)\s*\)\s*;\s*/);
+      if (pointerNewDerived && pointerNewDerived[2] !== 'int') {
+        const value = evalExpr(pointerNewDerived[3]);
+        if (!value || value.kind !== 'int') break;
+        env.set(pointerNewDerived[1], {
+          kind: 'pointer',
+          target: { kind: 'object', className: pointerNewDerived[2], value: value.value | 0 }
+        });
+        rest = rest.slice(pointerNewDerived[0].length).trim();
+        continue;
+      }
+
+      const pointerNewInt = rest.match(/^int\*\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*new\s+int\s*\(\s*([^\)]+)\s*\)\s*;\s*/);
+      if (pointerNewInt) {
+        const value = evalExpr(pointerNewInt[2]);
+        if (!value || value.kind !== 'int') break;
+        env.set(pointerNewInt[1], { kind: 'pointer', target: { kind: 'int', value: value.value | 0 } });
+        rest = rest.slice(pointerNewInt[0].length).trim();
+        continue;
+      }
+
       const objectCtor = rest.match(/^C\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*([^\)]+)\s*\)\s*;\s*/);
       if (objectCtor) {
         const value = evalExpr(objectCtor[2]);
         if (!value || value.kind !== 'int') break;
         env.set(objectCtor[1], { kind: 'object', className: 'C', value: value.value | 0 });
         rest = rest.slice(objectCtor[0].length).trim();
+        continue;
+      }
+
+      const charBuffer = rest.match(/^char\s+([A-Za-z_][A-Za-z0-9_]*)\s*\[\s*sizeof\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*\]\s*;\s*/);
+      if (charBuffer) {
+        env.set(charBuffer[1], { kind: 'buffer', typeName: charBuffer[2] });
+        rest = rest.slice(charBuffer[0].length).trim();
+        continue;
+      }
+
+      const placementNew = rest.match(/^([A-Za-z_][A-Za-z0-9_:<>]*)\*\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*new\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*([^\)]+)\s*\)\s*;\s*/);
+      if (placementNew) {
+        const value = evalExpr(placementNew[5]);
+        const buffer = env.get(placementNew[3]);
+        if (!value || value.kind !== 'int' || !buffer || buffer.kind !== 'buffer') break;
+        env.set(placementNew[2], {
+          kind: 'pointer',
+          target: { kind: 'object', className: placementNew[4], value: value.value | 0, storage: 'placement' }
+        });
+        rest = rest.slice(placementNew[0].length).trim();
         continue;
       }
 
@@ -709,6 +848,15 @@ function inferGlobalFunctions(source) {
         continue;
       }
 
+      const pointerLocal = rest.match(/^([A-Za-z_][A-Za-z0-9_:<>]*)\*\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^;]+);\s*/);
+      if (pointerLocal) {
+        const value = evalExpr(pointerLocal[3]);
+        if (!value || value.kind !== 'pointer') break;
+        env.set(pointerLocal[2], value);
+        rest = rest.slice(pointerLocal[0].length).trim();
+        continue;
+      }
+
       const boxAssign = rest.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*\[\s*(\d+)\s*\]\s*=\s*([^;]+);\s*/);
       if (boxAssign) {
         const box = env.get(boxAssign[1]);
@@ -716,6 +864,36 @@ function inferGlobalFunctions(source) {
         if (!box || box.kind !== 'box_int' || !value || value.kind !== 'int') break;
         box.items.set(Number.parseInt(boxAssign[2], 10) | 0, value.value | 0);
         rest = rest.slice(boxAssign[0].length).trim();
+        continue;
+      }
+
+      const deleteStmt = rest.match(/^delete\s+([A-Za-z_][A-Za-z0-9_]*)\s*;\s*/);
+      if (deleteStmt) {
+        const value = env.get(deleteStmt[1]);
+        if (value && value.kind === 'pointer') value.deleted = true;
+        rest = rest.slice(deleteStmt[0].length).trim();
+        continue;
+      }
+
+      const dtorStmt = rest.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*->\s*~\s*([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*\)\s*;\s*/);
+      if (dtorStmt) {
+        const value = env.get(dtorStmt[1]);
+        if (!value || value.kind !== 'pointer' || !value.target || value.target.kind !== 'object') break;
+        value.target.destroyed = true;
+        rest = rest.slice(dtorStmt[0].length).trim();
+        continue;
+      }
+
+      const ifBlock = parseIfStatement(rest);
+      if (ifBlock) {
+        const cond = evalExpr(ifBlock.condText);
+        if (!cond || cond.kind !== 'int') break;
+        if (cond.value !== 0) {
+          const thenResult = inferDeterministicNoParamI32Return(ifBlock.blockText, []);
+          if (Number.isInteger(thenResult)) return thenResult | 0;
+          break;
+        }
+        rest = rest.slice(ifBlock.consumed).trim();
         continue;
       }
 
@@ -732,31 +910,6 @@ function inferGlobalFunctions(source) {
       }
 
       break;
-    }
-
-    const cleanFlat = clean.replace(/\s+/g, ' ');
-
-    // Pattern: cast test with dynamic_cast check, value check and static_cast truncation check.
-    const castTest = cleanFlat.match(/^BBase\*\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*new\s+DDerived\s*\(\s*([-+]?\d+)\s*\)\s*;\s*DDerived\*\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*dynamic_cast\s*<\s*DDerived\*\s*>\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*\)\s*;\s*int\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*static_cast\s*<\s*int\s*>\s*\(\s*([0-9]+(?:\.[0-9]+)?)\s*\)\s*;\s*if\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*==\s*0\s*\)\s*\{\s*delete\s+[A-Za-z_][A-Za-z0-9_]*\s*;\s*return\s+0\s*;\s*\}\s*if\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*->\s*value\s*\(\s*\)\s*!=\s*([-+]?\d+)\s*\)\s*\{\s*delete\s+[A-Za-z_][A-Za-z0-9_]*\s*;\s*return\s+0\s*;\s*\}\s*if\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*!=\s*([-+]?\d+)\s*\)\s*\{\s*delete\s+[A-Za-z_][A-Za-z0-9_]*\s*;\s*return\s+0\s*;\s*\}\s*delete\s+[A-Za-z_][A-Za-z0-9_]*\s*;\s*return\s+1\s*;\s*$/);
-    if (castTest) {
-      const ctorValue = Number.parseInt(castTest[1], 10) | 0;
-      const castLiteral = Number.parseFloat(castTest[2]);
-      const expectedValue = Number.parseInt(castTest[3], 10) | 0;
-      const expectedCast = Number.parseInt(castTest[4], 10) | 0;
-      const dynCastOk = 1; // new DDerived(...) makes dynamic_cast<DDerived*> non-null in this constrained pattern.
-      const observedValue = ctorValue;
-      const observedCast = castLiteral < 0 ? Math.ceil(castLiteral) : Math.floor(castLiteral);
-      return (dynCastOk && observedValue === expectedValue && observedCast === expectedCast) ? 1 : 0;
-    }
-
-    // Pattern: new/delete + placement-new with getter equality check.
-    const newDelete = cleanFlat.match(/^int\*\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*new\s+int\s*\(\s*([-+]?\d+)\s*\)\s*;\s*if\s*\(\s*\*[A-Za-z_][A-Za-z0-9_]*\s*!=\s*([-+]?\d+)\s*\)\s*\{\s*delete\s+[A-Za-z_][A-Za-z0-9_]*\s*;\s*return\s+0\s*;\s*\}\s*delete\s+[A-Za-z_][A-Za-z0-9_]*\s*;\s*char\s+[A-Za-z_][A-Za-z0-9_]*\s*\[\s*sizeof\s*\(\s*P\s*\)\s*\]\s*;\s*P\*\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*new\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*\)\s*P\s*\(\s*([-+]?\d+)\s*\)\s*;\s*int\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*[A-Za-z_][A-Za-z0-9_]*\s*->\s*get\s*\(\s*\)\s*;\s*[A-Za-z_][A-Za-z0-9_]*\s*->\s*~\s*P\s*\(\s*\)\s*;\s*return\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*==\s*([-+]?\d+)\s*\)\s*\?\s*1\s*:\s*0\s*;\s*$/);
-    if (newDelete) {
-      const newIntValue = Number.parseInt(newDelete[1], 10) | 0;
-      const expectedDeref = Number.parseInt(newDelete[2], 10) | 0;
-      const pValue = Number.parseInt(newDelete[3], 10) | 0;
-      const expectedFinal = Number.parseInt(newDelete[4], 10) | 0;
-      return (newIntValue === expectedDeref && pValue === expectedFinal) ? 1 : 0;
     }
 
     return null;
