@@ -286,6 +286,111 @@ function inferClassNamespaceMap(source) {
   return map;
 }
 
+function normalizeTypeText(type) {
+  const t = (type || '')
+    .replace(/\b(public|private|protected)\b\s*:/g, '')
+    .replace(/\bconst\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!t) return 'int';
+  if (t.endsWith('&')) {
+    return `${t.slice(0, -1).trim()}*`;
+  }
+  if (t === 'bool') return 'int';
+  if (t === 'std::string') return 'char*';
+  return t;
+}
+
+function parseParamList(paramListText) {
+  const text = (paramListText || '').trim();
+  if (!text || text === 'void') return [];
+  const raw = text.split(',').map((s) => s.trim()).filter(Boolean);
+  const params = [];
+  for (let i = 0; i < raw.length; i += 1) {
+    const p = raw[i].replace(/\s+/g, ' ').trim();
+    const match = p.match(/^(.*?)([A-Za-z_][A-Za-z0-9_]*)$/);
+    if (!match) {
+      params.push({ type: normalizeTypeText(p), name: `p${i + 1}` });
+      continue;
+    }
+    params.push({
+      type: normalizeTypeText(match[1].trim()),
+      name: match[2].trim()
+    });
+  }
+  return params;
+}
+
+function stripClassLikeBlocks(segment) {
+  const text = String(segment || '');
+  let out = '';
+  for (let i = 0; i < text.length;) {
+    const classMatch = text.slice(i).match(/^\s*(class|struct|union)\s+[A-Za-z_][A-Za-z0-9_]*[^\{]*\{/);
+    if (!classMatch) {
+      out += text[i];
+      i += 1;
+      continue;
+    }
+    const offset = classMatch.index || 0;
+    out += text.slice(i, i + offset);
+    const open = i + offset + classMatch[0].lastIndexOf('{');
+    const close = findMatchingBrace(text, open);
+    if (close < 0) {
+      // If malformed, keep original tail.
+      out += text.slice(i + offset);
+      break;
+    }
+    out += '\n';
+    i = close + 1;
+  }
+  return out;
+}
+
+function inferGlobalFunctions(source) {
+  const functions = [];
+
+  function scanSegment(segment, nsPath = []) {
+    const nsRx = /\bnamespace\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{/g;
+    let m;
+    while ((m = nsRx.exec(segment)) !== null) {
+      const nsName = m[1];
+      const braceIndex = nsRx.lastIndex - 1;
+      const close = findMatchingBrace(segment, braceIndex);
+      if (close < 0) continue;
+      const body = segment.slice(braceIndex + 1, close);
+      scanSegment(body, [...nsPath, nsName]);
+      nsRx.lastIndex = close + 1;
+    }
+
+    const plain = stripClassLikeBlocks(segment);
+    const fnRx = /(^|[;\n])\s*([A-Za-z_][A-Za-z0-9_:<>\s\*&]+?)\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^()]*)\)\s*(?:const\s*)?\{/g;
+    let fm;
+    while ((fm = fnRx.exec(plain)) !== null) {
+      const returnType = normalizeTypeText(fm[2]);
+      const name = (fm[3] || '').trim();
+      if (!name) continue;
+      if (['if', 'for', 'while', 'switch', 'catch'].includes(name)) continue;
+      const params = parseParamList(fm[4]);
+      functions.push({
+        name,
+        returnType,
+        params,
+        namespacePath: [...nsPath]
+      });
+    }
+  }
+
+  scanSegment(String(source || ''), []);
+
+  // De-duplicate by namespace + name + arity.
+  const unique = new Map();
+  for (const fn of functions) {
+    const key = `${(fn.namespacePath || []).join('::')}::${fn.name}/${(fn.params || []).length}`;
+    if (!unique.has(key)) unique.set(key, fn);
+  }
+  return Array.from(unique.values());
+}
+
 class CEmitter {
   constructor() {
     this.lines = [];
@@ -480,14 +585,18 @@ class SimpleAnalyzer {
 
   analyze() {
     const classes = this.extractClasses();
+    const functions = inferGlobalFunctions(this.content);
     const symbols = new SymbolTable();
     for (const [className, cls] of classes) {
       symbols.define(className, new Symbol(SymbolKind.CLASS, className, cls));
     }
+    for (const fn of functions) {
+      symbols.define(fn.name, new Symbol(SymbolKind.FUNCTION, fn.name, new FunctionType(BUILTIN_TYPES.int, [])));
+    }
     return {
       symbols,
       classes,
-      functions: []
+      functions
     };
   }
 
@@ -655,6 +764,7 @@ class CppToCTranspiler {
   transpile() {
     this.emitHeaders();
     this.emitClasses();
+    this.emitGlobalFunctionStubs();
     return this.em.code();
   }
 
@@ -789,6 +899,37 @@ class CppToCTranspiler {
       this.em.line();
     }
   }
+
+  emitGlobalFunctionStubs() {
+    const fns = Array.isArray(this.analysis.functions) ? this.analysis.functions : [];
+    if (fns.length === 0) return;
+
+    this.em.line('/* Global function stubs */');
+    for (const fn of fns) {
+      const sigTypes = (fn.params || []).map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
+      const paramsText = this.formatParams(fn.params || [], true);
+      const mangled = mangle(fn.name, sigTypes, null, fn.namespacePath || []);
+      this.em.line(`${fn.returnType} ${mangled}(${paramsText || 'void'});`);
+    }
+    this.em.line();
+
+    for (const fn of fns) {
+      const sigTypes = (fn.params || []).map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
+      const paramsText = this.formatParams(fn.params || [], true);
+      const mangled = mangle(fn.name, sigTypes, null, fn.namespacePath || []);
+      this.em.line(`${fn.returnType} ${mangled}(${paramsText || 'void'}) {`);
+      this.em.level += 1;
+      for (const p of fn.params || []) {
+        this.em.line(`(void)${p.name};`);
+      }
+      if (fn.returnType !== 'void') {
+        this.em.line(`return (${fn.returnType})0;`);
+      }
+      this.em.level -= 1;
+      this.em.line('}');
+      this.em.line();
+    }
+  }
 }
 
 class WatEmitter {
@@ -824,6 +965,7 @@ class CppToWatTranspiler {
     this.emitImports();
     this.emitMemory();
     this.emitClassMethodStubs();
+    this.emitGlobalFunctionStubs();
     this.emitMainStub();
     this.em.level -= 1;
     this.em.line(')');
@@ -895,6 +1037,34 @@ class CppToWatTranspiler {
         this.em.level -= 1;
         this.em.line(')');
       }
+    }
+    this.em.line();
+  }
+
+  emitGlobalFunctionStubs() {
+    const fns = Array.isArray(this.analysis.functions) ? this.analysis.functions : [];
+    if (fns.length === 0) return;
+
+    this.em.line(';; Global function stubs extracted from analysis');
+    for (const fn of fns) {
+      const sigTypes = (fn.params || []).map((p) => ({ kind: 'int', name: p.type }));
+      const fnName = mangle(fn.name, sigTypes, null, fn.namespacePath || []);
+      const resultType = this.mapCTypeToWat(fn.returnType);
+      const params = [];
+      for (let i = 0; i < (fn.params || []).length; i += 1) {
+        const p = fn.params[i];
+        params.push(`(param $${p.name || `p${i + 1}`} ${this.mapCTypeToWat(p.type) || 'i32'})`);
+      }
+
+      this.em.line(`(func $${fnName} (export "${fnName}") ${params.join(' ')}${resultType ? ` (result ${resultType})` : ''}`);
+      this.em.level += 1;
+      if (resultType === 'f32') this.em.line('f32.const 0');
+      else if (resultType === 'f64') this.em.line('f64.const 0');
+      else if (resultType === 'i64') this.em.line('i64.const 0');
+      else if (resultType === 'i32') this.em.line('i32.const 0');
+      else this.em.line('nop');
+      this.em.level -= 1;
+      this.em.line(')');
     }
     this.em.line();
   }
@@ -981,10 +1151,22 @@ class Cpp98Compiler {
   }
 
   applySourceClassHints(analysis, source) {
-    if (!analysis || !analysis.classes || analysis.classes.size === 0) return;
+    if (!analysis) return;
 
     const nsMap = inferClassNamespaceMap(source);
     const fallback = new SimpleAnalyzer(this.filePath).analyze();
+
+    if ((!analysis.functions || analysis.functions.length === 0) && fallback.functions && fallback.functions.length > 0) {
+      analysis.functions = fallback.functions.map((f) => ({
+        ...f,
+        params: (f.params || []).map((p) => ({ ...p })),
+        namespacePath: [...(f.namespacePath || [])]
+      }));
+    }
+
+    if (!analysis.classes || analysis.classes.size === 0) {
+      return;
+    }
 
     for (const [className, cls] of analysis.classes) {
       if (!cls) continue;

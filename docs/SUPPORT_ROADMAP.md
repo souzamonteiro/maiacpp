@@ -59,9 +59,13 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
 - Class metadata now carries `namespacePath` and defines fully-qualified class symbols.
 - C/WAT stub emission now passes namespace path into mangling for class method symbols.
 - Added source-backed semantic hints to fill class members/methods/constructors when parse-tree metadata is partial.
+- Added source-backed extraction for global functions with namespace path and stub emission in C/WAT backends.
 - Added namespace mangling regression fixture:
    - `compiler/tests/fixtures/010_namespace_class_mangling.cpp`
    - Validates namespace-prefixed class symbols (`N_C_init`, `N_C_destroy`, `N_C_m`) in compiler output.
+- Added global namespace function regression fixture:
+   - `compiler/tests/fixtures/011_namespace_global_function.cpp`
+   - Validates namespace-prefixed global function symbol (`N_add__ii`) in compiler output.
 
 3. Codegen C expansion:
    - Emit non-stub bodies for core expressions/statements used by baseline tests.

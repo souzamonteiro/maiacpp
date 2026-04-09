@@ -1,0 +1,9 @@
+namespace N {
+int add(int a, int b) {
+    return a + b;
+}
+}
+
+int main() {
+    return N::add(1, 2);
+}
