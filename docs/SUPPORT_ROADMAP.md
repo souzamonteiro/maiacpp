@@ -81,6 +81,15 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - `compiler/tests/fixtures/012_global_simple_return_lowering.cpp`
    - Validates emitted body contains `return a + b;` for `add__ii`.
 
+## Phase 5 Progress (Current)
+
+- Implemented safe lowering for simple global call returns:
+   - pattern: `return foo(arg1, arg2, ...);`
+   - resolves and rewrites callee to mangled global symbol when available.
+- Added call-lowering regression fixture:
+   - `compiler/tests/fixtures/013_global_call_lowering.cpp`
+   - Validates emitted call `return add__ii(x, y);` inside `sum2__ii`.
+
 4. WAT backend expansion:
    - Generate function stubs for global functions systematically.
    - Incremental lowering for arithmetic, calls, and local variable flow.

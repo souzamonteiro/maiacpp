@@ -374,6 +374,32 @@ function inferGlobalFunctions(source) {
     return expr;
   }
 
+  function inferSimpleReturnCall(body, params) {
+    const clean = String(body || '')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/.*$/gm, '')
+      .trim();
+
+    const m = clean.match(/^return\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^()]*)\)\s*;\s*$/);
+    if (!m) return null;
+
+    const callee = m[1].trim();
+    const argsText = (m[2] || '').trim();
+    const args = argsText ? argsText.split(',').map((s) => s.trim()).filter(Boolean) : [];
+
+    const allowed = new Set((params || []).map((p) => p.name));
+    for (const arg of args) {
+      if (/^[0-9]+$/.test(arg)) continue;
+      if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(arg)) return null;
+      if (!allowed.has(arg)) return null;
+    }
+
+    return {
+      callee,
+      args
+    };
+  }
+
   function scanSegment(segment, nsPath = []) {
     const nsRx = /\bnamespace\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{/g;
     let m;
@@ -401,13 +427,15 @@ function inferGlobalFunctions(source) {
       const close = findMatchingBrace(plain, open);
       const bodyText = close > open ? plain.slice(open + 1, close) : '';
       const simpleReturnExpr = inferSimpleReturnExpr(bodyText, params);
+      const simpleReturnCall = inferSimpleReturnCall(bodyText, params);
 
       functions.push({
         name,
         returnType,
         params,
         namespacePath: [...nsPath],
-        simpleReturnExpr
+        simpleReturnExpr,
+        simpleReturnCall
       });
 
       if (close > open) {
@@ -957,6 +985,9 @@ class CppToCTranspiler {
       this.em.level += 1;
       if (fn.simpleReturnExpr && fn.returnType !== 'void') {
         this.em.line(`return ${fn.simpleReturnExpr};`);
+      } else if (fn.simpleReturnCall && fn.returnType !== 'void') {
+        const lowered = this.lowerSimpleReturnCall(fn, fns);
+        this.em.line(`return ${lowered};`);
       } else {
         for (const p of fn.params || []) {
           this.em.line(`(void)${p.name};`);
@@ -969,6 +1000,37 @@ class CppToCTranspiler {
       this.em.line('}');
       this.em.line();
     }
+  }
+
+  lowerSimpleReturnCall(fn, allFns) {
+    const call = fn.simpleReturnCall;
+    if (!call || !call.callee) return '(int)0';
+
+    const match = this.resolveGlobalFunction(call.callee, (call.args || []).length, fn.namespacePath || [], allFns);
+    if (!match) {
+      return `${call.callee}(${(call.args || []).join(', ')})`;
+    }
+
+    const sigTypes = (match.params || []).map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
+    const calleeMangled = mangle(match.name, sigTypes, null, match.namespacePath || []);
+    return `${calleeMangled}(${(call.args || []).join(', ')})`;
+  }
+
+  resolveGlobalFunction(name, arity, namespacePath, allFns) {
+    const list = Array.isArray(allFns) ? allFns : [];
+    const sameNs = list.find((f) => f.name === name && (f.params || []).length === arity && this.sameNs(f.namespacePath || [], namespacePath || []));
+    if (sameNs) return sameNs;
+    const globalNs = list.find((f) => f.name === name && (f.params || []).length === arity && (f.namespacePath || []).length === 0);
+    if (globalNs) return globalNs;
+    return list.find((f) => f.name === name && (f.params || []).length === arity) || null;
+  }
+
+  sameNs(a, b) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i += 1) {
+      if (a[i] !== b[i]) return false;
+    }
+    return true;
   }
 }
 
