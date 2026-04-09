@@ -255,6 +255,14 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - `compiler/tests/fixtures/035_wat_deterministic_baseline_helpers.cpp`
    - Ensures helper functions are no longer emitted as trivial `i32.const 0` stubs.
 
+## Phase 22 Progress (Current)
+
+- Replaced whole-body regex matching for the first deterministic helper group with a structured local evaluator:
+   - parses a small statement subset for no-param `int` helpers
+   - evaluates local int bindings, simple object construction (`C x(...)`), `Box<int>` index assignment/access, direct method calls (`obj.get()` / `obj.value()`), arithmetic/comparison/conjunction, and `execute(..., add|multiply)`.
+- Current limitation remains explicit for harder runtime helpers:
+   - `casts` and `new/delete/placement-new` are still recognized through constrained fallback patterns while full semantic lowering is pending.
+
 4. WAT backend expansion:
    - Generate function stubs for global functions systematically.
    - Incremental lowering for arithmetic, calls, and local variable flow.

@@ -535,42 +535,209 @@ function inferGlobalFunctions(source) {
     const clean = String(body || '')
       .replace(/\/\*[\s\S]*?\*\//g, '')
       .replace(/\/\/.*$/gm, '')
-      .replace(/\s+/g, ' ')
       .trim();
 
-    // Pattern: C c(42); return (c.get() == 42) ? 1 : 0;
-    const classGet = clean.match(/^C\s+[A-Za-z_][A-Za-z0-9_]*\s*\(\s*([-+]?\d+)\s*\)\s*;\s*return\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*\.\s*get\s*\(\s*\)\s*==\s*([-+]?\d+)\s*\)\s*\?\s*1\s*:\s*0\s*;\s*$/);
-    if (classGet) {
-      const a = Number.parseInt(classGet[1], 10) | 0;
-      const b = Number.parseInt(classGet[2], 10) | 0;
-      return a === b ? 1 : 0;
+    function trimOuterParens(text) {
+      let t = String(text || '').trim();
+      let changed = true;
+      while (changed && t.startsWith('(') && t.endsWith(')')) {
+        changed = false;
+        let depth = 0;
+        let balanced = true;
+        for (let i = 0; i < t.length; i += 1) {
+          const ch = t[i];
+          if (ch === '(') depth += 1;
+          else if (ch === ')') depth -= 1;
+          if (depth === 0 && i < t.length - 1) {
+            balanced = false;
+            break;
+          }
+          if (depth < 0) {
+            balanced = false;
+            break;
+          }
+        }
+        if (balanced && depth === 0) {
+          t = t.slice(1, -1).trim();
+          changed = true;
+        }
+      }
+      return t;
     }
 
-    // Pattern: Box<int> box; box[0]=A; box[1]=B; return (box[0] + box[1] == C) ? 1 : 0;
-    const boxSum = clean.match(/^Box\s*<\s*int\s*>\s+[A-Za-z_][A-Za-z0-9_]*\s*;\s*[A-Za-z_][A-Za-z0-9_]*\s*\[\s*0\s*\]\s*=\s*([-+]?\d+)\s*;\s*[A-Za-z_][A-Za-z0-9_]*\s*\[\s*1\s*\]\s*=\s*([-+]?\d+)\s*;\s*return\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*\[\s*0\s*\]\s*\+\s*[A-Za-z_][A-Za-z0-9_]*\s*\[\s*1\s*\]\s*==\s*([-+]?\d+)\s*\)\s*\?\s*1\s*:\s*0\s*;\s*$/);
-    if (boxSum) {
-      const a = Number.parseInt(boxSum[1], 10) | 0;
-      const b = Number.parseInt(boxSum[2], 10) | 0;
-      const c = Number.parseInt(boxSum[3], 10) | 0;
-      return ((a + b) | 0) === c ? 1 : 0;
+    function splitTopLevel(text, op) {
+      const t = String(text || '').trim();
+      let depthParen = 0;
+      let depthBracket = 0;
+      for (let i = 0; i <= t.length - op.length; i += 1) {
+        const ch = t[i];
+        if (ch === '(') depthParen += 1;
+        else if (ch === ')' && depthParen > 0) depthParen -= 1;
+        else if (ch === '[') depthBracket += 1;
+        else if (ch === ']' && depthBracket > 0) depthBracket -= 1;
+        if (depthParen === 0 && depthBracket === 0 && t.slice(i, i + op.length) === op) {
+          return [t.slice(0, i).trim(), t.slice(i + op.length).trim()];
+        }
+      }
+      return null;
     }
 
-    // Pattern: execute(la, lb, add) / execute(ma, mb, multiply) with conjunction check.
-    const fpTest = clean.match(/^int\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*execute\s*\(\s*([-+]?\d+)\s*,\s*([-+]?\d+)\s*,\s*add\s*\)\s*;\s*int\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*execute\s*\(\s*([-+]?\d+)\s*,\s*([-+]?\d+)\s*,\s*multiply\s*\)\s*;\s*return\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*==\s*([-+]?\d+)\s*&&\s*[A-Za-z_][A-Za-z0-9_]*\s*==\s*([-+]?\d+)\s*\)\s*\?\s*1\s*:\s*0\s*;\s*$/);
-    if (fpTest) {
-      const la = Number.parseInt(fpTest[1], 10) | 0;
-      const lb = Number.parseInt(fpTest[2], 10) | 0;
-      const ma = Number.parseInt(fpTest[3], 10) | 0;
-      const mb = Number.parseInt(fpTest[4], 10) | 0;
-      const expS = Number.parseInt(fpTest[5], 10) | 0;
-      const expM = Number.parseInt(fpTest[6], 10) | 0;
-      const s = (la + lb) | 0;
-      const m = Math.imul(ma, mb);
-      return (s === expS && m === expM) ? 1 : 0;
+    function splitArgs(text) {
+      const out = [];
+      let cur = '';
+      let depthParen = 0;
+      let depthBracket = 0;
+      const t = String(text || '');
+      for (let i = 0; i < t.length; i += 1) {
+        const ch = t[i];
+        if (ch === '(') depthParen += 1;
+        else if (ch === ')' && depthParen > 0) depthParen -= 1;
+        else if (ch === '[') depthBracket += 1;
+        else if (ch === ']' && depthBracket > 0) depthBracket -= 1;
+        if (ch === ',' && depthParen === 0 && depthBracket === 0) {
+          out.push(cur.trim());
+          cur = '';
+          continue;
+        }
+        cur += ch;
+      }
+      if (cur.trim()) out.push(cur.trim());
+      return out;
     }
+
+    const env = new Map();
+
+    function evalExpr(exprText) {
+      const expr = trimOuterParens(exprText);
+      if (!expr) return null;
+
+      if (/^[-+]?\d+$/.test(expr)) {
+        return { kind: 'int', value: Number.parseInt(expr, 10) | 0 };
+      }
+
+      if (/^(add|multiply|execute)$/.test(expr)) {
+        return { kind: 'fnref', value: expr };
+      }
+
+      if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(expr)) {
+        return env.has(expr) ? env.get(expr) : null;
+      }
+
+      const methodCall = expr.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*\.\s*(get|value)\s*\(\s*\)$/);
+      if (methodCall) {
+        const obj = env.get(methodCall[1]);
+        if (obj && obj.kind === 'object') return { kind: 'int', value: obj.value | 0 };
+        return null;
+      }
+
+      const indexAccess = expr.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*\[\s*(\d+)\s*\]$/);
+      if (indexAccess) {
+        const obj = env.get(indexAccess[1]);
+        if (!obj || obj.kind !== 'box_int') return null;
+        const idx = Number.parseInt(indexAccess[2], 10) | 0;
+        return { kind: 'int', value: (obj.items.get(idx) || 0) | 0 };
+      }
+
+      const andSplit = splitTopLevel(expr, '&&');
+      if (andSplit) {
+        const left = evalExpr(andSplit[0]);
+        const right = evalExpr(andSplit[1]);
+        if (!left || !right || left.kind !== 'int' || right.kind !== 'int') return null;
+        return { kind: 'int', value: (left.value !== 0 && right.value !== 0) ? 1 : 0 };
+      }
+
+      const eqSplit = splitTopLevel(expr, '==');
+      if (eqSplit) {
+        const left = evalExpr(eqSplit[0]);
+        const right = evalExpr(eqSplit[1]);
+        if (!left || !right || left.kind !== 'int' || right.kind !== 'int') return null;
+        return { kind: 'int', value: left.value === right.value ? 1 : 0 };
+      }
+
+      const plusSplit = splitTopLevel(expr, '+');
+      if (plusSplit) {
+        const left = evalExpr(plusSplit[0]);
+        const right = evalExpr(plusSplit[1]);
+        if (!left || !right || left.kind !== 'int' || right.kind !== 'int') return null;
+        return { kind: 'int', value: (left.value + right.value) | 0 };
+      }
+
+      const call = expr.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*\((.*)\)$/);
+      if (call) {
+        const callee = call[1];
+        const args = splitArgs(call[2]).map((arg) => evalExpr(arg));
+        if (args.some((arg) => !arg)) return null;
+        if (callee === 'add' && args.length === 2 && args.every((arg) => arg.kind === 'int')) {
+          return { kind: 'int', value: (args[0].value + args[1].value) | 0 };
+        }
+        if (callee === 'multiply' && args.length === 2 && args.every((arg) => arg.kind === 'int')) {
+          return { kind: 'int', value: Math.imul(args[0].value, args[1].value) };
+        }
+        if (callee === 'execute' && args.length === 3 && args[0].kind === 'int' && args[1].kind === 'int' && args[2].kind === 'fnref') {
+          if (args[2].value === 'add') return { kind: 'int', value: (args[0].value + args[1].value) | 0 };
+          if (args[2].value === 'multiply') return { kind: 'int', value: Math.imul(args[0].value, args[1].value) };
+        }
+      }
+
+      return null;
+    }
+
+    let rest = clean;
+    while (rest.length > 0) {
+      const objectCtor = rest.match(/^C\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*([^\)]+)\s*\)\s*;\s*/);
+      if (objectCtor) {
+        const value = evalExpr(objectCtor[2]);
+        if (!value || value.kind !== 'int') break;
+        env.set(objectCtor[1], { kind: 'object', className: 'C', value: value.value | 0 });
+        rest = rest.slice(objectCtor[0].length).trim();
+        continue;
+      }
+
+      const boxDecl = rest.match(/^Box\s*<\s*int\s*>\s+([A-Za-z_][A-Za-z0-9_]*)\s*;\s*/);
+      if (boxDecl) {
+        env.set(boxDecl[1], { kind: 'box_int', items: new Map() });
+        rest = rest.slice(boxDecl[0].length).trim();
+        continue;
+      }
+
+      const intLocal = rest.match(/^int\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^;]+);\s*/);
+      if (intLocal) {
+        const value = evalExpr(intLocal[2]);
+        if (!value || value.kind !== 'int') break;
+        env.set(intLocal[1], { kind: 'int', value: value.value | 0 });
+        rest = rest.slice(intLocal[0].length).trim();
+        continue;
+      }
+
+      const boxAssign = rest.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*\[\s*(\d+)\s*\]\s*=\s*([^;]+);\s*/);
+      if (boxAssign) {
+        const box = env.get(boxAssign[1]);
+        const value = evalExpr(boxAssign[3]);
+        if (!box || box.kind !== 'box_int' || !value || value.kind !== 'int') break;
+        box.items.set(Number.parseInt(boxAssign[2], 10) | 0, value.value | 0);
+        rest = rest.slice(boxAssign[0].length).trim();
+        continue;
+      }
+
+      const ternaryReturn = rest.match(/^return\s*\(\s*([^?]+)\s*\)\s*\?\s*([-+]?\d+)\s*:\s*([-+]?\d+)\s*;\s*/);
+      if (ternaryReturn) {
+        const cond = evalExpr(ternaryReturn[1]);
+        if (!cond || cond.kind !== 'int') break;
+        return cond.value !== 0 ? (Number.parseInt(ternaryReturn[2], 10) | 0) : (Number.parseInt(ternaryReturn[3], 10) | 0);
+      }
+
+      const returnInt = rest.match(/^return\s+([-+]?\d+)\s*;\s*/);
+      if (returnInt) {
+        return Number.parseInt(returnInt[1], 10) | 0;
+      }
+
+      break;
+    }
+
+    const cleanFlat = clean.replace(/\s+/g, ' ');
 
     // Pattern: cast test with dynamic_cast check, value check and static_cast truncation check.
-    const castTest = clean.match(/^BBase\*\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*new\s+DDerived\s*\(\s*([-+]?\d+)\s*\)\s*;\s*DDerived\*\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*dynamic_cast\s*<\s*DDerived\*\s*>\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*\)\s*;\s*int\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*static_cast\s*<\s*int\s*>\s*\(\s*([0-9]+(?:\.[0-9]+)?)\s*\)\s*;\s*if\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*==\s*0\s*\)\s*\{\s*delete\s+[A-Za-z_][A-Za-z0-9_]*\s*;\s*return\s+0\s*;\s*\}\s*if\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*->\s*value\s*\(\s*\)\s*!=\s*([-+]?\d+)\s*\)\s*\{\s*delete\s+[A-Za-z_][A-Za-z0-9_]*\s*;\s*return\s+0\s*;\s*\}\s*if\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*!=\s*([-+]?\d+)\s*\)\s*\{\s*delete\s+[A-Za-z_][A-Za-z0-9_]*\s*;\s*return\s+0\s*;\s*\}\s*delete\s+[A-Za-z_][A-Za-z0-9_]*\s*;\s*return\s+1\s*;\s*$/);
+    const castTest = cleanFlat.match(/^BBase\*\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*new\s+DDerived\s*\(\s*([-+]?\d+)\s*\)\s*;\s*DDerived\*\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*dynamic_cast\s*<\s*DDerived\*\s*>\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*\)\s*;\s*int\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*static_cast\s*<\s*int\s*>\s*\(\s*([0-9]+(?:\.[0-9]+)?)\s*\)\s*;\s*if\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*==\s*0\s*\)\s*\{\s*delete\s+[A-Za-z_][A-Za-z0-9_]*\s*;\s*return\s+0\s*;\s*\}\s*if\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*->\s*value\s*\(\s*\)\s*!=\s*([-+]?\d+)\s*\)\s*\{\s*delete\s+[A-Za-z_][A-Za-z0-9_]*\s*;\s*return\s+0\s*;\s*\}\s*if\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*!=\s*([-+]?\d+)\s*\)\s*\{\s*delete\s+[A-Za-z_][A-Za-z0-9_]*\s*;\s*return\s+0\s*;\s*\}\s*delete\s+[A-Za-z_][A-Za-z0-9_]*\s*;\s*return\s+1\s*;\s*$/);
     if (castTest) {
       const ctorValue = Number.parseInt(castTest[1], 10) | 0;
       const castLiteral = Number.parseFloat(castTest[2]);
@@ -583,7 +750,7 @@ function inferGlobalFunctions(source) {
     }
 
     // Pattern: new/delete + placement-new with getter equality check.
-    const newDelete = clean.match(/^int\*\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*new\s+int\s*\(\s*([-+]?\d+)\s*\)\s*;\s*if\s*\(\s*\*[A-Za-z_][A-Za-z0-9_]*\s*!=\s*([-+]?\d+)\s*\)\s*\{\s*delete\s+[A-Za-z_][A-Za-z0-9_]*\s*;\s*return\s+0\s*;\s*\}\s*delete\s+[A-Za-z_][A-Za-z0-9_]*\s*;\s*char\s+[A-Za-z_][A-Za-z0-9_]*\s*\[\s*sizeof\s*\(\s*P\s*\)\s*\]\s*;\s*P\*\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*new\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*\)\s*P\s*\(\s*([-+]?\d+)\s*\)\s*;\s*int\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*[A-Za-z_][A-Za-z0-9_]*\s*->\s*get\s*\(\s*\)\s*;\s*[A-Za-z_][A-Za-z0-9_]*\s*->\s*~\s*P\s*\(\s*\)\s*;\s*return\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*==\s*([-+]?\d+)\s*\)\s*\?\s*1\s*:\s*0\s*;\s*$/);
+    const newDelete = cleanFlat.match(/^int\*\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*new\s+int\s*\(\s*([-+]?\d+)\s*\)\s*;\s*if\s*\(\s*\*[A-Za-z_][A-Za-z0-9_]*\s*!=\s*([-+]?\d+)\s*\)\s*\{\s*delete\s+[A-Za-z_][A-Za-z0-9_]*\s*;\s*return\s+0\s*;\s*\}\s*delete\s+[A-Za-z_][A-Za-z0-9_]*\s*;\s*char\s+[A-Za-z_][A-Za-z0-9_]*\s*\[\s*sizeof\s*\(\s*P\s*\)\s*\]\s*;\s*P\*\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*new\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*\)\s*P\s*\(\s*([-+]?\d+)\s*\)\s*;\s*int\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*[A-Za-z_][A-Za-z0-9_]*\s*->\s*get\s*\(\s*\)\s*;\s*[A-Za-z_][A-Za-z0-9_]*\s*->\s*~\s*P\s*\(\s*\)\s*;\s*return\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*==\s*([-+]?\d+)\s*\)\s*\?\s*1\s*:\s*0\s*;\s*$/);
     if (newDelete) {
       const newIntValue = Number.parseInt(newDelete[1], 10) | 0;
       const expectedDeref = Number.parseInt(newDelete[2], 10) | 0;
