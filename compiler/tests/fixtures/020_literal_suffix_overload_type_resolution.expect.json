@@ -1,0 +1,14 @@
+{
+  "shouldParse": true,
+  "mustContainCompiler": [
+    "Parser: ok",
+    "020_literal_suffix_overload_type_resolution.cpp",
+    "float sum2__ff(float x, float y)",
+    "return add__ff(1.0f, y);"
+  ],
+  "mustContain": [
+    "<functionDefinition>",
+    "<returnStatement>",
+    "<EOF/>"
+  ]
+}

@@ -121,6 +121,17 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - `compiler/tests/fixtures/018_namespace_overload_type_resolution.cpp`
    - Validates namespace-qualified overload lowers to `return N_add__ii(x, y);`.
 
+## Phase 9 Progress (Current)
+
+- Extended call-arg type inference used by simple call lowering:
+   - accepts explicit C-style casts in arguments (e.g. `(long)x`)
+   - accepts numeric suffixes for integer and floating literals (e.g. `1L`, `1.0f`)
+- Added overload regression fixtures for these cases:
+   - `compiler/tests/fixtures/019_cast_overload_type_resolution.cpp`
+   - Validates cast-driven lowering to `return add__ll((long)x, (long)y);`.
+   - `compiler/tests/fixtures/020_literal_suffix_overload_type_resolution.cpp`
+   - Validates suffix-driven lowering to `return add__ff(1.0f, y);`.
+
 4. WAT backend expansion:
    - Generate function stubs for global functions systematically.
    - Incremental lowering for arithmetic, calls, and local variable flow.

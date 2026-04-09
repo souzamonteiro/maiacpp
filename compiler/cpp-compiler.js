@@ -380,7 +380,7 @@ function inferGlobalFunctions(source) {
       .replace(/\/\/.*$/gm, '')
       .trim();
 
-    const m = clean.match(/^return\s+((?:::)?(?:[A-Za-z_][A-Za-z0-9_]*\s*::\s*)*[A-Za-z_][A-Za-z0-9_]*)\s*\(([^()]*)\)\s*;\s*$/);
+    const m = clean.match(/^return\s+((?:::)?(?:[A-Za-z_][A-Za-z0-9_]*\s*::\s*)*[A-Za-z_][A-Za-z0-9_]*)\s*\((.*)\)\s*;\s*$/);
     if (!m) return null;
 
     const calleeText = (m[1] || '').replace(/\s+/g, '');
@@ -394,8 +394,25 @@ function inferGlobalFunctions(source) {
     const args = argsText ? argsText.split(',').map((s) => s.trim()).filter(Boolean) : [];
 
     const allowed = new Set((params || []).map((p) => p.name));
+    const castRx = /^\(\s*([A-Za-z_][A-Za-z0-9_:\s\*]*)\s*\)\s*(.+)$/;
     for (const arg of args) {
-      if (/^[0-9]+$/.test(arg)) continue;
+      if (/^[-+]?\d+(?:[uU]|[lL]|[uU][lL]|[lL][uU])?$/.test(arg)) continue;
+      if (/^[-+]?(?:\d+\.\d*|\d*\.\d+)(?:[eE][-+]?\d+)?[fFlL]?$/.test(arg)) continue;
+
+      const castMatch = arg.match(castRx);
+      if (castMatch) {
+        const castType = normalizeTypeText(castMatch[1] || '');
+        if (!castType) return null;
+        const valueText = String(castMatch[2] || '').trim();
+        if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(valueText)) {
+          if (!allowed.has(valueText)) return null;
+          continue;
+        }
+        if (/^[-+]?\d+(?:[uU]|[lL]|[uU][lL]|[lL][uU])?$/.test(valueText)) continue;
+        if (/^[-+]?(?:\d+\.\d*|\d*\.\d+)(?:[eE][-+]?\d+)?[fFlL]?$/.test(valueText)) continue;
+        return null;
+      }
+
       if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(arg)) return null;
       if (!allowed.has(arg)) return null;
     }
@@ -1039,8 +1056,26 @@ class CppToCTranspiler {
   inferCallArgType(arg, currentFn) {
     const text = String(arg || '').trim();
     if (!text) return null;
-    if (/^[-+]?\d+$/.test(text)) return 'int';
-    if (/^[-+]?(?:\d+\.\d*|\d*\.\d+)(?:[eE][-+]?\d+)?f?$/i.test(text)) return 'float';
+
+    const castMatch = text.match(/^\(\s*([A-Za-z_][A-Za-z0-9_:\s\*]*)\s*\)\s*(.+)$/);
+    if (castMatch) {
+      return normalizeTypeText(castMatch[1] || '');
+    }
+
+    const intLiteral = text.match(/^[-+]?\d+([uU]|[lL]|[uU][lL]|[lL][uU])?$/);
+    if (intLiteral) {
+      const suffix = (intLiteral[1] || '').toLowerCase();
+      if (suffix.includes('l')) return 'long';
+      if (suffix.includes('u')) return 'unsigned';
+      return 'int';
+    }
+
+    const floatLiteral = text.match(/^[-+]?(?:\d+\.\d*|\d*\.\d+)(?:[eE][-+]?\d+)?([fFlL]?)$/);
+    if (floatLiteral) {
+      const suffix = (floatLiteral[1] || '').toLowerCase();
+      if (suffix === 'f') return 'float';
+      return 'double';
+    }
 
     if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(text)) {
       const params = Array.isArray(currentFn?.params) ? currentFn.params : [];
