@@ -1,4 +1,9 @@
 {
   "shouldParse": true,
+  "mustContainCompiler": [
+    "Parser: ok",
+    "008_new_delete_placement.cpp",
+    "/* Target: C89 */"
+  ],
   "mustContain": ["<newExpression>", "<deleteExpression>", "<EOF/>"]
 }

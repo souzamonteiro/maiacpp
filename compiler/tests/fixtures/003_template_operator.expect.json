@@ -1,4 +1,9 @@
 {
   "shouldParse": true,
+  "mustContainCompiler": [
+    "Parser: ok",
+    "003_template_operator.cpp",
+    "/* Target: C89 */"
+  ],
   "mustContain": ["<templateDeclaration>", "<operatorFunctionId>", "<EOF/>"]
 }

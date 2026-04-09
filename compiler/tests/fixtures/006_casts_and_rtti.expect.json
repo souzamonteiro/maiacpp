@@ -1,4 +1,9 @@
 {
   "shouldParse": true,
+  "mustContainCompiler": [
+    "Parser: ok",
+    "006_casts_and_rtti.cpp",
+    "/* Target: C89 */"
+  ],
   "mustContain": ["dynamic_cast", "static_cast", "<deleteExpression>", "<EOF/>"]
 }
