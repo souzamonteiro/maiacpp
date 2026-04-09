@@ -1,0 +1,15 @@
+{
+  "shouldParse": true,
+  "mustContainCompiler": [
+    "Parser: ok",
+    "010_namespace_class_mangling.cpp",
+    "N_C_init",
+    "N_C_destroy"
+  ],
+  "mustContain": [
+    "<namespaceDefinition>",
+    "<classSpecifier>",
+    "<functionDefinition>",
+    "<EOF/>"
+  ]
+}

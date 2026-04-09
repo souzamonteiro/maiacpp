@@ -251,6 +251,41 @@ function normalizeForParser(source) {
   return stripNamespaceQualifiers(noUsing, names);
 }
 
+function inferClassNamespaceMap(source) {
+  const map = new Map();
+  const text = String(source || '');
+
+  function scanSegment(segment, nsPath = []) {
+    const nsRx = /\bnamespace\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{/g;
+    let m;
+    while ((m = nsRx.exec(segment)) !== null) {
+      const nsName = m[1];
+      const braceIndex = nsRx.lastIndex - 1;
+      const close = findMatchingBrace(segment, braceIndex);
+      if (close < 0) continue;
+
+      const body = segment.slice(braceIndex + 1, close);
+      const nextPath = [...nsPath, nsName];
+
+      const classRx = /\b(class|struct)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?::\s*[^\{]+)?\{/g;
+      let cm;
+      while ((cm = classRx.exec(body)) !== null) {
+        const className = cm[2];
+        if (!map.has(className)) {
+          map.set(className, nextPath);
+        }
+      }
+
+      // Recurse for nested namespaces.
+      scanSegment(body, nextPath);
+      nsRx.lastIndex = close + 1;
+    }
+  }
+
+  scanSegment(text, []);
+  return map;
+}
+
 class CEmitter {
   constructor() {
     this.lines = [];
@@ -328,7 +363,35 @@ class SemanticAnalyzer {
 
     const classHead = this.findFirstNonterminal(node, 'classHead');
     const identifier = this.findFirstTerminal(classHead, 'Identifier');
-    return identifier ? String(identifier.value || '').trim() : '';
+    if (identifier) return String(identifier.value || '').trim();
+
+    // Fallback: scan terminals up to '{' and pick the first Identifier after class/struct/union.
+    const terminals = [];
+    this.collectTerminals(node, terminals);
+    let sawClassKey = false;
+    let inBody = false;
+
+    for (let i = 0; i < terminals.length; i += 1) {
+      const t = terminals[i];
+      if (!t) continue;
+      if (t.token === 'TOKEN_class' || t.token === 'TOKEN_struct' || t.token === 'TOKEN_union') {
+        sawClassKey = true;
+        continue;
+      }
+      if (sawClassKey && t.token === 'TOKEN__7B_') {
+        inBody = true;
+        continue;
+      }
+      if (inBody && t.token === 'TOKEN__7D_') {
+        break;
+      }
+      if (sawClassKey && t.token === 'Identifier') {
+        const value = String(t.value || '').trim();
+        if (value) return value;
+      }
+    }
+
+    return '';
   }
 
   findFirstNonterminal(node, name) {
@@ -349,6 +412,17 @@ class SemanticAnalyzer {
       if (found) return found;
     }
     return null;
+  }
+
+  collectTerminals(node, out) {
+    if (!node) return;
+    if (node.kind === 'terminal') {
+      out.push(node);
+      return;
+    }
+    for (const child of node.children || []) {
+      this.collectTerminals(child, out);
+    }
   }
 
   enterNamespaceIfNeeded(node) {
@@ -894,7 +968,9 @@ class Cpp98Compiler {
 
         console.log(candidate.label);
         const sema = new SemanticAnalyzer(collector.root);
-        return sema.analyze();
+        const analysis = sema.analyze();
+        this.applyNamespaceHints(analysis, source);
+        return analysis;
       } catch (err) {
         lastErr = err;
       }
@@ -902,6 +978,21 @@ class Cpp98Compiler {
 
     console.log(`Parser falhou (${lastErr ? lastErr.message : 'erro desconhecido'}). Usando fallback simples.`);
     return new SimpleAnalyzer(this.filePath).analyze();
+  }
+
+  applyNamespaceHints(analysis, source) {
+    if (!analysis || !analysis.classes || analysis.classes.size === 0) return;
+    const nsMap = inferClassNamespaceMap(source);
+    if (nsMap.size === 0) return;
+
+    for (const [className, cls] of analysis.classes) {
+      if (!cls) continue;
+      if (Array.isArray(cls.namespacePath) && cls.namespacePath.length > 0) continue;
+      const inferred = nsMap.get(className);
+      if (inferred && inferred.length > 0) {
+        cls.namespacePath = [...inferred];
+      }
+    }
   }
 }
 
