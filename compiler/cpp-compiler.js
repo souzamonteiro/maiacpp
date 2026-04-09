@@ -502,20 +502,28 @@ function inferGlobalFunctions(source) {
       .replace(/\/\/.*$/gm, '')
       .trim();
 
-    const withElse = clean.match(/^if\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=|<=|>=|<|>)\s*([-+]?\d+)\s*\)\s*\{\s*return\s+([-+]?\d+)\s*;\s*\}\s*else\s*\{\s*return\s+([-+]?\d+)\s*;\s*\}\s*$/);
-    const noElse = clean.match(/^if\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=|<=|>=|<|>)\s*([-+]?\d+)\s*\)\s*\{\s*return\s+([-+]?\d+)\s*;\s*\}\s*return\s+([-+]?\d+)\s*;\s*$/);
+    const withElse = clean.match(/^if\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=|<=|>=|<|>)\s*([A-Za-z_][A-Za-z0-9_]*|[-+]?\d+)\s*\)\s*\{\s*return\s+([-+]?\d+)\s*;\s*\}\s*else\s*\{\s*return\s+([-+]?\d+)\s*;\s*\}\s*$/);
+    const noElse = clean.match(/^if\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=|<=|>=|<|>)\s*([A-Za-z_][A-Za-z0-9_]*|[-+]?\d+)\s*\)\s*\{\s*return\s+([-+]?\d+)\s*;\s*\}\s*return\s+([-+]?\d+)\s*;\s*$/);
     const m = withElse || noElse;
     if (!m) return null;
 
-    const varName = m[1];
+    const leftName = m[1];
     const allowed = new Set((params || []).map((p) => p.name));
-    if (!allowed.has(varName)) return null;
+    if (!allowed.has(leftName)) return null;
+
+    const rhsRaw = m[3];
+    const rhsIsConst = /^[-+]?\d+$/.test(rhsRaw);
+    if (!rhsIsConst && !allowed.has(rhsRaw)) return null;
+
+    const right = rhsIsConst
+      ? { kind: 'const', value: Number.parseInt(rhsRaw, 10) | 0 }
+      : { kind: 'param', name: rhsRaw };
 
     return {
-      kind: 'var_const_cmp',
-      varName,
+      kind: 'var_cmp',
+      leftName,
+      right,
       op: m[2],
-      constValue: Number.parseInt(m[3], 10) | 0,
       thenValue: Number.parseInt(m[4], 10) | 0,
       elseValue: Number.parseInt(m[5], 10) | 0
     };
@@ -1610,21 +1618,35 @@ class CppToWatTranspiler {
 
   emitWatForSimpleIfReturn(fn, resultType) {
     const info = fn.simpleIfReturn;
-    if (!info || info.kind !== 'var_const_cmp') return false;
+    if (!info || info.kind !== 'var_cmp') return false;
     if (resultType !== 'i32' && resultType !== 'i64') return false;
 
     const params = Array.isArray(fn.params) ? fn.params : [];
-    const param = params.find((p) => p.name === info.varName);
-    if (!param) return false;
+    const leftParam = params.find((p) => p.name === info.leftName);
+    if (!leftParam) return false;
 
-    const paramType = this.mapCTypeToWat(param.type) || 'i32';
+    const paramType = this.mapCTypeToWat(leftParam.type) || 'i32';
     const cmp = this.mapWatCompareOp(paramType, info.op);
     if (!cmp) return false;
+
+    let rhsEmitter = null;
+    if (info.right && info.right.kind === 'const') {
+      rhsEmitter = `${paramType}.const ${info.right.value | 0}`;
+    } else if (info.right && info.right.kind === 'param') {
+      const rightParam = params.find((p) => p.name === info.right.name);
+      if (!rightParam) return false;
+      const rightType = this.mapCTypeToWat(rightParam.type) || 'i32';
+      if (rightType !== paramType) return false;
+      rhsEmitter = `local.get $${info.right.name}`;
+    } else {
+      return false;
+    }
+
     const constOp = resultType === 'i64' ? 'i64.const' : 'i32.const';
     const resultSig = resultType === 'i64' ? ' (result i64)' : ' (result i32)';
 
-    this.em.line(`local.get $${info.varName}`);
-    this.em.line(`${paramType}.const ${info.constValue | 0}`);
+    this.em.line(`local.get $${info.leftName}`);
+    this.em.line(rhsEmitter);
     this.em.line(cmp);
     this.em.line(`if${resultSig}`);
     this.em.level += 1;

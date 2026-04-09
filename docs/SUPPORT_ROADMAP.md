@@ -224,6 +224,15 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - `compiler/tests/fixtures/032_wat_if_compare_return.cpp`
    - Validates compare-op lowering path (example: `x > 0`) in emitted WAT.
 
+## Phase 19 Progress (Current)
+
+- Extended WAT simple-if compare lowering to support parameter-vs-parameter comparisons:
+   - pattern: `if (x OP y) { return A; } return B;` and `if/else` equivalent
+   - enforces compatible integer WAT parameter types before emitting compare op.
+- Added focused fixture:
+   - `compiler/tests/fixtures/033_wat_if_param_compare_return.cpp`
+   - Validates emitted sequence `local.get $x`, `local.get $y`, `i32.gt_s`, and structured `if (result i32)`.
+
 4. WAT backend expansion:
    - Generate function stubs for global functions systematically.
    - Incremental lowering for arithmetic, calls, and local variable flow.
