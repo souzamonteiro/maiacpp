@@ -17,12 +17,13 @@ Saidas suportadas:
 - AST em JSON (`--ast-json-out`)
 - AST em arvore no terminal (`--ast-show`)
 - C gerado (`--c-out`)
-- WAT (`--wat-out`)
-- WASM (`--wasm-out`)
+- WAT (`--wat-out`, via MaiaC)
+- WASM (`--wasm-out`, via MaiaC)
 
 Observacao:
 
-- A geracao de WAT/WASM usa backend integrado do `cpp-compiler.js` (nao copia mais `runtime.wat`).
+- O caminho padrao e `C++ -> C (MaiaCpp) -> WAT/WASM (MaiaC)`.
+- O backend WAT integrado do `cpp-compiler.js` fica apenas como suporte experimental de debug via `--direct-wat-backend`.
 
 ## Execucao do test.cpp (console, Node, browser)
 

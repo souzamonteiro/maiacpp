@@ -7,7 +7,7 @@ This document describes the current architecture of MaiaCpp, an experimental C++
 - Parse C++98 source files using the generated parser.
 - Build semantic metadata for classes, methods, namespaces, and global functions.
 - Transpile C++98 into C (stub-first, with incremental lowering for selected patterns).
-- Emit WAT/WASM for Node and browser execution workflows.
+- Reuse MaiaC for WAT/WASM generation in Node and browser execution workflows.
 - Keep a fixture-driven regression suite for incremental compiler evolution.
 
 ## 2. High-Level Pipeline
@@ -17,8 +17,8 @@ C++98 source (.cpp)
   -> Parser + ParseTreeCollector
   -> Semantic analysis + source-backed hints
   -> C transpilation (primary path)
-  -> WAT transpilation (experimental backend)
-  -> WASM assembly (wat2wasm)
+  -> MaiaC C compiler
+  -> WAT emission / WASM assembly
   -> Runtime execution (console | Node | browser)
 ```
 
@@ -67,10 +67,8 @@ C++98 source (.cpp)
 
 - Class: CppToWatTranspiler in compiler/cpp-compiler.js.
 - Responsibilities:
-  - Emit WAT module skeleton.
-  - Emit imported runtime functions.
-  - Emit class/global function stubs.
-  - Emit main/_start entry points.
+  - Preserve an experimental direct WAT path for backend debugging.
+  - Support narrow compiler-side validation while the production runtime path stays on MaiaC.
 
 ## 4. Name Resolution and Overload Strategy
 
@@ -104,7 +102,8 @@ When stable fallback is used, the C output includes:
   - bin/run-test-node.sh
   - tools/node/run-wasm-node.js
 - Flow:
-  - Compile .cpp to WASM via webcpp/cpp-compiler.
+  - Compile .cpp to C via MaiaCpp.
+  - Compile generated C to WASM via MaiaC.
   - Instantiate in Node with env imports.
   - Execute main (or _start fallback).
 
@@ -114,7 +113,8 @@ When stable fallback is used, the C output includes:
   - bin/run-wasm-browser.sh
   - tools/browser/run-wasm.html
 - Flow:
-  - Compile .cpp to WASM.
+  - Compile .cpp to C via MaiaCpp.
+  - Compile generated C to WASM via MaiaC.
   - Start local HTTP server.
   - Load runner page and execute main in browser.
 
@@ -134,8 +134,9 @@ When stable fallback is used, the C output includes:
   - AST show
   - AST XML/JSON output
   - C output
-  - WAT output
-  - WASM output
+  - WAT output through MaiaC
+  - WASM output through MaiaC
+  - Direct MaiaCpp WAT backend only as explicit debug mode
   - all outputs in one command
 
 ## 7. Testing and Validation
@@ -167,7 +168,7 @@ When stable fallback is used, the C output includes:
 ## 8. Current Boundaries
 
 - C backend is still largely stub-oriented outside conservative lowered patterns.
-- WAT backend is intentionally experimental and skeletal.
+- Direct MaiaCpp WAT backend is intentionally experimental and non-primary.
 - Runtime imports are currently minimal host stubs for execution workflows.
 - Full C++98 semantic parity is not complete yet.
 

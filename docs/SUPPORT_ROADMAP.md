@@ -272,6 +272,18 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - `compiler/tests/fixtures/036_wat_structured_cast_newdelete_helpers.cpp`
    - Ensures `run_cast_tests` and `run_new_delete_tests` are proven through the structured evaluator path and no longer emitted as trivial zero stubs.
 
+## Phase 24 Progress (Current)
+
+- Realigned the production runtime pipeline to the intended architecture:
+   - MaiaCpp now generates C as the primary handoff artifact.
+   - MaiaC is the default path for WAT/WASM generation used by `bin/webcpp.sh`, Node runner, and browser runner.
+   - MaiaCpp direct WAT backend remains available only through explicit debug flag (`--direct-wat-backend`).
+- Hardened the MaiaCpp C bridge for MaiaC compatibility:
+   - removed unsupported system-header/varargs prelude usage from generated C
+   - preserved source function-pointer typedefs required by lowered C
+   - ensured placeholder structs are never empty in emitted C
+   - reused deterministic helper lowering and structured `main` emission in the C backend so `compiler/test.cpp` remains executable through MaiaC.
+
 4. WAT backend expansion:
    - Generate function stubs for global functions systematically.
    - Incremental lowering for arithmetic, calls, and local variable flow.

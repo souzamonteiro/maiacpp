@@ -1349,6 +1349,7 @@ class CppToCTranspiler {
 
   transpile() {
     this.emitHeaders();
+    this.emitSourceTypedefs();
     this.emitClasses();
     this.emitGlobalFunctionStubs();
     this.emitAmbiguitySummary();
@@ -1383,11 +1384,7 @@ class CppToCTranspiler {
     this.em.line('/* Generated from C++98 source */');
     this.em.line('/* Target: C89 */');
     this.em.line();
-    this.em.line('#include <stddef.h>');
-    this.em.line('#include <stdint.h>');
-    this.em.line('#include <stdlib.h>');
-    this.em.line('#include <string.h>');
-    this.em.line();
+    this.em.line('/* Minimal bridge prelude for MaiaC */');
     this.em.line('/* Runtime interface */');
     this.em.line('extern void   __exc_push(void);');
     this.em.line('extern void   __exc_pop(void);');
@@ -1397,9 +1394,36 @@ class CppToCTranspiler {
     this.em.line('extern void   __exc_throw(int type, void* data);');
     this.em.line('extern void   __exc_clear(void);');
     this.em.line('extern int    __exc_matches(int thrown_type, int catch_type);');
-    this.em.line('extern void*  __malloc(size_t size);');
+    this.em.line('extern void*  __malloc(unsigned long size);');
     this.em.line('extern void   __free(void* ptr);');
     this.em.line();
+  }
+
+  emitSourceTypedefs() {
+    const typedefs = this.extractFunctionPointerTypedefs(this.options.source || '');
+    if (typedefs.length === 0) return;
+    for (const line of typedefs) {
+      this.em.line(line);
+    }
+    this.em.line();
+  }
+
+  extractFunctionPointerTypedefs(sourceText) {
+    const clean = String(sourceText || '')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/.*$/gm, '');
+    const out = [];
+    const seen = new Set();
+    const rx = /typedef\s+[^;]*\(\s*\*\s*[A-Za-z_][A-Za-z0-9_]*\s*\)\s*\([^;]*\)\s*;/g;
+    let m;
+    while ((m = rx.exec(clean)) !== null) {
+      const text = m[0].replace(/\s+/g, ' ').trim();
+      if (!seen.has(text)) {
+        seen.add(text);
+        out.push(text);
+      }
+    }
+    return out;
   }
 
   emitClasses() {
@@ -1413,14 +1437,21 @@ class CppToCTranspiler {
       const nsPath = Array.isArray(cls.namespacePath) ? cls.namespacePath : [];
       this.em.line(`typedef struct ${name} {`);
       this.em.level += 1;
+      let hasPayload = false;
       for (const base of cls.bases) {
         this.em.line(`${base.name} __base;`);
+        hasPayload = true;
       }
       for (const member of cls.members) {
         this.em.line(`${member.type} ${member.name};`);
+        hasPayload = true;
       }
       if (cls.hasVtable) {
         this.em.line(`void* __vptr;`);
+        hasPayload = true;
+      }
+      if (!hasPayload) {
+        this.em.line('int __dummy;');
       }
       this.em.level -= 1;
       this.em.line(`} ${name};`);
@@ -1514,6 +1545,7 @@ class CppToCTranspiler {
   emitGlobalFunctionStubs() {
     const fns = Array.isArray(this.analysis.functions) ? this.analysis.functions : [];
     if (fns.length === 0) return;
+    const structuredMain = this.extractMainStructuredPlan(this.options.source || '');
 
     this.em.line('/* Global function stubs */');
     for (const fn of fns) {
@@ -1530,7 +1562,11 @@ class CppToCTranspiler {
       const mangled = mangle(fn.name, sigTypes, null, fn.namespacePath || []);
       this.em.line(`${fn.returnType} ${mangled}(${paramsText || 'void'}) {`);
       this.em.level += 1;
-      if (fn.simpleReturnExpr && fn.returnType !== 'void') {
+      if (fn.name === 'main' && !fn.namespacePath?.length && structuredMain) {
+        this.emitStructuredMain(structuredMain);
+      } else if (Number.isInteger(fn.deterministicNoParamI32Return) && fn.returnType !== 'void') {
+        this.em.line(`return ${fn.deterministicNoParamI32Return | 0};`);
+      } else if (fn.simpleReturnExpr && fn.returnType !== 'void') {
         this.em.line(`return ${fn.simpleReturnExpr};`);
       } else if (fn.simpleReturnCall && fn.returnType !== 'void') {
         const lowered = this.lowerSimpleReturnCall(fn, fns);
@@ -1557,6 +1593,159 @@ class CppToCTranspiler {
       this.em.line('}');
       this.em.line();
     }
+  }
+
+  emitStructuredMain(plan) {
+    for (const local of plan.locals || []) {
+      this.em.line(`int ${local.name} = ${local.init | 0};`);
+    }
+    if ((plan.locals || []).length > 0) this.em.line();
+    this.emitStructuredMainOps(plan.ops || []);
+    this.em.line('return 0;');
+  }
+
+  emitStructuredMainOps(ops) {
+    for (const op of ops || []) {
+      if (op.kind === 'printf') {
+        if (!op.arg) this.em.line(`printf("${op.fmtRaw}");`);
+        else if (op.arg.type === 'int') this.em.line(`printf("${op.fmtRaw}", ${op.arg.value | 0});`);
+        else if (op.arg.type === 'var') this.em.line(`printf("${op.fmtRaw}", ${op.arg.name});`);
+      } else if (op.kind === 'inc') {
+        this.em.line(`${op.varName}++;`);
+      } else if (op.kind === 'if_call') {
+        this.em.line(`if (${op.callee}()) {`);
+        this.em.level += 1;
+        this.emitStructuredMainOps(op.thenOps || []);
+        this.em.level -= 1;
+        this.em.line('} else {');
+        this.em.level += 1;
+        this.emitStructuredMainOps(op.elseOps || []);
+        this.em.level -= 1;
+        this.em.line('}');
+      } else if (op.kind === 'if_eq_zero') {
+        this.em.line(`if (${op.varName} == 0) {`);
+        this.em.level += 1;
+        this.emitStructuredMainOps(op.thenOps || []);
+        this.em.level -= 1;
+        this.em.line('}');
+      } else if (op.kind === 'return') {
+        this.em.line(`return ${op.value | 0};`);
+      }
+    }
+  }
+
+  extractMainStructuredPlan(sourceText) {
+    const source = String(sourceText || '');
+    const body = this.extractMainBodyText(source);
+    if (!body) return null;
+
+    const locals = [];
+    const ops = [];
+    let rest = this.stripComments(body).trim();
+
+    const parseArg = (text) => {
+      const t = String(text || '').trim();
+      if (!t) return null;
+      if (/^[-+]?\d+$/.test(t)) return { type: 'int', value: Number.parseInt(t, 10) | 0 };
+      if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(t)) return { type: 'var', name: t };
+      return null;
+    };
+
+    const parsePrintf = (text) => {
+      const m = text.match(/^printf\s*\(\s*"((?:\\.|[^"\\])*)"\s*(?:,\s*([^\)]+))?\)\s*;\s*/);
+      if (!m) return null;
+      return { consumed: m[0].length, op: { kind: 'printf', fmtRaw: m[1] || '', arg: parseArg(m[2] || '') } };
+    };
+
+    const parseInc = (text) => {
+      const m = text.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*\+\+\s*;\s*/);
+      return m ? { consumed: m[0].length, op: { kind: 'inc', varName: m[1] } } : null;
+    };
+
+    const parseReturn = (text) => {
+      const m = text.match(/^return\s+([-+]?\d+)\s*;\s*/);
+      return m ? { consumed: m[0].length, op: { kind: 'return', value: Number.parseInt(m[1], 10) | 0 } } : null;
+    };
+
+    const parseLocal = (text) => {
+      const m = text.match(/^int\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([-+]?\d+)\s*;\s*/);
+      return m ? { consumed: m[0].length, local: { name: m[1], init: Number.parseInt(m[2], 10) | 0 } } : null;
+    };
+
+    const parseBlockOps = (blockText) => {
+      const out = [];
+      let t = String(blockText || '').trim();
+      while (t.length > 0) {
+        const p = parsePrintf(t) || parseInc(t) || parseReturn(t);
+        if (!p) return null;
+        out.push(p.op);
+        t = t.slice(p.consumed).trim();
+      }
+      return out;
+    };
+
+    while (rest.length > 0) {
+      const local = parseLocal(rest);
+      if (local) {
+        locals.push(local.local);
+        rest = rest.slice(local.consumed).trim();
+        continue;
+      }
+
+      const p = parsePrintf(rest) || parseInc(rest) || parseReturn(rest);
+      if (p) {
+        ops.push(p.op);
+        rest = rest.slice(p.consumed).trim();
+        continue;
+      }
+
+      const ifCall = rest.match(/^if\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*\)\s*\)\s*\{([\s\S]*?)\}\s*else\s*\{([\s\S]*?)\}\s*/);
+      if (ifCall) {
+        const thenOps = parseBlockOps(ifCall[2]);
+        const elseOps = parseBlockOps(ifCall[3]);
+        if (!thenOps || !elseOps) return null;
+        ops.push({ kind: 'if_call', callee: this.resolveCMainCallee(ifCall[1], 0), thenOps, elseOps });
+        rest = rest.slice(ifCall[0].length).trim();
+        continue;
+      }
+
+      const ifEqZero = rest.match(/^if\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*==\s*0\s*\)\s*\{([\s\S]*?)\}\s*/);
+      if (ifEqZero) {
+        const thenOps = parseBlockOps(ifEqZero[2]);
+        if (!thenOps) return null;
+        ops.push({ kind: 'if_eq_zero', varName: ifEqZero[1], thenOps, elseOps: [] });
+        rest = rest.slice(ifEqZero[0].length).trim();
+        continue;
+      }
+
+      return null;
+    }
+
+    return { locals, ops };
+  }
+
+  resolveCMainCallee(name, arity) {
+    const list = Array.isArray(this.analysis?.functions) ? this.analysis.functions : [];
+    const fn = list.find((f) => f.name === name && (f.params || []).length === arity && (f.namespacePath || []).length === 0);
+    if (!fn) return name;
+    const sigTypes = (fn.params || []).map((p) => ({ kind: 'int', name: p.type }));
+    return mangle(fn.name, sigTypes, null, fn.namespacePath || []);
+  }
+
+  extractMainBodyText(source) {
+    const text = String(source || '');
+    const m = text.match(/\b(?:int|void)\s+main\s*\([^)]*\)\s*\{/);
+    if (!m) return null;
+    const open = (m.index || 0) + m[0].lastIndexOf('{');
+    const close = findMatchingBrace(text, open);
+    if (close < 0) return null;
+    return text.slice(open + 1, close);
+  }
+
+  stripComments(source) {
+    return String(source || '')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/.*$/gm, '');
   }
 
   lowerSimpleReturnCall(fn, allFns) {
@@ -2590,7 +2779,7 @@ class Cpp98Compiler {
   compile() {
     const source = fs.readFileSync(this.filePath, 'utf8');
     const analysis = this.analyze(source);
-    const transpiler = new CppToCTranspiler(analysis, { filePath: this.filePath });
+    const transpiler = new CppToCTranspiler(analysis, { filePath: this.filePath, source });
     return transpiler.transpile();
   }
 
