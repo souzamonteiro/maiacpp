@@ -53,3 +53,4 @@ Runner no browser:
 ## Architecture
 
 - See `docs/ARCHITECTURE.md` for an English architecture overview.
+- See `docs/EBNF_IMPLEMENTATION_AUDIT.md` for a detailed gap definition against `grammar/Cpp.ebnf`.
