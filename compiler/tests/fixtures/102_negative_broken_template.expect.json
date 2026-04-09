@@ -1,3 +1,8 @@
 {
-  "shouldParse": false
+  "shouldParse": false,
+  "mustContainCompiler": [
+    "Parser falhou",
+    "Usando fallback simples.",
+    "102_negative_broken_template.cpp"
+  ]
 }
