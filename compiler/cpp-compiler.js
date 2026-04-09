@@ -969,7 +969,7 @@ class Cpp98Compiler {
         console.log(candidate.label);
         const sema = new SemanticAnalyzer(collector.root);
         const analysis = sema.analyze();
-        this.applyNamespaceHints(analysis, source);
+        this.applySourceClassHints(analysis, source);
         return analysis;
       } catch (err) {
         lastErr = err;
@@ -980,17 +980,41 @@ class Cpp98Compiler {
     return new SimpleAnalyzer(this.filePath).analyze();
   }
 
-  applyNamespaceHints(analysis, source) {
+  applySourceClassHints(analysis, source) {
     if (!analysis || !analysis.classes || analysis.classes.size === 0) return;
+
     const nsMap = inferClassNamespaceMap(source);
-    if (nsMap.size === 0) return;
+    const fallback = new SimpleAnalyzer(this.filePath).analyze();
 
     for (const [className, cls] of analysis.classes) {
       if (!cls) continue;
-      if (Array.isArray(cls.namespacePath) && cls.namespacePath.length > 0) continue;
-      const inferred = nsMap.get(className);
-      if (inferred && inferred.length > 0) {
-        cls.namespacePath = [...inferred];
+
+      const inferredNs = nsMap.get(className);
+      if ((!Array.isArray(cls.namespacePath) || cls.namespacePath.length === 0) && inferredNs && inferredNs.length > 0) {
+        cls.namespacePath = [...inferredNs];
+      }
+
+      const hinted = fallback.classes.get(className);
+      if (!hinted) continue;
+
+      if ((!cls.members || cls.members.length === 0) && hinted.members && hinted.members.length > 0) {
+        cls.members = hinted.members.map((m) => ({ ...m }));
+      }
+
+      if ((!cls.methods || cls.methods.length === 0) && hinted.methods && hinted.methods.length > 0) {
+        cls.methods = hinted.methods.map((m) => ({ ...m }));
+      }
+
+      if ((!cls.constructors || cls.constructors.length === 0) && hinted.constructors && hinted.constructors.length > 0) {
+        cls.constructors = hinted.constructors.map((c) => ({ ...c, params: (c.params || []).map((p) => ({ ...p })) }));
+      }
+
+      if (!cls.destructor && hinted.destructor) {
+        cls.destructor = { ...hinted.destructor };
+      }
+
+      if (!cls.hasVtable && hinted.hasVtable) {
+        cls.hasVtable = true;
       }
     }
   }
