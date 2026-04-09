@@ -179,6 +179,15 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - `compiler/tests/fixtures/028_paramwise_cost_tie_break_namespace.cpp`
    - Validates same paramwise rule under namespace lowering (`N_mix__il`).
 
+## Phase 14 Progress (Current)
+
+- Added explicit ambiguity diagnostic when overload resolution falls back to stable lexical key after full tie:
+   - diagnostic is emitted in generated C as a comment before the lowered return call.
+   - includes selected candidate signature key for traceability.
+- Added regression fixture:
+   - `compiler/tests/fixtures/029_ambiguity_stable_fallback_diagnostic.cpp`
+   - Validates diagnostic marker and deterministic selected callee (`A_B_add__ll`) in an ambiguous tie scenario.
+
 4. WAT backend expansion:
    - Generate function stubs for global functions systematically.
    - Incremental lowering for arithmetic, calls, and local variable flow.

@@ -346,6 +346,30 @@ function stripClassLikeBlocks(segment) {
   return out;
 }
 
+function stripNamespaceBlocks(segment) {
+  const text = String(segment || '');
+  let out = '';
+  for (let i = 0; i < text.length;) {
+    const nsMatch = text.slice(i).match(/^\s*namespace\s+[A-Za-z_][A-Za-z0-9_]*\s*\{/);
+    if (!nsMatch) {
+      out += text[i];
+      i += 1;
+      continue;
+    }
+    const offset = nsMatch.index || 0;
+    out += text.slice(i, i + offset);
+    const open = i + offset + nsMatch[0].lastIndexOf('{');
+    const close = findMatchingBrace(text, open);
+    if (close < 0) {
+      out += text.slice(i + offset);
+      break;
+    }
+    out += '\n';
+    i = close + 1;
+  }
+  return out;
+}
+
 function inferGlobalFunctions(source) {
   const functions = [];
 
@@ -485,7 +509,7 @@ function inferGlobalFunctions(source) {
       nsRx.lastIndex = close + 1;
     }
 
-    const plain = stripClassLikeBlocks(segment);
+    const plain = stripNamespaceBlocks(stripClassLikeBlocks(segment));
     const fnRx = /(^|[;\n])\s*([A-Za-z_][A-Za-z0-9_:<>\s\*&]+?)\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^()]*)\)\s*(?:const\s*)?\{/g;
     let fm;
     while ((fm = fnRx.exec(plain)) !== null) {
@@ -1060,7 +1084,10 @@ class CppToCTranspiler {
         this.em.line(`return ${fn.simpleReturnExpr};`);
       } else if (fn.simpleReturnCall && fn.returnType !== 'void') {
         const lowered = this.lowerSimpleReturnCall(fn, fns);
-        this.em.line(`return ${lowered};`);
+        if (lowered.diagnostic) {
+          this.em.line(`/* ${lowered.diagnostic} */`);
+        }
+        this.em.line(`return ${lowered.expr};`);
       } else {
         for (const p of fn.params || []) {
           this.em.line(`(void)${p.name};`);
@@ -1077,11 +1104,11 @@ class CppToCTranspiler {
 
   lowerSimpleReturnCall(fn, allFns) {
     const call = fn.simpleReturnCall;
-    if (!call || !call.callee) return '(int)0';
+    if (!call || !call.callee) return { expr: '(int)0', diagnostic: null };
     const argTypes = (call.args || []).map((arg) => this.inferCallArgType(arg, fn));
 
     const qualifiedNs = Array.isArray(call.calleeNamespacePath) ? call.calleeNamespacePath : [];
-    const match = this.resolveGlobalFunction(
+    const resolution = this.resolveGlobalFunctionDetailed(
       call.callee,
       (call.args || []).length,
       fn.namespacePath || [],
@@ -1090,14 +1117,18 @@ class CppToCTranspiler {
       Boolean(call.absolute),
       argTypes
     );
+    const match = resolution ? resolution.match : null;
     if (!match) {
       const fallbackCallee = qualifiedNs.length ? `${qualifiedNs.join('::')}::${call.callee}` : call.callee;
-      return `${fallbackCallee}(${(call.args || []).join(', ')})`;
+      return { expr: `${fallbackCallee}(${(call.args || []).join(', ')})`, diagnostic: null };
     }
 
     const sigTypes = (match.params || []).map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
     const calleeMangled = mangle(match.name, sigTypes, null, match.namespacePath || []);
-    return `${calleeMangled}(${(call.args || []).join(', ')})`;
+    const diagnostic = resolution && resolution.ambiguity
+      ? `Overload ambiguity resolved by stable key: ${resolution.ambiguity.selected}`
+      : null;
+    return { expr: `${calleeMangled}(${(call.args || []).join(', ')})`, diagnostic };
   }
 
   inferCallArgType(arg, currentFn) {
@@ -1144,13 +1175,18 @@ class CppToCTranspiler {
   }
 
   resolveByArgTypes(candidates, argTypes, options = {}) {
+    const detailed = this.resolveByArgTypesDetailed(candidates, argTypes, options);
+    return detailed.match;
+  }
+
+  resolveByArgTypesDetailed(candidates, argTypes, options = {}) {
     const list = Array.isArray(candidates) ? candidates : [];
-    if (list.length === 0) return null;
+    if (list.length === 0) return { match: null, ambiguity: null };
     const currentNamespacePath = Array.isArray(options.currentNamespacePath) ? options.currentNamespacePath : [];
 
     const types = Array.isArray(argTypes) ? argTypes : [];
     const hasTypeHints = types.some((t) => Boolean(t));
-    if (!hasTypeHints) return list[0];
+    if (!hasTypeHints) return { match: list[0], ambiguity: null };
 
     const exact = list.find((fn) => {
       const params = Array.isArray(fn.params) ? fn.params : [];
@@ -1164,11 +1200,12 @@ class CppToCTranspiler {
       return true;
     });
 
-    if (exact) return exact;
+    if (exact) return { match: exact, ambiguity: null };
 
     let best = null;
     let bestCost = Number.POSITIVE_INFINITY;
     let bestCostsByParam = null;
+    const stableTieKeys = new Set();
     for (const fn of list) {
       const params = Array.isArray(fn.params) ? fn.params : [];
       if (params.length !== types.length) continue;
@@ -1198,36 +1235,61 @@ class CppToCTranspiler {
       }
 
       if (totalCost === bestCost) {
-        if (this.isBetterParamwiseCost(costsByParam, bestCostsByParam)) {
+        const paramCmp = this.compareParamwiseCost(costsByParam, bestCostsByParam);
+        if (paramCmp < 0) {
           best = fn;
           bestCostsByParam = costsByParam;
           continue;
         }
-        if (this.isBetterTieBreak(fn, best, currentNamespacePath)) {
+        if (paramCmp > 0) continue;
+
+        const nsCmp = this.compareNamespaceRank(fn, best, currentNamespacePath);
+        if (nsCmp > 0) {
+          best = fn;
+          bestCostsByParam = costsByParam;
+          continue;
+        }
+        if (nsCmp < 0) continue;
+
+        const candKey = this.functionStableKey(fn);
+        const bestKey = this.functionStableKey(best);
+        stableTieKeys.add(candKey);
+        stableTieKeys.add(bestKey);
+        if (candKey < bestKey) {
           best = fn;
           bestCostsByParam = costsByParam;
         }
       }
     }
 
-    return best || list[0];
+    const match = best || list[0];
+    const ambiguity = stableTieKeys.size > 1
+      ? {
+        reason: 'stable-key-fallback',
+        selected: this.functionStableKey(match),
+        candidates: Array.from(stableTieKeys).sort()
+      }
+      : null;
+    return { match, ambiguity };
   }
 
-  isBetterParamwiseCost(candidateCosts, currentBestCosts) {
-    if (!Array.isArray(candidateCosts)) return false;
-    if (!Array.isArray(currentBestCosts)) return true;
+  compareParamwiseCost(candidateCosts, currentBestCosts) {
+    if (!Array.isArray(candidateCosts)) return 1;
+    if (!Array.isArray(currentBestCosts)) return -1;
 
     const n = Math.min(candidateCosts.length, currentBestCosts.length);
     for (let i = 0; i < n; i += 1) {
-      if (candidateCosts[i] < currentBestCosts[i]) return true;
-      if (candidateCosts[i] > currentBestCosts[i]) return false;
+      if (candidateCosts[i] < currentBestCosts[i]) return -1;
+      if (candidateCosts[i] > currentBestCosts[i]) return 1;
     }
 
-    return candidateCosts.length < currentBestCosts.length;
+    if (candidateCosts.length < currentBestCosts.length) return -1;
+    if (candidateCosts.length > currentBestCosts.length) return 1;
+    return 0;
   }
 
-  isBetterTieBreak(candidate, currentBest, currentNamespacePath) {
-    if (!currentBest) return true;
+  compareNamespaceRank(candidate, currentBest, currentNamespacePath) {
+    if (!currentBest) return 1;
 
     const candNs = Array.isArray(candidate?.namespacePath) ? candidate.namespacePath : [];
     const bestNs = Array.isArray(currentBest?.namespacePath) ? currentBest.namespacePath : [];
@@ -1235,13 +1297,10 @@ class CppToCTranspiler {
 
     const candPrefix = this.commonNamespacePrefixLen(candNs, currentNs);
     const bestPrefix = this.commonNamespacePrefixLen(bestNs, currentNs);
-    if (candPrefix !== bestPrefix) return candPrefix > bestPrefix;
+    if (candPrefix !== bestPrefix) return candPrefix > bestPrefix ? 1 : -1;
 
-    if (candNs.length !== bestNs.length) return candNs.length > bestNs.length;
-
-    const candKey = this.functionStableKey(candidate);
-    const bestKey = this.functionStableKey(currentBest);
-    return candKey < bestKey;
+    if (candNs.length !== bestNs.length) return candNs.length > bestNs.length ? 1 : -1;
+    return 0;
   }
 
   commonNamespacePrefixLen(a, b) {
@@ -1278,32 +1337,44 @@ class CppToCTranspiler {
   }
 
   resolveGlobalFunction(name, arity, namespacePath, allFns, qualifiedNamespacePath = [], isAbsoluteQualified = false, argTypes = []) {
+    return this.resolveGlobalFunctionDetailed(name, arity, namespacePath, allFns, qualifiedNamespacePath, isAbsoluteQualified, argTypes).match;
+  }
+
+  resolveGlobalFunctionDetailed(name, arity, namespacePath, allFns, qualifiedNamespacePath = [], isAbsoluteQualified = false, argTypes = []) {
     const list = Array.isArray(allFns) ? allFns : [];
 
-    const select = (predicate) => this.resolveByArgTypes(
+    const selectDetailed = (predicate) => this.resolveByArgTypesDetailed(
       list.filter((f) => predicate(f) && f.name === name && (f.params || []).length === arity),
       argTypes,
       { currentNamespacePath: namespacePath || [] }
     );
 
     if (Array.isArray(qualifiedNamespacePath) && qualifiedNamespacePath.length > 0) {
-      const qualified = select((f) => this.sameNs(f.namespacePath || [], qualifiedNamespacePath));
-      if (qualified) return qualified;
+      const qualified = selectDetailed((f) => this.sameNs(f.namespacePath || [], qualifiedNamespacePath));
+      if (qualified.match) return qualified;
 
       if (!isAbsoluteQualified) {
         const current = Array.isArray(namespacePath) ? namespacePath : [];
         for (let cut = current.length; cut >= 0; cut -= 1) {
           const candidateNs = [...current.slice(0, cut), ...qualifiedNamespacePath];
-          const relative = select((f) => this.sameNs(f.namespacePath || [], candidateNs));
-          if (relative) return relative;
+          const relative = selectDetailed((f) => this.sameNs(f.namespacePath || [], candidateNs));
+          if (relative.match) return relative;
         }
       }
     }
-    const sameNs = select((f) => this.sameNs(f.namespacePath || [], namespacePath || []));
-    if (sameNs) return sameNs;
-    const globalNs = select((f) => (f.namespacePath || []).length === 0);
-    if (globalNs) return globalNs;
-    return select(() => true) || null;
+    const sameNs = selectDetailed((f) => this.sameNs(f.namespacePath || [], namespacePath || []));
+    if (sameNs.match) return sameNs;
+
+    const currentNs = Array.isArray(namespacePath) ? namespacePath : [];
+    for (let cut = currentNs.length - 1; cut > 0; cut -= 1) {
+      const ancestorNs = currentNs.slice(0, cut);
+      const ancestor = selectDetailed((f) => this.sameNs(f.namespacePath || [], ancestorNs));
+      if (ancestor.match) return ancestor;
+    }
+
+    const globalNs = selectDetailed((f) => (f.namespacePath || []).length === 0);
+    if (globalNs.match) return globalNs;
+    return selectDetailed(() => true);
   }
 
   sameNs(a, b) {

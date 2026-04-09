@@ -1,0 +1,15 @@
+{
+  "shouldParse": true,
+  "mustContainCompiler": [
+    "Parser: ok",
+    "029_ambiguity_stable_fallback_diagnostic.cpp",
+    "long A_C_sum2__ii(int x, int y)",
+    "Overload ambiguity resolved by stable key: A::B::add(long,long)",
+    "return A_B_add__ll(x, y);"
+  ],
+  "mustContain": [
+    "<namespaceDefinition>",
+    "<functionDefinition>",
+    "<EOF/>"
+  ]
+}
