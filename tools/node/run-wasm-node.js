@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { createPrintfHost } = require('../runtime/printf-host.js');
 
 function usage() {
   console.log('Usage: node tools/node/run-wasm-node.js <file.wasm>');
@@ -9,8 +10,13 @@ function usage() {
 
 function createEnvImports() {
   let heap = 1024;
-  return {
-    printf: () => 0,
+  let memoryRef = null;
+
+  const env = {
+    printf: createPrintfHost({
+      getMemory: () => memoryRef,
+      write: (text) => process.stdout.write(String(text))
+    }),
     __malloc: (size) => {
       const ptr = heap;
       const n = Number(size) >>> 0;
@@ -23,6 +29,13 @@ function createEnvImports() {
     __exc_throw: () => {},
     __exc_active: () => 0,
     __exc_clear: () => {}
+  };
+
+  return {
+    env,
+    setMemory: (mem) => {
+      memoryRef = mem || null;
+    }
   };
 }
 
@@ -40,8 +53,10 @@ async function main() {
   }
 
   const bytes = fs.readFileSync(wasmPath);
-  const imports = { env: createEnvImports() };
+  const host = createEnvImports();
+  const imports = { env: host.env };
   const { instance } = await WebAssembly.instantiate(bytes, imports);
+  host.setMemory(instance.exports.memory || null);
 
   const mainFn = instance.exports.main;
   const startFn = instance.exports._start;

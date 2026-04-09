@@ -1570,8 +1570,22 @@ class CppToWatTranspiler {
   emitMainStub() {
     const hasMain = /\b(?:int|void)\s+main\s*\(/.test(this.options.source || '');
     if (hasMain) {
+      const printCalls = this.extractMainPrintfCalls(this.options.source || '');
+      for (let i = 0; i < printCalls.length; i += 1) {
+        const call = printCalls[i];
+        this.em.line(`(data (i32.const ${call.offset}) "${call.watData}")`);
+      }
+      if (printCalls.length > 0) this.em.line();
+
       this.em.line('(func $main (export "main") (result i32)');
       this.em.level += 1;
+      for (let i = 0; i < printCalls.length; i += 1) {
+        const call = printCalls[i];
+        this.em.line(`i32.const ${call.offset}`);
+        this.em.line(`i32.const ${call.arg0}`);
+        this.em.line('call $printf');
+        this.em.line('drop');
+      }
       this.em.line('i32.const 0');
       this.em.level -= 1;
       this.em.line(')');
@@ -1588,6 +1602,110 @@ class CppToWatTranspiler {
       this.em.level -= 1;
       this.em.line(')');
     }
+  }
+
+  extractMainPrintfCalls(sourceText) {
+    const source = String(sourceText || '');
+    const mainMatch = source.match(/\b(?:int|void)\s+main\s*\([^)]*\)\s*\{/);
+    if (!mainMatch) return [];
+
+    const open = (mainMatch.index || 0) + mainMatch[0].lastIndexOf('{');
+    const close = findMatchingBrace(source, open);
+    if (close < 0) return [];
+
+    const body = source.slice(open + 1, close);
+    const calls = [];
+    const rx = /printf\s*\(\s*"((?:\\.|[^"\\])*)"\s*(?:,\s*([^\)]+))?\)\s*;/g;
+    let m;
+    let offset = 2048;
+    let scanPos = 0;
+    while ((m = rx.exec(body)) !== null) {
+      const between = body.slice(scanPos, m.index);
+      if (/\breturn\b/.test(between)) {
+        scanPos = m.index + m[0].length;
+        continue;
+      }
+
+      const before = body.slice(Math.max(0, m.index - 48), m.index);
+      if (/else\s*\{\s*$/m.test(before)) {
+        scanPos = m.index + m[0].length;
+        continue;
+      }
+
+      const fmtRaw = m[1] || '';
+      const argText = (m[2] || '').trim();
+      const arg0 = this.parseSimpleIntArg(argText);
+      const data = this.decodeCStringLiteral(fmtRaw);
+      const bytes = [...Buffer.from(data, 'utf8'), 0];
+      const watData = this.bytesToWatString(bytes);
+
+      calls.push({
+        offset,
+        arg0,
+        watData
+      });
+      offset += bytes.length + 8;
+      scanPos = m.index + m[0].length;
+    }
+
+    return calls;
+  }
+
+  parseSimpleIntArg(argText) {
+    if (!argText) return 0;
+    const t = String(argText).trim();
+    if (/^[-+]?\d+$/.test(t)) return Number.parseInt(t, 10) | 0;
+    return 0;
+  }
+
+  decodeCStringLiteral(raw) {
+    const text = String(raw || '');
+    let out = '';
+    for (let i = 0; i < text.length; i += 1) {
+      const ch = text[i];
+      if (ch !== '\\') {
+        out += ch;
+        continue;
+      }
+      const n = text[i + 1] || '';
+      if (n === 'n') {
+        out += '\n';
+        i += 1;
+      } else if (n === 't') {
+        out += '\t';
+        i += 1;
+      } else if (n === 'r') {
+        out += '\r';
+        i += 1;
+      } else if (n === '0') {
+        out += '\0';
+        i += 1;
+      } else if (n === '\\') {
+        out += '\\';
+        i += 1;
+      } else if (n === '"') {
+        out += '"';
+        i += 1;
+      } else {
+        out += n;
+        i += 1;
+      }
+    }
+    return out;
+  }
+
+  bytesToWatString(bytes) {
+    const data = Array.isArray(bytes) ? bytes : [];
+    let out = '';
+    for (let i = 0; i < data.length; i += 1) {
+      const b = data[i] & 0xff;
+      if (b === 34 || b === 92 || b < 32 || b > 126) {
+        out += `\\${b.toString(16).padStart(2, '0')}`;
+      } else {
+        out += String.fromCharCode(b);
+      }
+    }
+    return out;
   }
 }
 
