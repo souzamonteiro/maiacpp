@@ -99,6 +99,17 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - `compiler/tests/fixtures/014_namespace_qualified_call_lowering.cpp`
    - Validates emitted call `return N_add__ii(x, y);` inside `sum2__ii`.
 
+## Phase 7 Progress (Current)
+
+- Extended qualified-call resolution for deeper namespace paths and relative qualification:
+   - nested qualifier pattern: `return A::B::foo(...);`
+   - relative qualifier pattern inside namespace scope: `return B::foo(...);`
+- Added regression fixtures:
+   - `compiler/tests/fixtures/015_nested_namespace_qualified_call_lowering.cpp`
+   - Validates emitted call `return A_B_add__ii(x, y);`.
+   - `compiler/tests/fixtures/016_partial_namespace_qualified_call_lowering.cpp`
+   - Validates relative qualification in namespace scope resolves to `A_B_add__ii` (not global `add`).
+
 4. WAT backend expansion:
    - Generate function stubs for global functions systematically.
    - Incremental lowering for arithmetic, calls, and local variable flow.

@@ -1,0 +1,14 @@
+{
+  "shouldParse": true,
+  "mustContainCompiler": [
+    "Parser: ok",
+    "015_nested_namespace_qualified_call_lowering.cpp",
+    "int sum2__ii(int x, int y)",
+    "return A_B_add__ii(x, y);"
+  ],
+  "mustContain": [
+    "<namespaceDefinition>",
+    "<functionDefinition>",
+    "<EOF/>"
+  ]
+}

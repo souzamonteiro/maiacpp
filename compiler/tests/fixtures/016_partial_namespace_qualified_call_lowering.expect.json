@@ -1,0 +1,14 @@
+{
+  "shouldParse": true,
+  "mustContainCompiler": [
+    "Parser: ok",
+    "016_partial_namespace_qualified_call_lowering.cpp",
+    "int A_sum2__ii(int x, int y)",
+    "return A_B_add__ii(x, y);"
+  ],
+  "mustContain": [
+    "<namespaceDefinition>",
+    "<functionDefinition>",
+    "<EOF/>"
+  ]
+}
