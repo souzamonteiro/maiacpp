@@ -1,0 +1,14 @@
+{
+  "shouldParse": true,
+  "mustContainCompiler": [
+    "Parser: ok",
+    "023_implicit_int_to_long_overload_resolution.cpp",
+    "long sum2__ii(int x, int y)",
+    "return add__ll(x, y);"
+  ],
+  "mustContain": [
+    "<functionDefinition>",
+    "<returnStatement>",
+    "<EOF/>"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "shouldParse": true,
+  "mustContainCompiler": [
+    "Parser: ok",
+    "024_implicit_float_to_double_overload_resolution.cpp",
+    "double sum2__ff(float x, float y)",
+    "return add__dd(x, y);"
+  ],
+  "mustContain": [
+    "<functionDefinition>",
+    "<returnStatement>",
+    "<EOF/>"
+  ]
+}

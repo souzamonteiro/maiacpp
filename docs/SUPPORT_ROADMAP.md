@@ -144,6 +144,18 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - `compiler/tests/fixtures/022_static_cast_overload_resolution.cpp`
    - Validates cast-driven lowering to `return add__ll(static_cast<long>(x), static_cast<long>(y));`.
 
+## Phase 11 Progress (Current)
+
+- Added simple implicit conversion ranking for overload selection when exact match is unavailable:
+   - prefers `int -> long` over broader alternatives
+   - prefers `float -> double` over incompatible alternatives
+   - keeps deterministic fallback when no supported conversion path exists.
+- Added conversion-focused regression fixtures:
+   - `compiler/tests/fixtures/023_implicit_int_to_long_overload_resolution.cpp`
+   - Validates lowering to `return add__ll(x, y);`.
+   - `compiler/tests/fixtures/024_implicit_float_to_double_overload_resolution.cpp`
+   - Validates lowering to `return add__dd(x, y);`.
+
 4. WAT backend expansion:
    - Generate function stubs for global functions systematically.
    - Incremental lowering for arithmetic, calls, and local variable flow.

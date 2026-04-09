@@ -1163,7 +1163,51 @@ class CppToCTranspiler {
       return true;
     });
 
-    return exact || list[0];
+    if (exact) return exact;
+
+    let best = null;
+    let bestCost = Number.POSITIVE_INFINITY;
+    for (const fn of list) {
+      const params = Array.isArray(fn.params) ? fn.params : [];
+      if (params.length !== types.length) continue;
+
+      let totalCost = 0;
+      let valid = true;
+      for (let i = 0; i < params.length; i += 1) {
+        const expected = normalizeTypeText(params[i]?.type || '');
+        const actual = normalizeTypeText(types[i] || '');
+        const cost = this.conversionCost(actual, expected);
+        if (!Number.isFinite(cost)) {
+          valid = false;
+          break;
+        }
+        totalCost += cost;
+      }
+
+      if (valid && totalCost < bestCost) {
+        bestCost = totalCost;
+        best = fn;
+      }
+    }
+
+    return best || list[0];
+  }
+
+  conversionCost(actualType, expectedType) {
+    const actual = normalizeTypeText(actualType || '');
+    const expected = normalizeTypeText(expectedType || '');
+
+    if (!actual || !expected) return 0;
+    if (actual === expected) return 0;
+
+    // Simple implicit conversions prioritized for current lowering scope.
+    if (actual === 'int' && expected === 'long') return 1;
+    if (actual === 'float' && expected === 'double') return 1;
+
+    if (actual === 'int' && expected === 'double') return 3;
+    if (actual === 'float' && expected === 'long') return 4;
+
+    return Number.POSITIVE_INFINITY;
   }
 
   resolveGlobalFunction(name, arity, namespacePath, allFns, qualifiedNamespacePath = [], isAbsoluteQualified = false, argTypes = []) {
