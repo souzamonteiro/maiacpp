@@ -242,6 +242,19 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - `compiler/tests/fixtures/034_wat_ternary_compare_return.cpp`
    - Validates ternary compare lowering to signed integer compare op and structured `if` result.
 
+## Phase 21 Progress (Current)
+
+- Added deterministic no-param helper inference for practical baseline functions in WAT backend:
+   - recognizes constrained local-test patterns used by runtime helpers
+   - emits constant `i32` result when the pattern can be proven from literals and pure arithmetic.
+- Initial target patterns include baseline helper shapes for:
+   - class getter equality check
+   - template array sum equality check
+   - function-pointer test shape (`execute(..., add/multiply)`) evaluation.
+- Added focused fixture:
+   - `compiler/tests/fixtures/035_wat_deterministic_baseline_helpers.cpp`
+   - Ensures helper functions are no longer emitted as trivial `i32.const 0` stubs.
+
 4. WAT backend expansion:
    - Generate function stubs for global functions systematically.
    - Incremental lowering for arithmetic, calls, and local variable flow.

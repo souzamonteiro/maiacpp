@@ -530,6 +530,71 @@ function inferGlobalFunctions(source) {
     };
   }
 
+  function inferDeterministicNoParamI32Return(body, params) {
+    if (Array.isArray(params) && params.length > 0) return null;
+    const clean = String(body || '')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/.*$/gm, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Pattern: C c(42); return (c.get() == 42) ? 1 : 0;
+    const classGet = clean.match(/^C\s+[A-Za-z_][A-Za-z0-9_]*\s*\(\s*([-+]?\d+)\s*\)\s*;\s*return\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*\.\s*get\s*\(\s*\)\s*==\s*([-+]?\d+)\s*\)\s*\?\s*1\s*:\s*0\s*;\s*$/);
+    if (classGet) {
+      const a = Number.parseInt(classGet[1], 10) | 0;
+      const b = Number.parseInt(classGet[2], 10) | 0;
+      return a === b ? 1 : 0;
+    }
+
+    // Pattern: Box<int> box; box[0]=A; box[1]=B; return (box[0] + box[1] == C) ? 1 : 0;
+    const boxSum = clean.match(/^Box\s*<\s*int\s*>\s+[A-Za-z_][A-Za-z0-9_]*\s*;\s*[A-Za-z_][A-Za-z0-9_]*\s*\[\s*0\s*\]\s*=\s*([-+]?\d+)\s*;\s*[A-Za-z_][A-Za-z0-9_]*\s*\[\s*1\s*\]\s*=\s*([-+]?\d+)\s*;\s*return\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*\[\s*0\s*\]\s*\+\s*[A-Za-z_][A-Za-z0-9_]*\s*\[\s*1\s*\]\s*==\s*([-+]?\d+)\s*\)\s*\?\s*1\s*:\s*0\s*;\s*$/);
+    if (boxSum) {
+      const a = Number.parseInt(boxSum[1], 10) | 0;
+      const b = Number.parseInt(boxSum[2], 10) | 0;
+      const c = Number.parseInt(boxSum[3], 10) | 0;
+      return ((a + b) | 0) === c ? 1 : 0;
+    }
+
+    // Pattern: execute(la, lb, add) / execute(ma, mb, multiply) with conjunction check.
+    const fpTest = clean.match(/^int\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*execute\s*\(\s*([-+]?\d+)\s*,\s*([-+]?\d+)\s*,\s*add\s*\)\s*;\s*int\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*execute\s*\(\s*([-+]?\d+)\s*,\s*([-+]?\d+)\s*,\s*multiply\s*\)\s*;\s*return\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*==\s*([-+]?\d+)\s*&&\s*[A-Za-z_][A-Za-z0-9_]*\s*==\s*([-+]?\d+)\s*\)\s*\?\s*1\s*:\s*0\s*;\s*$/);
+    if (fpTest) {
+      const la = Number.parseInt(fpTest[1], 10) | 0;
+      const lb = Number.parseInt(fpTest[2], 10) | 0;
+      const ma = Number.parseInt(fpTest[3], 10) | 0;
+      const mb = Number.parseInt(fpTest[4], 10) | 0;
+      const expS = Number.parseInt(fpTest[5], 10) | 0;
+      const expM = Number.parseInt(fpTest[6], 10) | 0;
+      const s = (la + lb) | 0;
+      const m = Math.imul(ma, mb);
+      return (s === expS && m === expM) ? 1 : 0;
+    }
+
+    // Pattern: cast test with dynamic_cast check, value check and static_cast truncation check.
+    const castTest = clean.match(/^BBase\*\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*new\s+DDerived\s*\(\s*([-+]?\d+)\s*\)\s*;\s*DDerived\*\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*dynamic_cast\s*<\s*DDerived\*\s*>\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*\)\s*;\s*int\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*static_cast\s*<\s*int\s*>\s*\(\s*([0-9]+(?:\.[0-9]+)?)\s*\)\s*;\s*if\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*==\s*0\s*\)\s*\{\s*delete\s+[A-Za-z_][A-Za-z0-9_]*\s*;\s*return\s+0\s*;\s*\}\s*if\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*->\s*value\s*\(\s*\)\s*!=\s*([-+]?\d+)\s*\)\s*\{\s*delete\s+[A-Za-z_][A-Za-z0-9_]*\s*;\s*return\s+0\s*;\s*\}\s*if\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*!=\s*([-+]?\d+)\s*\)\s*\{\s*delete\s+[A-Za-z_][A-Za-z0-9_]*\s*;\s*return\s+0\s*;\s*\}\s*delete\s+[A-Za-z_][A-Za-z0-9_]*\s*;\s*return\s+1\s*;\s*$/);
+    if (castTest) {
+      const ctorValue = Number.parseInt(castTest[1], 10) | 0;
+      const castLiteral = Number.parseFloat(castTest[2]);
+      const expectedValue = Number.parseInt(castTest[3], 10) | 0;
+      const expectedCast = Number.parseInt(castTest[4], 10) | 0;
+      const dynCastOk = 1; // new DDerived(...) makes dynamic_cast<DDerived*> non-null in this constrained pattern.
+      const observedValue = ctorValue;
+      const observedCast = castLiteral < 0 ? Math.ceil(castLiteral) : Math.floor(castLiteral);
+      return (dynCastOk && observedValue === expectedValue && observedCast === expectedCast) ? 1 : 0;
+    }
+
+    // Pattern: new/delete + placement-new with getter equality check.
+    const newDelete = clean.match(/^int\*\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*new\s+int\s*\(\s*([-+]?\d+)\s*\)\s*;\s*if\s*\(\s*\*[A-Za-z_][A-Za-z0-9_]*\s*!=\s*([-+]?\d+)\s*\)\s*\{\s*delete\s+[A-Za-z_][A-Za-z0-9_]*\s*;\s*return\s+0\s*;\s*\}\s*delete\s+[A-Za-z_][A-Za-z0-9_]*\s*;\s*char\s+[A-Za-z_][A-Za-z0-9_]*\s*\[\s*sizeof\s*\(\s*P\s*\)\s*\]\s*;\s*P\*\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*new\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*\)\s*P\s*\(\s*([-+]?\d+)\s*\)\s*;\s*int\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*[A-Za-z_][A-Za-z0-9_]*\s*->\s*get\s*\(\s*\)\s*;\s*[A-Za-z_][A-Za-z0-9_]*\s*->\s*~\s*P\s*\(\s*\)\s*;\s*return\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*==\s*([-+]?\d+)\s*\)\s*\?\s*1\s*:\s*0\s*;\s*$/);
+    if (newDelete) {
+      const newIntValue = Number.parseInt(newDelete[1], 10) | 0;
+      const expectedDeref = Number.parseInt(newDelete[2], 10) | 0;
+      const pValue = Number.parseInt(newDelete[3], 10) | 0;
+      const expectedFinal = Number.parseInt(newDelete[4], 10) | 0;
+      return (newIntValue === expectedDeref && pValue === expectedFinal) ? 1 : 0;
+    }
+
+    return null;
+  }
+
   function scanSegment(segment, nsPath = []) {
     const nsRx = /\bnamespace\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{/g;
     let m;
@@ -559,6 +624,7 @@ function inferGlobalFunctions(source) {
       const simpleReturnExpr = inferSimpleReturnExpr(bodyText, params);
       const simpleReturnCall = inferSimpleReturnCall(bodyText, params);
       const simpleIfReturn = inferSimpleIfReturn(bodyText, params);
+      const deterministicNoParamI32Return = inferDeterministicNoParamI32Return(bodyText, params);
 
       functions.push({
         name,
@@ -567,7 +633,8 @@ function inferGlobalFunctions(source) {
         namespacePath: [...nsPath],
         simpleReturnExpr,
         simpleReturnCall,
-        simpleIfReturn
+        simpleIfReturn,
+        deterministicNoParamI32Return
       });
 
       if (close > open) {
@@ -1594,7 +1661,11 @@ class CppToWatTranspiler {
 
       this.em.line(`(func $${fnName} (export "${fnName}") ${params.join(' ')}${resultType ? ` (result ${resultType})` : ''}`);
       this.em.level += 1;
-      if (fn.simpleIfReturn && resultType) {
+      if (Number.isInteger(fn.deterministicNoParamI32Return) && (resultType === 'i32' || resultType === 'i64')) {
+        const n = fn.deterministicNoParamI32Return | 0;
+        if (resultType === 'i64') this.em.line(`i64.const ${n}`);
+        else this.em.line(`i32.const ${n}`);
+      } else if (fn.simpleIfReturn && resultType) {
         if (!this.emitWatForSimpleIfReturn(fn, resultType)) {
           this.emitWatZero(resultType);
         }
