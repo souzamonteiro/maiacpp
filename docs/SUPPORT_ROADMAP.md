@@ -110,6 +110,17 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - `compiler/tests/fixtures/016_partial_namespace_qualified_call_lowering.cpp`
    - Validates relative qualification in namespace scope resolves to `A_B_add__ii` (not global `add`).
 
+## Phase 8 Progress (Current)
+
+- Added deterministic overload selection for simple call lowering when argument types are inferable:
+   - Uses caller parameter types and numeric literals to infer argument type hints.
+   - Prefers exact signature match by normalized type before namespace/arity fallback.
+- Added overload resolution fixtures:
+   - `compiler/tests/fixtures/017_overload_type_resolution.cpp`
+   - Validates `return add__ii(x, y);` when `add(float,float)` appears before `add(int,int)`.
+   - `compiler/tests/fixtures/018_namespace_overload_type_resolution.cpp`
+   - Validates namespace-qualified overload lowers to `return N_add__ii(x, y);`.
+
 4. WAT backend expansion:
    - Generate function stubs for global functions systematically.
    - Incremental lowering for arithmetic, calls, and local variable flow.

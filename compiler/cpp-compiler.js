@@ -454,10 +454,11 @@ function inferGlobalFunctions(source) {
 
   scanSegment(String(source || ''), []);
 
-  // De-duplicate by namespace + name + arity.
+  // De-duplicate by namespace + name + normalized parameter signature.
   const unique = new Map();
   for (const fn of functions) {
-    const key = `${(fn.namespacePath || []).join('::')}::${fn.name}/${(fn.params || []).length}`;
+    const sig = (fn.params || []).map((p) => normalizeTypeText(p.type || '')).join(',');
+    const key = `${(fn.namespacePath || []).join('::')}::${fn.name}(${sig})`;
     if (!unique.has(key)) unique.set(key, fn);
   }
   return Array.from(unique.values());
@@ -1013,6 +1014,7 @@ class CppToCTranspiler {
   lowerSimpleReturnCall(fn, allFns) {
     const call = fn.simpleReturnCall;
     if (!call || !call.callee) return '(int)0';
+    const argTypes = (call.args || []).map((arg) => this.inferCallArgType(arg, fn));
 
     const qualifiedNs = Array.isArray(call.calleeNamespacePath) ? call.calleeNamespacePath : [];
     const match = this.resolveGlobalFunction(
@@ -1021,7 +1023,8 @@ class CppToCTranspiler {
       fn.namespacePath || [],
       allFns,
       qualifiedNs,
-      Boolean(call.absolute)
+      Boolean(call.absolute),
+      argTypes
     );
     if (!match) {
       const fallbackCallee = qualifiedNs.length ? `${qualifiedNs.join('::')}::${call.callee}` : call.callee;
@@ -1033,34 +1036,70 @@ class CppToCTranspiler {
     return `${calleeMangled}(${(call.args || []).join(', ')})`;
   }
 
-  resolveGlobalFunction(name, arity, namespacePath, allFns, qualifiedNamespacePath = [], isAbsoluteQualified = false) {
+  inferCallArgType(arg, currentFn) {
+    const text = String(arg || '').trim();
+    if (!text) return null;
+    if (/^[-+]?\d+$/.test(text)) return 'int';
+    if (/^[-+]?(?:\d+\.\d*|\d*\.\d+)(?:[eE][-+]?\d+)?f?$/i.test(text)) return 'float';
+
+    if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(text)) {
+      const params = Array.isArray(currentFn?.params) ? currentFn.params : [];
+      const found = params.find((p) => p && p.name === text);
+      if (found) return normalizeTypeText(found.type || '');
+    }
+
+    return null;
+  }
+
+  resolveByArgTypes(candidates, argTypes) {
+    const list = Array.isArray(candidates) ? candidates : [];
+    if (list.length === 0) return null;
+
+    const types = Array.isArray(argTypes) ? argTypes : [];
+    const hasTypeHints = types.some((t) => Boolean(t));
+    if (!hasTypeHints) return list[0];
+
+    const exact = list.find((fn) => {
+      const params = Array.isArray(fn.params) ? fn.params : [];
+      if (params.length !== types.length) return false;
+      for (let i = 0; i < params.length; i += 1) {
+        const expected = normalizeTypeText(params[i]?.type || '');
+        const actual = normalizeTypeText(types[i] || '');
+        if (!actual) continue;
+        if (expected !== actual) return false;
+      }
+      return true;
+    });
+
+    return exact || list[0];
+  }
+
+  resolveGlobalFunction(name, arity, namespacePath, allFns, qualifiedNamespacePath = [], isAbsoluteQualified = false, argTypes = []) {
     const list = Array.isArray(allFns) ? allFns : [];
+
+    const select = (predicate) => this.resolveByArgTypes(
+      list.filter((f) => predicate(f) && f.name === name && (f.params || []).length === arity),
+      argTypes
+    );
+
     if (Array.isArray(qualifiedNamespacePath) && qualifiedNamespacePath.length > 0) {
-      const qualified = list.find(
-        (f) => f.name === name
-          && (f.params || []).length === arity
-          && this.sameNs(f.namespacePath || [], qualifiedNamespacePath)
-      );
+      const qualified = select((f) => this.sameNs(f.namespacePath || [], qualifiedNamespacePath));
       if (qualified) return qualified;
 
       if (!isAbsoluteQualified) {
         const current = Array.isArray(namespacePath) ? namespacePath : [];
         for (let cut = current.length; cut >= 0; cut -= 1) {
           const candidateNs = [...current.slice(0, cut), ...qualifiedNamespacePath];
-          const relative = list.find(
-            (f) => f.name === name
-              && (f.params || []).length === arity
-              && this.sameNs(f.namespacePath || [], candidateNs)
-          );
+          const relative = select((f) => this.sameNs(f.namespacePath || [], candidateNs));
           if (relative) return relative;
         }
       }
     }
-    const sameNs = list.find((f) => f.name === name && (f.params || []).length === arity && this.sameNs(f.namespacePath || [], namespacePath || []));
+    const sameNs = select((f) => this.sameNs(f.namespacePath || [], namespacePath || []));
     if (sameNs) return sameNs;
-    const globalNs = list.find((f) => f.name === name && (f.params || []).length === arity && (f.namespacePath || []).length === 0);
+    const globalNs = select((f) => (f.namespacePath || []).length === 0);
     if (globalNs) return globalNs;
-    return list.find((f) => f.name === name && (f.params || []).length === arity) || null;
+    return select(() => true) || null;
   }
 
   sameNs(a, b) {

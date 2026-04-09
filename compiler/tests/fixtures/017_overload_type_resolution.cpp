@@ -1,0 +1,15 @@
+float add(float a, float b) {
+    return a + b;
+}
+
+int add(int a, int b) {
+    return a + b;
+}
+
+int sum2(int x, int y) {
+    return add(x, y);
+}
+
+int main() {
+    return sum2(1, 2);
+}
