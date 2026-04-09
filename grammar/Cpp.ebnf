@@ -244,7 +244,24 @@ qualifiedId ::= '::'? nestedNameSpecifier 'template'? unqualifiedId
               | '::' operatorFunctionId
               | '::' templateId
 
-operatorFunctionId ::= 'operator' Operator
+operatorFunctionId ::= 'operator' operatorToken
+
+operatorToken ::= 'new'
+                | 'delete'
+                | 'new' '[' ']'
+                | 'delete' '[' ']'
+                | '[' ']'
+                | '(' ')'
+                | '+' | '-' | '*' | '/' | '%' | '^' | '&' | '|' | '~'
+                | '!' | '=' | '<' | '>'
+                | '+=' | '-=' | '*=' | '/=' | '%='
+                | '^=' | '&=' | '|='
+                | '<<' | '>>' | '>>=' | '<<='
+                | '==' | '!=' | '<=' | '>='
+                | '&&' | '||'
+                | '++' | '--'
+                | ',' | '->*' | '->'
+                | '(' | ')' | '[' | ']'
 
 conversionFunctionId ::= 'operator' conversionTypeId
 
@@ -600,19 +617,6 @@ Keyword ::= 'auto'
           | 'while'
 
 ConstantKeyword ::= 'false' | 'true'
-
-Operator ::= 'new' | 'delete' | 'new[]' | 'delete[]'
-           | '[]' | '()'
-           | '+' | '-' | '*' | '/' | '%' | '^' | '&' | '|' | '~'
-           | '!' | '=' | '<' | '>'
-           | '+=' | '-=' | '*=' | '/=' | '%='
-           | '^=' | '&=' | '|='
-           | '<<' | '>>' | '>>=' | '<<='
-           | '==' | '!=' | '<=' | '>='
-           | '&&' | '||'
-           | '++' | '--'
-           | ',' | '->*' | '->'
-           | '(' | ')' | '[' | ']'
 
 IntegerConstant ::= '0' ( [xX] [0-9a-fA-F]+
                             | [bB] [01]+
