@@ -205,6 +205,16 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - browser WASM runner page + local server script.
 - Added orchestration script for one-command execution by target (`console|node|browser|all`).
 
+## Phase 17 Progress (Current)
+
+- Extended WAT backend global function lowering beyond stubs for safe subsets:
+   - arithmetic `return` expressions on params/literals
+   - simple global call returns
+   - simple `if (x == 0) return A; else return B;` pattern
+- Added focused fixture:
+   - `compiler/tests/fixtures/031_wat_simple_if_return.cpp`
+   - Tracks parser/codegen path while WAT output is validated via direct WAT inspection.
+
 4. WAT backend expansion:
    - Generate function stubs for global functions systematically.
    - Incremental lowering for arithmetic, calls, and local variable flow.

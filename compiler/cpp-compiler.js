@@ -496,6 +496,29 @@ function inferGlobalFunctions(source) {
     };
   }
 
+  function inferSimpleIfReturn(body, params) {
+    const clean = String(body || '')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/.*$/gm, '')
+      .trim();
+
+    const withElse = clean.match(/^if\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*==\s*0\s*\)\s*\{\s*return\s+([-+]?\d+)\s*;\s*\}\s*else\s*\{\s*return\s+([-+]?\d+)\s*;\s*\}\s*$/);
+    const noElse = clean.match(/^if\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*==\s*0\s*\)\s*\{\s*return\s+([-+]?\d+)\s*;\s*\}\s*return\s+([-+]?\d+)\s*;\s*$/);
+    const m = withElse || noElse;
+    if (!m) return null;
+
+    const varName = m[1];
+    const allowed = new Set((params || []).map((p) => p.name));
+    if (!allowed.has(varName)) return null;
+
+    return {
+      kind: 'eq_zero',
+      varName,
+      thenValue: Number.parseInt(m[2], 10) | 0,
+      elseValue: Number.parseInt(m[3], 10) | 0
+    };
+  }
+
   function scanSegment(segment, nsPath = []) {
     const nsRx = /\bnamespace\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{/g;
     let m;
@@ -524,6 +547,7 @@ function inferGlobalFunctions(source) {
       const bodyText = close > open ? plain.slice(open + 1, close) : '';
       const simpleReturnExpr = inferSimpleReturnExpr(bodyText, params);
       const simpleReturnCall = inferSimpleReturnCall(bodyText, params);
+      const simpleIfReturn = inferSimpleIfReturn(bodyText, params);
 
       functions.push({
         name,
@@ -531,7 +555,8 @@ function inferGlobalFunctions(source) {
         params,
         namespacePath: [...nsPath],
         simpleReturnExpr,
-        simpleReturnCall
+        simpleReturnCall,
+        simpleIfReturn
       });
 
       if (close > open) {
@@ -1558,7 +1583,11 @@ class CppToWatTranspiler {
 
       this.em.line(`(func $${fnName} (export "${fnName}") ${params.join(' ')}${resultType ? ` (result ${resultType})` : ''}`);
       this.em.level += 1;
-      if (fn.simpleReturnExpr && resultType) {
+      if (fn.simpleIfReturn && resultType) {
+        if (!this.emitWatForSimpleIfReturn(fn, resultType)) {
+          this.emitWatZero(resultType);
+        }
+      } else if (fn.simpleReturnExpr && resultType) {
         if (!this.emitWatForSimpleReturnExpr(fn, resultType)) {
           this.emitWatZero(resultType);
         }
@@ -1575,6 +1604,34 @@ class CppToWatTranspiler {
       this.em.line(')');
     }
     this.em.line();
+  }
+
+  emitWatForSimpleIfReturn(fn, resultType) {
+    const info = fn.simpleIfReturn;
+    if (!info || info.kind !== 'eq_zero') return false;
+    if (resultType !== 'i32' && resultType !== 'i64') return false;
+
+    const params = Array.isArray(fn.params) ? fn.params : [];
+    const param = params.find((p) => p.name === info.varName);
+    if (!param) return false;
+
+    const paramType = this.mapCTypeToWat(param.type) || 'i32';
+    const eqzOp = paramType === 'i64' ? 'i64.eqz' : 'i32.eqz';
+    const constOp = resultType === 'i64' ? 'i64.const' : 'i32.const';
+    const resultSig = resultType === 'i64' ? ' (result i64)' : ' (result i32)';
+
+    this.em.line(`local.get $${info.varName}`);
+    this.em.line(eqzOp);
+    this.em.line(`if${resultSig}`);
+    this.em.level += 1;
+    this.em.line(`${constOp} ${info.thenValue | 0}`);
+    this.em.level -= 1;
+    this.em.line('else');
+    this.em.level += 1;
+    this.em.line(`${constOp} ${info.elseValue | 0}`);
+    this.em.level -= 1;
+    this.em.line('end');
+    return true;
   }
 
   typeKindFromText(typeText) {
