@@ -1542,6 +1542,9 @@ class CppToWatTranspiler {
 
     this.em.line(';; Global function stubs extracted from analysis');
     for (const fn of fns) {
+      if (fn.name === 'main' && (fn.namespacePath || []).length === 0) {
+        continue;
+      }
       const sigTypes = (fn.params || []).map((p) => ({ kind: 'int', name: p.type }));
       const fnName = mangle(fn.name, sigTypes, null, fn.namespacePath || []);
       const resultType = this.mapCTypeToWat(fn.returnType);

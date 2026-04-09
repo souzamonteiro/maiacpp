@@ -197,6 +197,14 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - `compiler/tests/fixtures/030_ambiguity_summary_count.cpp`
    - Validates summary header/count and detailed caller/selection line.
 
+## Phase 16 Progress (Current)
+
+- Added practical execution workflow for `compiler/test.cpp` across targets (MaiaC-like DX):
+   - console native execution script (`clang++`/`g++`)
+   - Node WASM execution script with host runtime imports
+   - browser WASM runner page + local server script.
+- Added orchestration script for one-command execution by target (`console|node|browser|all`).
+
 4. WAT backend expansion:
    - Generate function stubs for global functions systematically.
    - Incremental lowering for arithmetic, calls, and local variable flow.

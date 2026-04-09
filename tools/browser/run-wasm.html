@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MaiaCpp Browser WASM Runner</title>
+  <style>
+    :root {
+      --bg: #f2efe8;
+      --panel: #fffaf0;
+      --ink: #1f2937;
+      --accent: #0f766e;
+      --accent-2: #ea580c;
+      --muted: #6b7280;
+      --border: #e5dccb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(900px 380px at 10% 0%, #f8e7c8 0%, transparent 60%),
+        radial-gradient(800px 400px at 90% 0%, #d8f0ed 0%, transparent 58%),
+        var(--bg);
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .wrap {
+      max-width: 900px;
+      margin: 0 auto;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 8px 24px rgba(32, 41, 53, 0.08);
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 1.4rem;
+      letter-spacing: 0.02em;
+    }
+    p {
+      margin: 0 0 16px;
+      color: var(--muted);
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    input {
+      width: 100%;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.95rem;
+    }
+    button {
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(120deg, var(--accent), var(--accent-2));
+      color: #fff;
+      font-weight: 600;
+      padding: 10px 14px;
+      cursor: pointer;
+    }
+    pre {
+      margin: 0;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      background: #fff;
+      min-height: 260px;
+      max-height: 420px;
+      overflow: auto;
+      font-size: 0.88rem;
+      line-height: 1.45;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>MaiaCpp WASM Runner (Browser)</h1>
+    <p>Compile first with webcpp and run the generated .wasm file here.</p>
+    <div class="row">
+      <input id="wasmPath" value="/out/browser/test.wasm" />
+      <button id="runBtn">Run</button>
+    </div>
+    <pre id="log"></pre>
+  </div>
+
+  <script>
+    const logEl = document.getElementById('log');
+    const wasmPathEl = document.getElementById('wasmPath');
+    const runBtn = document.getElementById('runBtn');
+
+    function log(line) {
+      logEl.textContent += line + '\n';
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function createEnvImports() {
+      let heap = 1024;
+      return {
+        printf: () => 0,
+        __malloc: (size) => {
+          const ptr = heap;
+          const n = Number(size) >>> 0;
+          heap += Math.max(1, n);
+          return ptr;
+        },
+        __free: () => {},
+        __exc_push: () => {},
+        __exc_pop: () => {},
+        __exc_throw: () => {},
+        __exc_active: () => 0,
+        __exc_clear: () => {}
+      };
+    }
+
+    async function runWasm() {
+      logEl.textContent = '';
+      const wasmPath = wasmPathEl.value.trim();
+      if (!wasmPath) {
+        log('No wasm path provided.');
+        return;
+      }
+
+      log(`Loading: ${wasmPath}`);
+      try {
+        const resp = await fetch(wasmPath);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const bytes = await resp.arrayBuffer();
+
+        const imports = { env: createEnvImports() };
+        const { instance } = await WebAssembly.instantiate(bytes, imports);
+
+        if (typeof instance.exports.main === 'function') {
+          const rc = instance.exports.main();
+          log(`main() => ${rc}`);
+          return;
+        }
+
+        if (typeof instance.exports._start === 'function') {
+          instance.exports._start();
+          log('_start() executed');
+          return;
+        }
+
+        log('No export found: expected main or _start');
+      } catch (err) {
+        log(`Runner failed: ${err.message}`);
+      }
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const wasmFromQuery = params.get('wasm');
+    if (wasmFromQuery) wasmPathEl.value = wasmFromQuery;
+
+    runBtn.addEventListener('click', runWasm);
+  </script>
+</body>
+</html>

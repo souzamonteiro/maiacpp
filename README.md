@@ -23,3 +23,29 @@ Saidas suportadas:
 Observacao:
 
 - A geracao de WAT/WASM usa backend integrado do `cpp-compiler.js` (nao copia mais `runtime.wat`).
+
+## Execucao do test.cpp (console, Node, browser)
+
+Fluxo unificado (default: `compiler/test.cpp`):
+
+```bash
+bash ./bin/run-test-cpp.sh --target all
+```
+
+Alvos individuais:
+
+```bash
+# Console nativo (clang++/g++)
+bash ./bin/run-test-console.sh ./compiler/test.cpp
+
+# Node + WASM
+bash ./bin/run-test-node.sh ./compiler/test.cpp
+
+# Browser + WASM (inicia servidor local)
+bash ./bin/run-wasm-browser.sh ./compiler/test.cpp
+```
+
+Runner no browser:
+
+- `tools/browser/run-wasm.html`
+- Aceita query `?wasm=/caminho/para/arquivo.wasm`
