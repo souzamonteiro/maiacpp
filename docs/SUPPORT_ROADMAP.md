@@ -90,6 +90,15 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - `compiler/tests/fixtures/013_global_call_lowering.cpp`
    - Validates emitted call `return add__ii(x, y);` inside `sum2__ii`.
 
+## Phase 6 Progress (Current)
+
+- Extended safe lowering for namespace-qualified global calls:
+   - pattern: `return N::foo(arg1, arg2, ...);`
+   - resolves namespace-qualified callee to the mangled global symbol.
+- Added qualified-call lowering regression fixture:
+   - `compiler/tests/fixtures/014_namespace_qualified_call_lowering.cpp`
+   - Validates emitted call `return N_add__ii(x, y);` inside `sum2__ii`.
+
 4. WAT backend expansion:
    - Generate function stubs for global functions systematically.
    - Incremental lowering for arithmetic, calls, and local variable flow.

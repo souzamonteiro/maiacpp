@@ -380,10 +380,14 @@ function inferGlobalFunctions(source) {
       .replace(/\/\/.*$/gm, '')
       .trim();
 
-    const m = clean.match(/^return\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^()]*)\)\s*;\s*$/);
+    const m = clean.match(/^return\s+((?:[A-Za-z_][A-Za-z0-9_]*\s*::\s*)*[A-Za-z_][A-Za-z0-9_]*)\s*\(([^()]*)\)\s*;\s*$/);
     if (!m) return null;
 
-    const callee = m[1].trim();
+    const calleeText = (m[1] || '').replace(/\s+/g, '');
+    const calleeParts = calleeText.split('::').filter(Boolean);
+    if (calleeParts.length === 0) return null;
+    const callee = calleeParts[calleeParts.length - 1];
+    const calleeNamespacePath = calleeParts.slice(0, -1);
     const argsText = (m[2] || '').trim();
     const args = argsText ? argsText.split(',').map((s) => s.trim()).filter(Boolean) : [];
 
@@ -396,6 +400,7 @@ function inferGlobalFunctions(source) {
 
     return {
       callee,
+      calleeNamespacePath,
       args
     };
   }
@@ -1006,9 +1011,11 @@ class CppToCTranspiler {
     const call = fn.simpleReturnCall;
     if (!call || !call.callee) return '(int)0';
 
-    const match = this.resolveGlobalFunction(call.callee, (call.args || []).length, fn.namespacePath || [], allFns);
+    const qualifiedNs = Array.isArray(call.calleeNamespacePath) ? call.calleeNamespacePath : [];
+    const match = this.resolveGlobalFunction(call.callee, (call.args || []).length, fn.namespacePath || [], allFns, qualifiedNs);
     if (!match) {
-      return `${call.callee}(${(call.args || []).join(', ')})`;
+      const fallbackCallee = qualifiedNs.length ? `${qualifiedNs.join('::')}::${call.callee}` : call.callee;
+      return `${fallbackCallee}(${(call.args || []).join(', ')})`;
     }
 
     const sigTypes = (match.params || []).map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
@@ -1016,8 +1023,16 @@ class CppToCTranspiler {
     return `${calleeMangled}(${(call.args || []).join(', ')})`;
   }
 
-  resolveGlobalFunction(name, arity, namespacePath, allFns) {
+  resolveGlobalFunction(name, arity, namespacePath, allFns, qualifiedNamespacePath = []) {
     const list = Array.isArray(allFns) ? allFns : [];
+    if (Array.isArray(qualifiedNamespacePath) && qualifiedNamespacePath.length > 0) {
+      const qualified = list.find(
+        (f) => f.name === name
+          && (f.params || []).length === arity
+          && this.sameNs(f.namespacePath || [], qualifiedNamespacePath)
+      );
+      if (qualified) return qualified;
+    }
     const sameNs = list.find((f) => f.name === name && (f.params || []).length === arity && this.sameNs(f.namespacePath || [], namespacePath || []));
     if (sameNs) return sameNs;
     const globalNs = list.find((f) => f.name === name && (f.params || []).length === arity && (f.namespacePath || []).length === 0);
