@@ -283,6 +283,7 @@ class SemanticAnalyzer {
     this.globals = new SymbolTable();
     this.classes = new Map();
     this.functions = [];
+    this.namespaceStack = [];
   }
 
   analyze() {
@@ -297,19 +298,98 @@ class SemanticAnalyzer {
   walk(node) {
     if (!node) return;
 
+    const enteredNamespace = this.enterNamespaceIfNeeded(node);
+
     if (node.kind === 'nonterminal' && (node.name === 'classDefinition' || node.name === 'classSpecifier')) {
-      const classNameNode = (node.children || []).find((c) => c.kind === 'nonterminal' && c.name === 'className');
-      const className = this.text(classNameNode).trim();
+      const className = this.extractClassName(node);
       if (className) {
         const cls = new ClassType(className);
+        cls.namespacePath = [...this.namespaceStack];
         this.classes.set(className, cls);
         this.globals.define(className, new Symbol(SymbolKind.CLASS, className, cls));
+        const fqName = cls.namespacePath.length ? `${cls.namespacePath.join('::')}::${className}` : className;
+        this.globals.define(fqName, new Symbol(SymbolKind.CLASS, fqName, cls));
       }
     }
 
     for (const child of node.children || []) {
       this.walk(child);
     }
+
+    if (enteredNamespace) {
+      this.namespaceStack.pop();
+    }
+  }
+
+  extractClassName(node) {
+    const classNameNode = this.findFirstNonterminal(node, 'className');
+    const direct = this.text(classNameNode).trim();
+    if (direct) return direct;
+
+    const classHead = this.findFirstNonterminal(node, 'classHead');
+    const identifier = this.findFirstTerminal(classHead, 'Identifier');
+    return identifier ? String(identifier.value || '').trim() : '';
+  }
+
+  findFirstNonterminal(node, name) {
+    if (!node) return null;
+    if (node.kind === 'nonterminal' && node.name === name) return node;
+    for (const child of node.children || []) {
+      const found = this.findFirstNonterminal(child, name);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  findFirstTerminal(node, token) {
+    if (!node) return null;
+    if (node.kind === 'terminal' && (!token || node.token === token)) return node;
+    for (const child of node.children || []) {
+      const found = this.findFirstTerminal(child, token);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  enterNamespaceIfNeeded(node) {
+    if (!node || node.kind !== 'nonterminal') return false;
+    const namespaceNodeNames = new Set([
+      'namespaceDefinition',
+      'namedNamespaceDefinition',
+      'originalNamespaceDefinition',
+      'extensionNamespaceDefinition',
+      'unnamedNamespaceDefinition'
+    ]);
+    if (!namespaceNodeNames.has(node.name)) return false;
+
+    const ns = this.extractNamespaceName(node);
+    if (!ns) return false;
+
+    this.namespaceStack.push(ns);
+    return true;
+  }
+
+  extractNamespaceName(node) {
+    if (!node) return null;
+    if (node.name === 'unnamedNamespaceDefinition') {
+      return '__anon';
+    }
+
+    if (node.kind === 'terminal' && node.token === 'Identifier') {
+      return (node.value || '').trim() || null;
+    }
+
+    for (const child of node.children || []) {
+      if (child.kind === 'terminal' && child.token === 'Identifier') {
+        return (child.value || '').trim() || null;
+      }
+    }
+
+    for (const child of node.children || []) {
+      const nested = this.extractNamespaceName(child);
+      if (nested) return nested;
+    }
+    return null;
   }
 
   text(node) {
@@ -535,6 +615,7 @@ class CppToCTranspiler {
     if (this.analysis.classes.size) this.em.line();
 
     for (const [name, cls] of this.analysis.classes) {
+      const nsPath = Array.isArray(cls.namespacePath) ? cls.namespacePath : [];
       this.em.line(`typedef struct ${name} {`);
       this.em.level += 1;
       for (const base of cls.bases) {
@@ -551,24 +632,24 @@ class CppToCTranspiler {
       this.em.line();
 
       if (cls.constructors.length === 0) {
-        this.em.line(`void ${mangle('init', [], name)}(${name}* self);`);
+        this.em.line(`void ${mangle('init', [], name, nsPath)}(${name}* self);`);
       }
       for (const ctor of cls.constructors) {
         const sigTypes = ctor.params.map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
         const paramsText = this.formatParams(ctor.params, true);
-        this.em.line(`void ${mangle('init', sigTypes, name)}(${name}* self${paramsText ? `, ${paramsText}` : ''});`);
+        this.em.line(`void ${mangle('init', sigTypes, name, nsPath)}(${name}* self${paramsText ? `, ${paramsText}` : ''});`);
       }
 
-      this.em.line(`void ${mangle('destroy', [], name)}(${name}* self);`);
+      this.em.line(`void ${mangle('destroy', [], name, nsPath)}(${name}* self);`);
 
       for (const method of cls.methods) {
         const sigTypes = method.params.map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
         const paramsText = this.formatParams(method.params, true);
-        this.em.line(`${method.returnType} ${mangle(method.name, sigTypes, name)}(${name}* self${paramsText ? `, ${paramsText}` : ''});`);
+        this.em.line(`${method.returnType} ${mangle(method.name, sigTypes, name, nsPath)}(${name}* self${paramsText ? `, ${paramsText}` : ''});`);
       }
 
       this.em.line();
-      this.emitClassStubs(name, cls);
+      this.emitClassStubs(name, cls, nsPath);
     }
   }
 
@@ -586,9 +667,9 @@ class CppToCTranspiler {
     }).join(', ');
   }
 
-  emitClassStubs(name, cls) {
+  emitClassStubs(name, cls, nsPath = []) {
     if (cls.constructors.length === 0) {
-      this.em.line(`void ${mangle('init', [], name)}(${name}* self) {`);
+      this.em.line(`void ${mangle('init', [], name, nsPath)}(${name}* self) {`);
       this.em.level += 1;
       this.em.line('(void)self;');
       this.em.level -= 1;
@@ -599,7 +680,7 @@ class CppToCTranspiler {
     for (const ctor of cls.constructors) {
       const sigTypes = ctor.params.map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
       const paramsText = this.formatParams(ctor.params, true);
-      this.em.line(`void ${mangle('init', sigTypes, name)}(${name}* self${paramsText ? `, ${paramsText}` : ''}) {`);
+      this.em.line(`void ${mangle('init', sigTypes, name, nsPath)}(${name}* self${paramsText ? `, ${paramsText}` : ''}) {`);
       this.em.level += 1;
       this.em.line('(void)self;');
       for (let i = 0; i < ctor.params.length; i += 1) {
@@ -610,7 +691,7 @@ class CppToCTranspiler {
       this.em.line();
     }
 
-    this.em.line(`void ${mangle('destroy', [], name)}(${name}* self) {`);
+    this.em.line(`void ${mangle('destroy', [], name, nsPath)}(${name}* self) {`);
     this.em.level += 1;
     this.em.line('(void)self;');
     this.em.level -= 1;
@@ -620,7 +701,7 @@ class CppToCTranspiler {
     for (const method of cls.methods) {
       const sigTypes = method.params.map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
       const paramsText = this.formatParams(method.params, true);
-      this.em.line(`${method.returnType} ${mangle(method.name, sigTypes, name)}(${name}* self${paramsText ? `, ${paramsText}` : ''}) {`);
+      this.em.line(`${method.returnType} ${mangle(method.name, sigTypes, name, nsPath)}(${name}* self${paramsText ? `, ${paramsText}` : ''}) {`);
       this.em.level += 1;
       this.em.line('(void)self;');
       for (let i = 0; i < method.params.length; i += 1) {
@@ -713,9 +794,10 @@ class CppToWatTranspiler {
 
     this.em.line(';; Class/method stubs extracted from semantic analysis');
     for (const [className, cls] of this.analysis.classes) {
+      const nsPath = Array.isArray(cls.namespacePath) ? cls.namespacePath : [];
       this.em.line(`;; class ${className}`);
       for (const method of cls.methods || []) {
-        const methodName = mangle(method.name, [], className);
+        const methodName = mangle(method.name, [], className, nsPath);
         const resultType = this.mapCTypeToWat(method.returnType);
         const params = ['(param $self i32)'];
         for (let i = 0; i < (method.params || []).length; i += 1) {

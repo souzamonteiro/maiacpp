@@ -53,6 +53,12 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - Global function collection and symbol resolution.
    - Local declarations and initialization handling consistency.
 
+## Phase 3 Progress (Current)
+
+- Semantic analyzer now tracks namespace scope while walking parse tree.
+- Class metadata now carries `namespacePath` and defines fully-qualified class symbols.
+- C/WAT stub emission now passes namespace path into mangling for class method symbols.
+
 3. Codegen C expansion:
    - Emit non-stub bodies for core expressions/statements used by baseline tests.
    - Tighten behavior for parser failures (strict mode option).
