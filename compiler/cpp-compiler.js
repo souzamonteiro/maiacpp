@@ -220,6 +220,37 @@ function flattenSimpleNamespaces(source, maxPasses = 4) {
   return current;
 }
 
+function stripUsingNamespaceDirectives(source) {
+  return String(source || '').replace(/\busing\s+namespace\s+[^;]+;/g, '');
+}
+
+function extractNamespaceNames(source) {
+  const names = new Set();
+  const rx = /\bnamespace\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{/g;
+  let m;
+  while ((m = rx.exec(String(source || ''))) !== null) {
+    names.add(m[1]);
+  }
+  return names;
+}
+
+function stripNamespaceQualifiers(source, namespaceNames) {
+  let out = String(source || '');
+  for (const ns of namespaceNames || []) {
+    const escaped = ns.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const rx = new RegExp(`\\b${escaped}\\s*::`, 'g');
+    out = out.replace(rx, '');
+  }
+  return out;
+}
+
+function normalizeForParser(source) {
+  const names = extractNamespaceNames(source);
+  const flattened = flattenSimpleNamespaces(source);
+  const noUsing = stripUsingNamespaceDirectives(flattened);
+  return stripNamespaceQualifiers(noUsing, names);
+}
+
 class CEmitter {
   constructor() {
     this.lines = [];
@@ -757,53 +788,38 @@ class Cpp98Compiler {
   }
 
   analyze(source) {
-    let collector;
-    let analysis;
     console.log(`Parsing: ${this.filePath}`);
+    const parseSources = [];
+    const normalized = normalizeForParser(source);
 
-    try {
-      collector = new ParseTreeCollector();
-      const parser = new Parser(source, collector);
-      parser.parse();
-      console.log('Parser: ok');
-
-      if (!collector.root) {
-        throw new Error('Nenhuma árvore de parse disponível');
-      }
-
-      const sema = new SemanticAnalyzer(collector.root);
-      analysis = sema.analyze();
-    } catch (err) {
-      // Retry path for known namespace+mixed-unit parse regression.
-      try {
-        const flattened = flattenSimpleNamespaces(source);
-        if (flattened !== source) {
-          const retryCollector = new ParseTreeCollector();
-          const retryParser = new Parser(flattened, retryCollector);
-          retryParser.parse();
-          console.log(`Parser: ok (namespace retry)`);
-          const sema = new SemanticAnalyzer(retryCollector.root);
-          analysis = sema.analyze();
-          return analysis;
-        }
-      } catch (_retryErr) {
-        // Ignore and fall through to simple analyzer fallback.
-      }
-
-      // Heuristic recovery path for currently known namespace composition issue.
-      if (
-        /Expected 'EOF', got 'TOKEN_int'/.test(String(err && err.message || ''))
-        && /\bnamespace\b/.test(source)
-      ) {
-        console.log('Parser: ok (namespace heuristic)');
-        analysis = new SimpleAnalyzer(this.filePath).analyze();
-        return analysis;
-      }
-
-      console.log(`Parser falhou (${err.message}). Usando fallback simples.`);
-      analysis = new SimpleAnalyzer(this.filePath).analyze();
+    if (normalized !== source) {
+      parseSources.push({ text: normalized, label: 'Parser: ok (namespace normalized)' });
     }
-    return analysis;
+    parseSources.push({ text: source, label: 'Parser: ok' });
+
+    let lastErr = null;
+
+    for (let i = 0; i < parseSources.length; i += 1) {
+      const candidate = parseSources[i];
+      try {
+        const collector = new ParseTreeCollector();
+        const parser = new Parser(candidate.text, collector);
+        parser.parse();
+
+        if (!collector.root) {
+          throw new Error('Nenhuma árvore de parse disponível');
+        }
+
+        console.log(candidate.label);
+        const sema = new SemanticAnalyzer(collector.root);
+        return sema.analyze();
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+
+    console.log(`Parser falhou (${lastErr ? lastErr.message : 'erro desconhecido'}). Usando fallback simples.`);
+    return new SimpleAnalyzer(this.filePath).analyze();
   }
 }
 

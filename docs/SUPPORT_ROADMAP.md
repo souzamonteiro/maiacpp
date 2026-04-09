@@ -41,9 +41,13 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
 ## Phase 2 Progress (Current)
 
 - Implemented parser retry path for mixed units with namespace blocks in `compiler/cpp-compiler.js`.
-- Added heuristic recovery path for the known `namespace + extra global declarations` EOF regression.
+- Promoted namespace handling to a parser-front normalization step (syntactic preprocessing):
+   - flatten namespace blocks
+   - strip `using namespace` directives in normalized source
+   - strip qualifiers for known namespace names (e.g. `B::f()` -> `f()`)
 - `104_negative_namespace_combo_regression` moved to positive expectation (`shouldParse: true`).
-- Goal: keep compilation in non-fallback path marker (`Parser: ok`) while parser support is expanded.
+- Removed error-message heuristic branch previously used for this case.
+- Goal: keep compilation in parser path (`Parser: ok`) while full namespace semantics are expanded.
 
 2. Semantic coverage expansion:
    - Global function collection and symbol resolution.
