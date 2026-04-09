@@ -1,12 +1,12 @@
 {
   "shouldParse": true,
-  "mustContain": [
-    "(func $run_cast_tests",
-    "(func $run_new_delete_tests",
-    "i32.const 1"
+  "mustContainCompiler": [
+    "int run_cast_tests(void)",
+    "int run_new_delete_tests(void)",
+    "return 1;"
   ],
-  "mustNotContain": [
-    "(func $run_cast_tests (export \"run_cast_tests\")  (result i32)\n    i32.const 0",
-    "(func $run_new_delete_tests (export \"run_new_delete_tests\")  (result i32)\n    i32.const 0"
+  "mustNotContainCompiler": [
+    "int run_cast_tests(void) {\n  return (int)0;",
+    "int run_new_delete_tests(void) {\n  return (int)0;"
   ]
 }

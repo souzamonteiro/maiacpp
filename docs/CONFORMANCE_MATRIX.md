@@ -71,12 +71,11 @@ Status legend:
 - global function lowering (simple return/call patterns): partial
 - full statement lowering: missing
 
-### WAT backend
+### MaiaC bridge / runtime.wat integration
 
-- module/import skeleton: done
+- MaiaCpp C emission consumable by MaiaC: partial
 - runtime host integration (printf in Node/browser): partial
-- full semantic lowering of function bodies: missing
-- control-flow correctness for arbitrary source: missing
+- runtime.wat support for non-C-lowerable features: partial
 
 ## I. Runtime Validation
 
@@ -90,5 +89,5 @@ To claim 100 percent ready, each grammar family must be done in all layers:
 1. parser acceptance
 2. semantic resolution
 3. C backend behavior
-4. WAT backend behavior
+4. MaiaC bridge behavior
 5. runtime validation fixture

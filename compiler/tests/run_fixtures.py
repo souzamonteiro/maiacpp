@@ -90,6 +90,10 @@ def run_fixture(parser: Path, input_file: Path, spec: dict, mode: str):
         if snippet not in out:
             errors.append(f"missing required snippet in output: {snippet}")
 
+    for snippet in spec.get("mustNotContainCompiler", []):
+        if snippet in out:
+            errors.append(f"unexpected snippet in output: {snippet}")
+
     for snippet in spec.get("stderrContains", []):
         if snippet not in proc.stderr:
             errors.append(f"expected stderr to contain: {snippet}")

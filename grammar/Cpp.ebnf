@@ -117,9 +117,11 @@ cvQualifier ::= 'const' | 'volatile'
 
 classSpecifier ::= classHead '{' memberSpecification? '}'
 
-classHead ::= classKey Identifier? baseClause?
-            | classKey nestedNameSpecifier Identifier baseClause?
-            | classKey nestedNameSpecifier? templateId baseClause?
+classHead ::= classKey classHeadName? baseClause?
+            | classKey nestedNameSpecifier classHeadName baseClause?
+
+classHeadName ::= Identifier
+                | templateId
 
 baseClause ::= ':' baseSpecifierList
 

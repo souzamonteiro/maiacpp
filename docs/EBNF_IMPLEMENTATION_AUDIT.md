@@ -28,10 +28,10 @@ What is proven to work now:
 - Overload tie-break rules (exact, conversion ranking, paramwise tie, scope tie, stable fallback).
 - Runtime target scripts for console, Node, browser.
 - WASM runner now prints via host printf integration.
+- Default executable path is `C++ -> C (MaiaCpp) -> WAT/WASM (MaiaC)`.
 
 What is not fully working:
 
-- WAT backend is still mostly stub-based and not full semantic lowering.
 - C backend is also partial (many constructs still emitted as stubs/default values).
 - Large parts of C++98 grammar are parse-level only and not translated correctly.
 
@@ -44,7 +44,7 @@ Status: partial
 Not fully implemented:
 
 - Full statement lowering in function bodies (general if/else, switch, loops, labels, goto).
-- Correct control-flow lowering in WAT for arbitrary blocks.
+- Correct lowering into MaiaC-consumable C for arbitrary blocks.
 - Correct data-flow/local variable lifetime and initialization semantics.
 - Full return-path correctness for non-trivial expressions.
 
@@ -133,7 +133,7 @@ From grammar area:
 
 Not fully implemented:
 
-- General expression lowering in C and WAT backends.
+- General expression lowering in the C backend.
 - Full operator semantics and precedence-preserving translation for all forms.
 
 ### 3.7 New/Delete and Placement New
@@ -191,15 +191,15 @@ Not fully implemented:
 
 - Real preprocessor pipeline integrated with semantic/codegen stages.
 
-### 3.11 WAT Backend Correctness
+### 3.11 MaiaC Bridge and runtime.wat Correctness
 
 Status: partial (major gap)
 
 Not fully implemented:
 
-- Full lowering of AST/semantic model into executable WAT control/data flow.
-- Reliable runtime semantics equivalent to source behavior.
-- Comprehensive host/runtime ABI matching for all emitted patterns.
+- Full lowering of AST/semantic model into MaiaC-consumable C for all executable constructs.
+- Reliable runtime semantics equivalent to source behavior after the MaiaC handoff.
+- runtime.wat coverage for features that cannot be represented in target C, especially exception support.
 
 ## 4. Coverage vs Grammar Breadth
 
@@ -215,16 +215,16 @@ Conclusion:
 
 Priority A (must-do for real compiler usability):
 
-1. Replace textual printf extraction in WAT with real statement-level lowering for main/function bodies.
-2. Implement control-flow lowering (`if/else`, loops, `return`) in WAT.
-3. Implement local variable + expression lowering in WAT.
+1. Expand C backend statement lowering (`if/else`, loops, `return`) so MaiaC receives semantically faithful C.
+2. Expand local variable + expression lowering in the C backend.
+3. Define and isolate what stays in runtime.wat because the C bridge cannot express it cleanly.
 4. Add behavioral execution fixtures (assert runtime output/return values), not only textual marker fixtures.
 
 Priority B:
 
-1. Expand C backend from stub-first to semantic lowering across statements and expressions.
-2. Implement full object lifecycle (constructors/destructors/base init).
-3. Implement exception runtime and catch matching behavior.
+1. Implement full object lifecycle (constructors/destructors/base init).
+2. Implement exception runtime and catch matching behavior.
+3. Tighten MaiaC bridge compatibility guarantees in generated C.
 
 Priority C:
 
@@ -238,7 +238,7 @@ Priority C:
 
 1. Parse: syntax accepted according to grammar.
 2. Semantic: symbols/types/scopes resolved correctly.
-3. Codegen behavior: generated C/WAT/WASM executes equivalent behavior on conformance fixtures.
+3. Codegen behavior: generated C and downstream MaiaC WAT/WASM execute equivalent behavior on conformance fixtures.
 
 Without layer 3, grammar compliance is only superficial.
 
@@ -249,7 +249,7 @@ Create a conformance matrix file mapping each major grammar family to:
 - parser status
 - semantic status
 - C codegen status
-- WAT codegen status
+- MaiaC bridge/runtime status
 - runtime fixture status
 
 and gate each family with at least one executable fixture.

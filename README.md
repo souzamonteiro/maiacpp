@@ -23,7 +23,8 @@ Saidas suportadas:
 Observacao:
 
 - O caminho padrao e `C++ -> C (MaiaCpp) -> WAT/WASM (MaiaC)`.
-- O backend WAT integrado do `cpp-compiler.js` fica apenas como suporte experimental de debug via `--direct-wat-backend`.
+- O `cpp-compiler.js` emite apenas C.
+- O unico WAT mantido no projeto e o `compiler/runtime.wat`, reservado ao runtime que cobre o que nao cabe no C alvo, como suporte a `try`/`catch`.
 
 ## Execucao do test.cpp (console, Node, browser)
 
@@ -50,6 +51,24 @@ Runner no browser:
 
 - `tools/browser/run-wasm.html`
 - Aceita query `?wasm=/caminho/para/arquivo.wasm`
+
+## Exemplo minimo com classe (novo)
+
+Arquivo: `compiler/example_class_plus_one.cpp`
+
+```bash
+# Node + WASM
+bash ./bin/run-test-node.sh ./compiler/example_class_plus_one.cpp
+
+# Browser + WASM (porta 8080)
+bash ./bin/run-wasm-browser.sh ./compiler/example_class_plus_one.cpp ./out/browser 8080
+
+# Atalhos dedicados para o exemplo simples
+bash ./bin/run-test-node-simple.sh
+bash ./bin/run-wasm-browser-simple.sh ./out/browser 8080
+```
+
+O `test.cpp` continua como baseline completo e nao foi alterado.
 
 ## Architecture
 

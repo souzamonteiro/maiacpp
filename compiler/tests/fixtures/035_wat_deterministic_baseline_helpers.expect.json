@@ -1,14 +1,14 @@
 {
   "shouldParse": true,
-  "mustContain": [
-    "(func $run_class_tests",
-    "(func $run_template_tests",
-    "(func $run_function_pointer_tests",
-    "i32.const 1"
+  "mustContainCompiler": [
+    "int run_class_tests(void)",
+    "int run_template_tests(void)",
+    "int run_function_pointer_tests(void)",
+    "return 1;"
   ],
-  "mustNotContain": [
-    "(func $run_class_tests (export \"run_class_tests\")  (result i32)\n    i32.const 0",
-    "(func $run_template_tests (export \"run_template_tests\")  (result i32)\n    i32.const 0",
-    "(func $run_function_pointer_tests (export \"run_function_pointer_tests\")  (result i32)\n    i32.const 0"
+  "mustNotContainCompiler": [
+    "int run_class_tests(void) {\n  return (int)0;",
+    "int run_template_tests(void) {\n  return (int)0;",
+    "int run_function_pointer_tests(void) {\n  return (int)0;"
   ]
 }

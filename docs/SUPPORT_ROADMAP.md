@@ -21,7 +21,7 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
 
 - Some combinations that include namespace blocks plus additional declarations still fall back to simple analyzer.
 - Semantic/codegen coverage is narrower than grammar coverage (many features parse but are not fully lowered).
-- WAT backend is currently skeletal (module/import/stub generation) and not yet full lowering.
+- Remaining executable coverage gaps should be solved in emitted C and, when necessary, in `compiler/runtime.wat` for semantics that target C cannot express cleanly.
 
 ## Next Priorities
 
@@ -205,7 +205,13 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - browser WASM runner page + local server script.
 - Added orchestration script for one-command execution by target (`console|node|browser|all`).
 
-## Phase 17 Progress (Current)
+## Phase 17-23 Note
+
+- The direct MaiaCpp WAT backend work from phases 17 through 23 is now historical only.
+- MaiaCpp no longer emits WAT/WASM directly.
+- The surviving runtime-side WAT artifact is `compiler/runtime.wat`, reserved for features beyond the C bridge such as exception support.
+
+## Phase 17 Progress (Historical)
 
 - Extended WAT backend global function lowering beyond stubs for safe subsets:
    - arithmetic `return` expressions on params/literals
@@ -215,7 +221,7 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - `compiler/tests/fixtures/031_wat_simple_if_return.cpp`
    - Tracks parser/codegen path while WAT output is validated via direct WAT inspection.
 
-## Phase 18 Progress (Current)
+## Phase 18 Progress (Historical)
 
 - Generalized WAT simple-if lowering for integer comparisons in global function bodies:
    - supports `==`, `!=`, `<`, `>`, `<=`, `>=` against integer constants.
@@ -224,7 +230,7 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - `compiler/tests/fixtures/032_wat_if_compare_return.cpp`
    - Validates compare-op lowering path (example: `x > 0`) in emitted WAT.
 
-## Phase 19 Progress (Current)
+## Phase 19 Progress (Historical)
 
 - Extended WAT simple-if compare lowering to support parameter-vs-parameter comparisons:
    - pattern: `if (x OP y) { return A; } return B;` and `if/else` equivalent
@@ -233,7 +239,7 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - `compiler/tests/fixtures/033_wat_if_param_compare_return.cpp`
    - Validates emitted sequence `local.get $x`, `local.get $y`, `i32.gt_s`, and structured `if (result i32)`.
 
-## Phase 20 Progress (Current)
+## Phase 20 Progress (Historical)
 
 - Extended conditional return inference to include ternary form in global functions:
    - pattern: `return (x OP y_or_const) ? A : B;`
@@ -242,7 +248,7 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - `compiler/tests/fixtures/034_wat_ternary_compare_return.cpp`
    - Validates ternary compare lowering to signed integer compare op and structured `if` result.
 
-## Phase 21 Progress (Current)
+## Phase 21 Progress (Historical)
 
 - Added deterministic no-param helper inference for practical baseline functions in WAT backend:
    - recognizes constrained local-test patterns used by runtime helpers
@@ -255,13 +261,13 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - `compiler/tests/fixtures/035_wat_deterministic_baseline_helpers.cpp`
    - Ensures helper functions are no longer emitted as trivial `i32.const 0` stubs.
 
-## Phase 22 Progress (Current)
+## Phase 22 Progress (Historical)
 
 - Replaced whole-body regex matching for the first deterministic helper group with a structured local evaluator:
    - parses a small statement subset for no-param `int` helpers
    - evaluates local int bindings, simple object construction (`C x(...)`), `Box<int>` index assignment/access, direct method calls (`obj.get()` / `obj.value()`), arithmetic/comparison/conjunction, and `execute(..., add|multiply)`.
 
-## Phase 23 Progress (Current)
+## Phase 23 Progress (Historical)
 
 - Extended the structured helper evaluator to cover the remaining baseline runtime helpers:
    - `new T(...)` for constrained object/int allocation cases
@@ -277,16 +283,23 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
 - Realigned the production runtime pipeline to the intended architecture:
    - MaiaCpp now generates C as the primary handoff artifact.
    - MaiaC is the default path for WAT/WASM generation used by `bin/webcpp.sh`, Node runner, and browser runner.
-   - MaiaCpp direct WAT backend remains available only through explicit debug flag (`--direct-wat-backend`).
+   - MaiaCpp no longer exposes a direct WAT backend.
 - Hardened the MaiaCpp C bridge for MaiaC compatibility:
    - removed unsupported system-header/varargs prelude usage from generated C
    - preserved source function-pointer typedefs required by lowered C
    - ensured placeholder structs are never empty in emitted C
    - reused deterministic helper lowering and structured `main` emission in the C backend so `compiler/test.cpp` remains executable through MaiaC.
 
-4. WAT backend expansion:
-   - Generate function stubs for global functions systematically.
-   - Incremental lowering for arithmetic, calls, and local variable flow.
+## Phase 25 Progress (Current)
+
+- Sanitized MaiaCpp so executable code generation stays C-only:
+   - removed direct WAT/WASM generation from `compiler/cpp-compiler.js`
+   - removed direct-backend escape hatch from `bin/webcpp.sh`
+   - kept only `compiler/runtime.wat` as local handwritten runtime support for semantics outside the C bridge.
+
+4. C backend expansion:
+   - Generate MaiaC-consumable C for global functions systematically.
+   - Keep runtime-specific semantics isolated in `compiler/runtime.wat`.
 
 5. Regression strategy:
    - Keep `compiler/test.cpp` as mandatory minimum compile target (`Parser: ok`).

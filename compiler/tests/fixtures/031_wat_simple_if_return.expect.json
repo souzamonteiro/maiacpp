@@ -3,7 +3,8 @@
   "mustContainCompiler": [
     "Parser: ok",
     "031_wat_simple_if_return.cpp",
-    "int classify_zero__i(int x)"
+    "int classify_zero__i(int x)",
+    "return (x == 0) ? 1 : 0;"
   ],
   "mustContain": [
     "<functionDefinition>",

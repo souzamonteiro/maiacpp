@@ -7,7 +7,7 @@ This document describes the current architecture of MaiaCpp, an experimental C++
 - Parse C++98 source files using the generated parser.
 - Build semantic metadata for classes, methods, namespaces, and global functions.
 - Transpile C++98 into C (stub-first, with incremental lowering for selected patterns).
-- Reuse MaiaC for WAT/WASM generation in Node and browser execution workflows.
+- Reuse MaiaC for all WAT/WASM generation in Node and browser execution workflows.
 - Keep a fixture-driven regression suite for incremental compiler evolution.
 
 ## 2. High-Level Pipeline
@@ -17,6 +17,7 @@ C++98 source (.cpp)
   -> Parser + ParseTreeCollector
   -> Semantic analysis + source-backed hints
   -> C transpilation (primary path)
+  -> runtime.wat linkage for features beyond C lowering (for example try/catch support)
   -> MaiaC C compiler
   -> WAT emission / WASM assembly
   -> Runtime execution (console | Node | browser)
@@ -32,7 +33,7 @@ C++98 source (.cpp)
   - Load source file.
   - Parse source with fallback strategy (normalized + original source).
   - Build analysis model.
-  - Emit C, WAT, and optional WASM outputs.
+  - Emit C output only.
 
 ### 3.2 Parsing Layer
 
@@ -63,12 +64,12 @@ C++98 source (.cpp)
   - Resolve overloads with deterministic tie-break rules.
   - Emit ambiguity diagnostics and per-file ambiguity summary.
 
-### 3.5 WAT Backend
+### 3.5 Runtime WAT
 
-- Class: CppToWatTranspiler in compiler/cpp-compiler.js.
+- File: compiler/runtime.wat
 - Responsibilities:
-  - Preserve an experimental direct WAT path for backend debugging.
-  - Support narrow compiler-side validation while the production runtime path stays on MaiaC.
+  - Provide handwritten runtime support that is not naturally expressed in the C bridge.
+  - Remain the only WAT artifact kept inside MaiaCpp.
 
 ## 4. Name Resolution and Overload Strategy
 
@@ -136,7 +137,6 @@ When stable fallback is used, the C output includes:
   - C output
   - WAT output through MaiaC
   - WASM output through MaiaC
-  - Direct MaiaCpp WAT backend only as explicit debug mode
   - all outputs in one command
 
 ## 7. Testing and Validation
@@ -168,7 +168,7 @@ When stable fallback is used, the C output includes:
 ## 8. Current Boundaries
 
 - C backend is still largely stub-oriented outside conservative lowered patterns.
-- Direct MaiaCpp WAT backend is intentionally experimental and non-primary.
+- MaiaCpp no longer owns a direct WAT backend; executable code generation beyond C is delegated to MaiaC plus runtime.wat support.
 - Runtime imports are currently minimal host stubs for execution workflows.
 - Full C++98 semantic parity is not complete yet.
 

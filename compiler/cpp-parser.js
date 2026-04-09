@@ -2261,7 +2261,17 @@ class Parser {
       const _ruleMark = this.markEventState();
       try {
     this.parseclassKey();
-    if (this.match('Identifier')) { /* optional token matched */ }
+    // Optional: try parsing classHeadName
+    {
+      const savePos = this.position;
+      const saveMark = this.markEventState();
+      try {
+        this.parseclassHeadName();
+      } catch(e) {
+        this.position = savePos;
+        this.restoreEventState(saveMark);
+      }
+    }
     // Optional: try parsing baseClause
     {
       const savePos = this.position;
@@ -2284,7 +2294,7 @@ class Parser {
       try {
     this.parseclassKey();
     this.parsenestedNameSpecifier();
-    this.consume('Identifier');
+    this.parseclassHeadName();
     // Optional: try parsing baseClause
     {
       const savePos = this.position;
@@ -2303,40 +2313,7 @@ class Parser {
       }
     }
     if (!_matched) {
-      const _ruleMark = this.markEventState();
-      try {
-    this.parseclassKey();
-    // Optional: try parsing nestedNameSpecifier
-    {
-      const savePos = this.position;
-      const saveMark = this.markEventState();
-      try {
-        this.parsenestedNameSpecifier();
-      } catch(e) {
-        this.position = savePos;
-        this.restoreEventState(saveMark);
-      }
-    }
-    this.parsetemplateId();
-    // Optional: try parsing baseClause
-    {
-      const savePos = this.position;
-      const saveMark = this.markEventState();
-      try {
-        this.parsebaseClause();
-      } catch(e) {
-        this.position = savePos;
-        this.restoreEventState(saveMark);
-      }
-    }
-        _matched = true;
-      } catch (e) {
-        this.position = _ruleStart;
-        this.restoreEventState(_ruleMark);
-      }
-    }
-    if (!_matched) {
-      throw new Error(`Expected one of: 3 alternatives`);
+      throw new Error(`Expected one of: 2 alternatives`);
     }
 
       __ok = true;
@@ -2347,6 +2324,50 @@ class Parser {
         }
         if (!__ok && typeof this.eventHandler.abortNonterminal === 'function') {
           this.eventHandler.abortNonterminal('classHead', this.position);
+        }
+      }
+    }
+  }
+  parseclassHeadName() {
+    if (this.eventHandler && typeof this.eventHandler.startNonterminal === 'function') {
+      this.eventHandler.startNonterminal('classHeadName', this.position);
+    }
+    let __ok = false;
+    try {
+    const _ruleStart = this.position;
+    let _matched = false;
+    if (!_matched) {
+      const _ruleMark = this.markEventState();
+      try {
+    this.consume('Identifier');
+        _matched = true;
+      } catch (e) {
+        this.position = _ruleStart;
+        this.restoreEventState(_ruleMark);
+      }
+    }
+    if (!_matched) {
+      const _ruleMark = this.markEventState();
+      try {
+    this.parsetemplateId();
+        _matched = true;
+      } catch (e) {
+        this.position = _ruleStart;
+        this.restoreEventState(_ruleMark);
+      }
+    }
+    if (!_matched) {
+      throw new Error(`Expected one of: 2 alternatives`);
+    }
+
+      __ok = true;
+    } finally {
+      if (this.eventHandler) {
+        if (__ok && typeof this.eventHandler.endNonterminal === 'function') {
+          this.eventHandler.endNonterminal('classHeadName', this.position);
+        }
+        if (!__ok && typeof this.eventHandler.abortNonterminal === 'function') {
+          this.eventHandler.abortNonterminal('classHeadName', this.position);
         }
       }
     }

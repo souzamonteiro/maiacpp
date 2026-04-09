@@ -1,4 +1,4 @@
-# C++98 → C (Extended) → WAT Compiler: Implementation Roadmap
+# C++98 → C (Extended) → MaiaC Pipeline: Implementation Roadmap
 
 > **Context:** You already have:
 > - A working C → WAT compiler (JavaScript)
@@ -6,7 +6,7 @@
 > - A working C++98 parser
 >
 > **Goal:** Implement a C++98 → C (extended) transpiler in JavaScript,
-> reusing the existing C → WAT backend.
+> reusing MaiaC for downstream WAT/WASM generation.
 
 ---
 
@@ -35,7 +35,7 @@
 │              C Compiler  (existing — JavaScript)                 │
 │                                                                  │
 │   ┌─────────┐   ┌─────────┐   ┌──────────────────────────────┐   │
-│   │  Lexer  │──▶│ Parser  │──▶│        WAT Emitter           │   │
+│   │  Lexer  │──▶│ Parser  │──▶│    MaiaC WAT/WASM path      │   │
 │   └─────────┘   └─────────┘   └──────────────┬───────────────┘   │
 └──────────────────────────────────────────────┼───────────────────┘
                                                │
@@ -58,8 +58,8 @@
 
 ## Phase 1 — Exception Runtime (Start Here)
 
-Before writing any C++ transpilation, write `runtime.wat` by hand.
-The C++ transpiler will emit calls to these functions — they must exist first.
+`runtime.wat` is the handwritten runtime layer for semantics that the C bridge does not express directly.
+The C++ transpiler emits C plus calls/contracts that this runtime layer must satisfy.
 
 ### 1.1 Exception Runtime Contract
 
