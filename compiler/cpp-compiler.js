@@ -502,8 +502,8 @@ function inferGlobalFunctions(source) {
       .replace(/\/\/.*$/gm, '')
       .trim();
 
-    const withElse = clean.match(/^if\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*==\s*0\s*\)\s*\{\s*return\s+([-+]?\d+)\s*;\s*\}\s*else\s*\{\s*return\s+([-+]?\d+)\s*;\s*\}\s*$/);
-    const noElse = clean.match(/^if\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*==\s*0\s*\)\s*\{\s*return\s+([-+]?\d+)\s*;\s*\}\s*return\s+([-+]?\d+)\s*;\s*$/);
+    const withElse = clean.match(/^if\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=|<=|>=|<|>)\s*([-+]?\d+)\s*\)\s*\{\s*return\s+([-+]?\d+)\s*;\s*\}\s*else\s*\{\s*return\s+([-+]?\d+)\s*;\s*\}\s*$/);
+    const noElse = clean.match(/^if\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=|<=|>=|<|>)\s*([-+]?\d+)\s*\)\s*\{\s*return\s+([-+]?\d+)\s*;\s*\}\s*return\s+([-+]?\d+)\s*;\s*$/);
     const m = withElse || noElse;
     if (!m) return null;
 
@@ -512,10 +512,12 @@ function inferGlobalFunctions(source) {
     if (!allowed.has(varName)) return null;
 
     return {
-      kind: 'eq_zero',
+      kind: 'var_const_cmp',
       varName,
-      thenValue: Number.parseInt(m[2], 10) | 0,
-      elseValue: Number.parseInt(m[3], 10) | 0
+      op: m[2],
+      constValue: Number.parseInt(m[3], 10) | 0,
+      thenValue: Number.parseInt(m[4], 10) | 0,
+      elseValue: Number.parseInt(m[5], 10) | 0
     };
   }
 
@@ -1608,7 +1610,7 @@ class CppToWatTranspiler {
 
   emitWatForSimpleIfReturn(fn, resultType) {
     const info = fn.simpleIfReturn;
-    if (!info || info.kind !== 'eq_zero') return false;
+    if (!info || info.kind !== 'var_const_cmp') return false;
     if (resultType !== 'i32' && resultType !== 'i64') return false;
 
     const params = Array.isArray(fn.params) ? fn.params : [];
@@ -1616,12 +1618,14 @@ class CppToWatTranspiler {
     if (!param) return false;
 
     const paramType = this.mapCTypeToWat(param.type) || 'i32';
-    const eqzOp = paramType === 'i64' ? 'i64.eqz' : 'i32.eqz';
+    const cmp = this.mapWatCompareOp(paramType, info.op);
+    if (!cmp) return false;
     const constOp = resultType === 'i64' ? 'i64.const' : 'i32.const';
     const resultSig = resultType === 'i64' ? ' (result i64)' : ' (result i32)';
 
     this.em.line(`local.get $${info.varName}`);
-    this.em.line(eqzOp);
+    this.em.line(`${paramType}.const ${info.constValue | 0}`);
+    this.em.line(cmp);
     this.em.line(`if${resultSig}`);
     this.em.level += 1;
     this.em.line(`${constOp} ${info.thenValue | 0}`);
@@ -1632,6 +1636,17 @@ class CppToWatTranspiler {
     this.em.level -= 1;
     this.em.line('end');
     return true;
+  }
+
+  mapWatCompareOp(paramType, op) {
+    const t = paramType === 'i64' ? 'i64' : 'i32';
+    if (op === '==') return `${t}.eq`;
+    if (op === '!=') return `${t}.ne`;
+    if (op === '<') return `${t}.lt_s`;
+    if (op === '>') return `${t}.gt_s`;
+    if (op === '<=') return `${t}.le_s`;
+    if (op === '>=') return `${t}.ge_s`;
+    return null;
   }
 
   typeKindFromText(typeText) {

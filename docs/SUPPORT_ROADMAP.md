@@ -215,6 +215,15 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - `compiler/tests/fixtures/031_wat_simple_if_return.cpp`
    - Tracks parser/codegen path while WAT output is validated via direct WAT inspection.
 
+## Phase 18 Progress (Current)
+
+- Generalized WAT simple-if lowering for integer comparisons in global function bodies:
+   - supports `==`, `!=`, `<`, `>`, `<=`, `>=` against integer constants.
+   - maps compare operators to signed integer WAT ops (`i32.eq`, `i32.ne`, `i32.lt_s`, `i32.gt_s`, `i32.le_s`, `i32.ge_s`).
+- Added focused fixture:
+   - `compiler/tests/fixtures/032_wat_if_compare_return.cpp`
+   - Validates compare-op lowering path (example: `x > 0`) in emitted WAT.
+
 4. WAT backend expansion:
    - Generate function stubs for global functions systematically.
    - Incremental lowering for arithmetic, calls, and local variable flow.

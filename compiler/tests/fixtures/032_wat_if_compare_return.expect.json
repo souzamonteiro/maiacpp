@@ -1,0 +1,13 @@
+{
+  "shouldParse": true,
+  "mustContainCompiler": [
+    "Parser: ok",
+    "032_wat_if_compare_return.cpp",
+    "int classify_positive__i(int x)"
+  ],
+  "mustContain": [
+    "<functionDefinition>",
+    "<selectionStatement>",
+    "<EOF/>"
+  ]
+}
