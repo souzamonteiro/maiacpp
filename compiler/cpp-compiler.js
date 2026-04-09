@@ -1143,9 +1143,10 @@ class CppToCTranspiler {
     return null;
   }
 
-  resolveByArgTypes(candidates, argTypes) {
+  resolveByArgTypes(candidates, argTypes, options = {}) {
     const list = Array.isArray(candidates) ? candidates : [];
     if (list.length === 0) return null;
+    const currentNamespacePath = Array.isArray(options.currentNamespacePath) ? options.currentNamespacePath : [];
 
     const types = Array.isArray(argTypes) ? argTypes : [];
     const hasTypeHints = types.some((t) => Boolean(t));
@@ -1184,13 +1185,56 @@ class CppToCTranspiler {
         totalCost += cost;
       }
 
-      if (valid && totalCost < bestCost) {
+      if (!valid) continue;
+
+      if (totalCost < bestCost) {
         bestCost = totalCost;
         best = fn;
+        continue;
+      }
+
+      if (totalCost === bestCost) {
+        if (this.isBetterTieBreak(fn, best, currentNamespacePath)) {
+          best = fn;
+        }
       }
     }
 
     return best || list[0];
+  }
+
+  isBetterTieBreak(candidate, currentBest, currentNamespacePath) {
+    if (!currentBest) return true;
+
+    const candNs = Array.isArray(candidate?.namespacePath) ? candidate.namespacePath : [];
+    const bestNs = Array.isArray(currentBest?.namespacePath) ? currentBest.namespacePath : [];
+    const currentNs = Array.isArray(currentNamespacePath) ? currentNamespacePath : [];
+
+    const candPrefix = this.commonNamespacePrefixLen(candNs, currentNs);
+    const bestPrefix = this.commonNamespacePrefixLen(bestNs, currentNs);
+    if (candPrefix !== bestPrefix) return candPrefix > bestPrefix;
+
+    if (candNs.length !== bestNs.length) return candNs.length > bestNs.length;
+
+    const candKey = this.functionStableKey(candidate);
+    const bestKey = this.functionStableKey(currentBest);
+    return candKey < bestKey;
+  }
+
+  commonNamespacePrefixLen(a, b) {
+    const left = Array.isArray(a) ? a : [];
+    const right = Array.isArray(b) ? b : [];
+    const n = Math.min(left.length, right.length);
+    let i = 0;
+    while (i < n && left[i] === right[i]) i += 1;
+    return i;
+  }
+
+  functionStableKey(fn) {
+    const ns = Array.isArray(fn?.namespacePath) ? fn.namespacePath.join('::') : '';
+    const name = String(fn?.name || '');
+    const params = (fn?.params || []).map((p) => normalizeTypeText(p?.type || '')).join(',');
+    return `${ns}::${name}(${params})`;
   }
 
   conversionCost(actualType, expectedType) {
@@ -1215,7 +1259,8 @@ class CppToCTranspiler {
 
     const select = (predicate) => this.resolveByArgTypes(
       list.filter((f) => predicate(f) && f.name === name && (f.params || []).length === arity),
-      argTypes
+      argTypes,
+      { currentNamespacePath: namespacePath || [] }
     );
 
     if (Array.isArray(qualifiedNamespacePath) && qualifiedNamespacePath.length > 0) {

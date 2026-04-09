@@ -1,0 +1,14 @@
+{
+  "shouldParse": true,
+  "mustContainCompiler": [
+    "Parser: ok",
+    "025_scope_tie_break_namespace_priority.cpp",
+    "long N_sum2__ii(int x, int y)",
+    "return N_add__ll(x, y);"
+  ],
+  "mustContain": [
+    "<namespaceDefinition>",
+    "<functionDefinition>",
+    "<EOF/>"
+  ]
+}

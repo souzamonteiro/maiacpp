@@ -1,0 +1,14 @@
+{
+  "shouldParse": true,
+  "mustContainCompiler": [
+    "Parser: ok",
+    "026_scope_tie_break_proximity.cpp",
+    "long A_C_sum2__ii(int x, int y)",
+    "return A_add__ll(x, y);"
+  ],
+  "mustContain": [
+    "<namespaceDefinition>",
+    "<functionDefinition>",
+    "<EOF/>"
+  ]
+}

@@ -156,6 +156,18 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - `compiler/tests/fixtures/024_implicit_float_to_double_overload_resolution.cpp`
    - Validates lowering to `return add__dd(x, y);`.
 
+## Phase 12 Progress (Current)
+
+- Added explicit deterministic tie-break for overload candidates with equal conversion cost:
+   - prefers candidate whose namespace path is closest to current function scope
+   - then prefers deeper namespace match
+   - then applies stable lexical key fallback.
+- Added scope tie-break regression fixtures:
+   - `compiler/tests/fixtures/025_scope_tie_break_namespace_priority.cpp`
+   - Validates namespace-local function is preferred over global candidate in tie scenario.
+   - `compiler/tests/fixtures/026_scope_tie_break_proximity.cpp`
+   - Validates nearest namespace-prefix candidate is selected in fallback tie scenario.
+
 4. WAT backend expansion:
    - Generate function stubs for global functions systematically.
    - Incremental lowering for arithmetic, calls, and local variable flow.
