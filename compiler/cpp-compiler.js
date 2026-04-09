@@ -1168,12 +1168,14 @@ class CppToCTranspiler {
 
     let best = null;
     let bestCost = Number.POSITIVE_INFINITY;
+    let bestCostsByParam = null;
     for (const fn of list) {
       const params = Array.isArray(fn.params) ? fn.params : [];
       if (params.length !== types.length) continue;
 
       let totalCost = 0;
       let valid = true;
+      const costsByParam = [];
       for (let i = 0; i < params.length; i += 1) {
         const expected = normalizeTypeText(params[i]?.type || '');
         const actual = normalizeTypeText(types[i] || '');
@@ -1182,6 +1184,7 @@ class CppToCTranspiler {
           valid = false;
           break;
         }
+        costsByParam.push(cost);
         totalCost += cost;
       }
 
@@ -1190,17 +1193,37 @@ class CppToCTranspiler {
       if (totalCost < bestCost) {
         bestCost = totalCost;
         best = fn;
+        bestCostsByParam = costsByParam;
         continue;
       }
 
       if (totalCost === bestCost) {
+        if (this.isBetterParamwiseCost(costsByParam, bestCostsByParam)) {
+          best = fn;
+          bestCostsByParam = costsByParam;
+          continue;
+        }
         if (this.isBetterTieBreak(fn, best, currentNamespacePath)) {
           best = fn;
+          bestCostsByParam = costsByParam;
         }
       }
     }
 
     return best || list[0];
+  }
+
+  isBetterParamwiseCost(candidateCosts, currentBestCosts) {
+    if (!Array.isArray(candidateCosts)) return false;
+    if (!Array.isArray(currentBestCosts)) return true;
+
+    const n = Math.min(candidateCosts.length, currentBestCosts.length);
+    for (let i = 0; i < n; i += 1) {
+      if (candidateCosts[i] < currentBestCosts[i]) return true;
+      if (candidateCosts[i] > currentBestCosts[i]) return false;
+    }
+
+    return candidateCosts.length < currentBestCosts.length;
   }
 
   isBetterTieBreak(candidate, currentBest, currentNamespacePath) {

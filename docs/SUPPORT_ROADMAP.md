@@ -168,6 +168,17 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - `compiler/tests/fixtures/026_scope_tie_break_proximity.cpp`
    - Validates nearest namespace-prefix candidate is selected in fallback tie scenario.
 
+## Phase 13 Progress (Current)
+
+- Added paramwise tie-break before scope tie-break for equal total conversion cost:
+   - compares conversion cost vectors lexicographically (parameter order).
+   - ensures deterministic preference for signatures with earlier exact/cheaper matches.
+- Added regression fixtures for real equal-sum ties:
+   - `compiler/tests/fixtures/027_paramwise_cost_tie_break.cpp`
+   - Validates call lowers to `return mix__il(x, y);` over `mix__li` for `(int,int)` args.
+   - `compiler/tests/fixtures/028_paramwise_cost_tie_break_namespace.cpp`
+   - Validates same paramwise rule under namespace lowering (`N_mix__il`).
+
 4. WAT backend expansion:
    - Generate function stubs for global functions systematically.
    - Incremental lowering for arithmetic, calls, and local variable flow.

@@ -1,0 +1,14 @@
+{
+  "shouldParse": true,
+  "mustContainCompiler": [
+    "Parser: ok",
+    "028_paramwise_cost_tie_break_namespace.cpp",
+    "long N_use_mix__ii(int x, int y)",
+    "return N_mix__il(x, y);"
+  ],
+  "mustContain": [
+    "<namespaceDefinition>",
+    "<functionDefinition>",
+    "<EOF/>"
+  ]
+}

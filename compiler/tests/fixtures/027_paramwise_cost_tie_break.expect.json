@@ -1,0 +1,14 @@
+{
+  "shouldParse": true,
+  "mustContainCompiler": [
+    "Parser: ok",
+    "027_paramwise_cost_tie_break.cpp",
+    "long use_mix__ii(int x, int y)",
+    "return mix__il(x, y);"
+  ],
+  "mustContain": [
+    "<functionDefinition>",
+    "<returnStatement>",
+    "<EOF/>"
+  ]
+}
