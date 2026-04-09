@@ -8,8 +8,10 @@ A suíte formal usa pares de arquivos em `tests/fixtures`:
 ## Campos aceitos em `.expect.json`
 
 - `shouldParse` (bool): se o parse deve ter sucesso (`true`) ou falhar (`false`)
-- `mustContain` (array): snippets obrigatórios no XML de saída
-- `minTagCount` (objeto): contagem mínima por tag XML
+- `mustContainCompiler` (array): snippets obrigatórios no stdout (modo `compiler`)
+- `stderrContains` (array): snippets esperados em stderr
+- `mustContain` (array): snippets obrigatórios no XML (modo legado `xml-parser`)
+- `minTagCount` (objeto): contagem mínima por tag XML (modo legado `xml-parser`)
 
 Exemplo:
 
@@ -23,7 +25,15 @@ Exemplo:
 }
 ```
 
+## Modos de validação
+
+- `compiler` (padrão): executa `cpp-compiler.js` e valida marcadores textuais no stdout.
+  - sucesso esperado: `Parser: ok`
+  - falha esperada: `Parser falhou`
+- `xml-parser` (legado): executa parser XML e valida estrutura/tags XML.
+
 ## Execução
 
 - Completa (build + fixtures + smoke): `./test_grammar.sh`
-- Só fixtures: `python3 tests/run_fixtures.py`
+- Só fixtures (modo atual): `python3 tests/run_fixtures.py --parser cpp-compiler.js --mode compiler`
+- Só fixtures (legado XML): `python3 tests/run_fixtures.py --parser Cpp-main.js --mode xml-parser`

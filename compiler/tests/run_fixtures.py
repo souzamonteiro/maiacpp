@@ -24,53 +24,75 @@ def count_tag(xml_text: str, tag: str) -> int:
     return xml_text.count(f"<{tag}")
 
 
-def run_fixture(parser: Path, input_file: Path, spec: dict):
+def run_fixture(parser: Path, input_file: Path, spec: dict, mode: str):
     should_parse = bool(spec.get("shouldParse", True))
     cmd = ["node", str(parser), str(input_file)]
     proc = subprocess.run(cmd, capture_output=True, text=True)
 
     errors = []
 
+    if mode == "xml-parser":
+        if should_parse:
+            if proc.returncode != 0:
+                errors.append(f"expected parse success, got exit code {proc.returncode}")
+                if proc.stderr.strip():
+                    errors.append(f"stderr: {proc.stderr.strip().splitlines()[0]}")
+                return errors
+
+            xml_text = proc.stdout
+            if not xml_text.strip():
+                errors.append("parser returned empty XML")
+                return errors
+
+            try:
+                root = ET.fromstring(xml_text)
+            except ET.ParseError as e:
+                errors.append(f"invalid XML output: {e}")
+                return errors
+
+            if root.tag != "translationUnit":
+                errors.append(f"unexpected root tag: {root.tag}")
+
+            if root.find("EOF") is None:
+                errors.append("missing EOF marker")
+
+            for snippet in spec.get("mustContain", []):
+                if snippet not in xml_text:
+                    errors.append(f"missing required snippet in XML: {snippet}")
+
+            min_counts = spec.get("minTagCount", {})
+            for tag, min_count in min_counts.items():
+                actual = count_tag(xml_text, str(tag))
+                if actual < int(min_count):
+                    errors.append(f"expected at least {min_count} occurrences of <{tag}>, got {actual}")
+        else:
+            if proc.returncode == 0:
+                errors.append("expected parse failure, got exit code 0")
+            for snippet in spec.get("stderrContains", []):
+                if snippet not in proc.stderr:
+                    errors.append(f"expected stderr to contain: {snippet}")
+        return errors
+
+    # Compiler mode: rely on explicit parser status markers in stdout.
+    out = proc.stdout
     if should_parse:
         if proc.returncode != 0:
-            errors.append(f"expected parse success, got exit code {proc.returncode}")
-            if proc.stderr.strip():
-                errors.append(f"stderr: {proc.stderr.strip().splitlines()[0]}")
-            return errors
-
-        xml_text = proc.stdout
-        if not xml_text.strip():
-            errors.append("parser returned empty XML")
-            return errors
-
-        try:
-            root = ET.fromstring(xml_text)
-        except ET.ParseError as e:
-            errors.append(f"invalid XML output: {e}")
-            return errors
-
-        if root.tag != "translationUnit":
-            errors.append(f"unexpected root tag: {root.tag}")
-
-        if root.find("EOF") is None:
-            errors.append("missing EOF marker")
-
-        for snippet in spec.get("mustContain", []):
-            if snippet not in xml_text:
-                errors.append(f"missing required snippet in XML: {snippet}")
-
-        min_counts = spec.get("minTagCount", {})
-        for tag, min_count in min_counts.items():
-            actual = count_tag(xml_text, str(tag))
-            if actual < int(min_count):
-                errors.append(f"expected at least {min_count} occurrences of <{tag}>, got {actual}")
-
+            errors.append(f"expected compile success, got exit code {proc.returncode}")
+        if "Parser: ok" not in out:
+            errors.append("expected parser success marker: 'Parser: ok'")
+        if "Parser falhou" in out:
+            errors.append("unexpected parser failure marker in output")
     else:
-        if proc.returncode == 0:
-            errors.append("expected parse failure, got exit code 0")
-        for snippet in spec.get("stderrContains", []):
-            if snippet not in proc.stderr:
-                errors.append(f"expected stderr to contain: {snippet}")
+        if "Parser falhou" not in out:
+            errors.append("expected parser failure marker: 'Parser falhou'")
+
+    for snippet in spec.get("mustContainCompiler", []):
+        if snippet not in out:
+            errors.append(f"missing required snippet in output: {snippet}")
+
+    for snippet in spec.get("stderrContains", []):
+        if snippet not in proc.stderr:
+            errors.append(f"expected stderr to contain: {snippet}")
 
     return errors
 
@@ -78,7 +100,13 @@ def run_fixture(parser: Path, input_file: Path, spec: dict):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--fixtures-dir", default="tests/fixtures")
-    parser.add_argument("--parser", default="Cpp-main.js")
+    parser.add_argument("--parser", default="cpp-compiler.js")
+    parser.add_argument(
+        "--mode",
+        choices=["compiler", "xml-parser"],
+        default="compiler",
+        help="Validation mode: compiler output markers or legacy XML parser output",
+    )
     args = parser.parse_args()
 
     root = Path.cwd()
@@ -97,7 +125,7 @@ def main():
     failures = 0
 
     for case_stem, input_file, spec in specs:
-        errors = run_fixture(parser_path, input_file, spec)
+        errors = run_fixture(parser_path, input_file, spec, args.mode)
         if errors:
             failures += 1
             print(f"[fail] {case_stem}")

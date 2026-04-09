@@ -4,21 +4,17 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-./build.sh >/tmp/cpp_build.log 2>&1
-
-echo "[ok] build.sh"
-
-python3 tests/run_fixtures.py
+python3 tests/run_fixtures.py --parser cpp-compiler.js --mode compiler
 
 echo ""
-echo "Running legacy smoke cases..."
+echo "Running smoke cases..."
 
 legacy_failures=0
 for case_file in tests/cases/*.cpp; do
-  out_file="/tmp/$(basename "${case_file%.cpp}").xml"
+  out_file="/tmp/$(basename "${case_file%.cpp}").out"
   err_file="/tmp/$(basename "${case_file%.cpp}").err"
 
-  if node Cpp-main.js "$case_file" >"$out_file" 2>"$err_file"; then
+  if node cpp-compiler.js "$case_file" >"$out_file" 2>"$err_file"; then
     echo "[ok] smoke: $(basename "$case_file")"
   else
     echo "[fail] smoke: $(basename "$case_file")"
