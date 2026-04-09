@@ -1,0 +1,12 @@
+{
+  "shouldParse": true,
+  "mustContain": [
+    "(func $is_less__ii",
+    "local.get $x",
+    "local.get $y",
+    "i32.lt_s",
+    "if (result i32)",
+    "i32.const 1",
+    "i32.const 0"
+  ]
+}

@@ -504,7 +504,8 @@ function inferGlobalFunctions(source) {
 
     const withElse = clean.match(/^if\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=|<=|>=|<|>)\s*([A-Za-z_][A-Za-z0-9_]*|[-+]?\d+)\s*\)\s*\{\s*return\s+([-+]?\d+)\s*;\s*\}\s*else\s*\{\s*return\s+([-+]?\d+)\s*;\s*\}\s*$/);
     const noElse = clean.match(/^if\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=|<=|>=|<|>)\s*([A-Za-z_][A-Za-z0-9_]*|[-+]?\d+)\s*\)\s*\{\s*return\s+([-+]?\d+)\s*;\s*\}\s*return\s+([-+]?\d+)\s*;\s*$/);
-    const m = withElse || noElse;
+    const ternary = clean.match(/^return\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=|<=|>=|<|>)\s*([A-Za-z_][A-Za-z0-9_]*|[-+]?\d+)\s*\)\s*\?\s*([-+]?\d+)\s*:\s*([-+]?\d+)\s*;\s*$/);
+    const m = withElse || noElse || ternary;
     if (!m) return null;
 
     const leftName = m[1];

@@ -233,6 +233,15 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - `compiler/tests/fixtures/033_wat_if_param_compare_return.cpp`
    - Validates emitted sequence `local.get $x`, `local.get $y`, `i32.gt_s`, and structured `if (result i32)`.
 
+## Phase 20 Progress (Current)
+
+- Extended conditional return inference to include ternary form in global functions:
+   - pattern: `return (x OP y_or_const) ? A : B;`
+   - reuses the same structured compare + `if (result i32)` WAT emission path.
+- Added focused fixture:
+   - `compiler/tests/fixtures/034_wat_ternary_compare_return.cpp`
+   - Validates ternary compare lowering to signed integer compare op and structured `if` result.
+
 4. WAT backend expansion:
    - Generate function stubs for global functions systematically.
    - Incremental lowering for arithmetic, calls, and local variable flow.
