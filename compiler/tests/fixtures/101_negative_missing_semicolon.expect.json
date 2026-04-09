@@ -1,3 +1,7 @@
 {
-  "shouldParse": false
+  "shouldParse": false,
+  "mustContainCompiler": [
+    "Parser falhou",
+    "Usando fallback simples."
+  ]
 }

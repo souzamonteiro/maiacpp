@@ -1,4 +1,8 @@
 {
   "shouldParse": true,
+  "mustContainCompiler": [
+    "/* Generated from C++98 source */",
+    "extern void   __exc_throw(int type, void* data);"
+  ],
   "mustContain": ["<namespaceDefinition>", "<usingDirective>", "<EOF/>"]
 }
