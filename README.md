@@ -49,3 +49,7 @@ Runner no browser:
 
 - `tools/browser/run-wasm.html`
 - Aceita query `?wasm=/caminho/para/arquivo.wasm`
+
+## Architecture
+
+- See `docs/ARCHITECTURE.md` for an English architecture overview.
