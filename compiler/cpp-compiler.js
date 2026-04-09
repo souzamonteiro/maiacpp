@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
+const { execFileSync } = require('child_process');
 const Parser = require('./cpp-parser');
 const { ParseTreeCollector } = require('./parse-tree-collector');
 
@@ -515,6 +517,137 @@ class CppToCTranspiler {
   }
 }
 
+class WatEmitter {
+  constructor() {
+    this.lines = [];
+    this.level = 0;
+  }
+
+  line(text = '') {
+    if (!text) {
+      this.lines.push('');
+      return;
+    }
+    this.lines.push(`${'  '.repeat(this.level)}${text}`);
+  }
+
+  code() {
+    return this.lines.join('\n');
+  }
+}
+
+class CppToWatTranspiler {
+  constructor(analysis, options = {}) {
+    this.analysis = analysis;
+    this.options = options;
+    this.em = new WatEmitter();
+  }
+
+  transpile() {
+    this.em.line('(module');
+    this.em.level += 1;
+    this.emitHeader();
+    this.emitImports();
+    this.emitMemory();
+    this.emitClassMethodStubs();
+    this.emitMainStub();
+    this.em.level -= 1;
+    this.em.line(')');
+    return this.em.code();
+  }
+
+  emitHeader() {
+    this.em.line(';; Generated from C++98 source (MaiaCpp experimental WAT backend)');
+    this.em.line(`;; Source: ${this.options.filePath || '<unknown>'}`);
+    this.em.line();
+  }
+
+  emitImports() {
+    this.em.line(';; Runtime imports expected from browser/node host');
+    this.em.line('(import "env" "printf" (func $printf (param i32 i32) (result i32)))');
+    this.em.line('(import "env" "__malloc" (func $__malloc (param i32) (result i32)))');
+    this.em.line('(import "env" "__free" (func $__free (param i32)))');
+    this.em.line('(import "env" "__exc_push" (func $__exc_push))');
+    this.em.line('(import "env" "__exc_pop" (func $__exc_pop))');
+    this.em.line('(import "env" "__exc_throw" (func $__exc_throw (param i32 i32)))');
+    this.em.line('(import "env" "__exc_active" (func $__exc_active (result i32)))');
+    this.em.line('(import "env" "__exc_clear" (func $__exc_clear))');
+    this.em.line();
+  }
+
+  emitMemory() {
+    this.em.line('(memory (export "memory") 1)');
+    this.em.line();
+  }
+
+  mapCTypeToWat(typeText) {
+    const t = (typeText || '').replace(/\s+/g, ' ').trim();
+    if (!t || t === 'void') return null;
+    if (t === 'float') return 'f32';
+    if (t === 'double') return 'f64';
+    if (t === 'long') return 'i64';
+    return 'i32';
+  }
+
+  emitClassMethodStubs() {
+    if (!this.analysis || !this.analysis.classes || this.analysis.classes.size === 0) return;
+
+    this.em.line(';; Class/method stubs extracted from semantic analysis');
+    for (const [className, cls] of this.analysis.classes) {
+      this.em.line(`;; class ${className}`);
+      for (const method of cls.methods || []) {
+        const methodName = mangle(method.name, [], className);
+        const resultType = this.mapCTypeToWat(method.returnType);
+        const params = ['(param $self i32)'];
+        for (let i = 0; i < (method.params || []).length; i += 1) {
+          const p = method.params[i];
+          params.push(`(param $${p.name || `p${i + 1}`} ${this.mapCTypeToWat(p.type) || 'i32'})`);
+        }
+
+        this.em.line(`(func $${methodName} (export "${methodName}") ${params.join(' ')}${resultType ? ` (result ${resultType})` : ''}`);
+        this.em.level += 1;
+        if (resultType === 'f32') {
+          this.em.line('f32.const 0');
+        } else if (resultType === 'f64') {
+          this.em.line('f64.const 0');
+        } else if (resultType === 'i64') {
+          this.em.line('i64.const 0');
+        } else if (resultType === 'i32') {
+          this.em.line('i32.const 0');
+        } else {
+          this.em.line('nop');
+        }
+        this.em.level -= 1;
+        this.em.line(')');
+      }
+    }
+    this.em.line();
+  }
+
+  emitMainStub() {
+    const hasMain = /\b(?:int|void)\s+main\s*\(/.test(this.options.source || '');
+    if (hasMain) {
+      this.em.line('(func $main (export "main") (result i32)');
+      this.em.level += 1;
+      this.em.line('i32.const 0');
+      this.em.level -= 1;
+      this.em.line(')');
+      this.em.line('(func (export "_start")');
+      this.em.level += 1;
+      this.em.line('call $main');
+      this.em.line('drop');
+      this.em.level -= 1;
+      this.em.line(')');
+    } else {
+      this.em.line('(func (export "_start")');
+      this.em.level += 1;
+      this.em.line('nop');
+      this.em.level -= 1;
+      this.em.line(')');
+    }
+  }
+}
+
 class Cpp98Compiler {
   constructor(filePath, options = {}) {
     this.filePath = filePath;
@@ -522,12 +655,25 @@ class Cpp98Compiler {
   }
 
   compile() {
+    const source = fs.readFileSync(this.filePath, 'utf8');
+    const analysis = this.analyze(source);
+    const transpiler = new CppToCTranspiler(analysis);
+    return transpiler.transpile();
+  }
+
+  compileWat() {
+    const source = fs.readFileSync(this.filePath, 'utf8');
+    const analysis = this.analyze(source);
+    const transpiler = new CppToWatTranspiler(analysis, { filePath: this.filePath, source });
+    return transpiler.transpile();
+  }
+
+  analyze(source) {
     let collector;
     let analysis;
     console.log(`Parsing: ${this.filePath}`);
 
     try {
-      const source = fs.readFileSync(this.filePath, 'utf8');
       collector = new ParseTreeCollector();
       const parser = new Parser(source, collector);
       parser.parse();
@@ -543,22 +689,24 @@ class Cpp98Compiler {
       console.log(`Parser falhou (${err.message}). Usando fallback simples.`);
       analysis = new SimpleAnalyzer(this.filePath).analyze();
     }
-
-    const transpiler = new CppToCTranspiler(analysis);
-    return transpiler.transpile();
+    return analysis;
   }
 }
 
 if (require.main === module) {
   const args = process.argv.slice(2);
   if (!args.length) {
-    console.log('Uso: node cpp-compiler.js <arquivo.cpp> [--output arquivo.c] [--verbose]');
+    console.log('Uso: node cpp-compiler.js <arquivo.cpp> [--output arquivo.c] [--wat-output arquivo.wat] [--wasm-output arquivo.wasm] [--verbose]');
     process.exit(1);
   }
 
   const input = path.resolve(args[0]);
   const outIdx = args.indexOf('--output');
+  const watIdx = args.indexOf('--wat-output');
+  const wasmIdx = args.indexOf('--wasm-output');
   const outFile = outIdx >= 0 && args[outIdx + 1] ? path.resolve(args[outIdx + 1]) : null;
+  const watFile = watIdx >= 0 && args[watIdx + 1] ? path.resolve(args[watIdx + 1]) : null;
+  const wasmFile = wasmIdx >= 0 && args[wasmIdx + 1] ? path.resolve(args[wasmIdx + 1]) : null;
 
   try {
     const compiler = new Cpp98Compiler(input, { verbose: args.includes('--verbose') });
@@ -567,8 +715,22 @@ if (require.main === module) {
     if (outFile) {
       fs.writeFileSync(outFile, code, 'utf8');
       console.log(`C gerado em: ${outFile}`);
-    } else {
+    } else if (!watFile && !wasmFile) {
       console.log(code);
+    }
+
+    if (watFile || wasmFile) {
+      const watCode = compiler.compileWat();
+      const effectiveWatPath = watFile || path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'maiacpp-wat-')), `${path.basename(input, path.extname(input))}.wat`);
+      fs.writeFileSync(effectiveWatPath, watCode, 'utf8');
+      if (watFile) {
+        console.log(`WAT gerado em: ${effectiveWatPath}`);
+      }
+
+      if (wasmFile) {
+        execFileSync('wat2wasm', [effectiveWatPath, '-o', wasmFile], { stdio: 'inherit' });
+        console.log(`WASM gerado em: ${wasmFile}`);
+      }
     }
   } catch (err) {
     console.error(`Erro: ${err.message}`);
@@ -593,5 +755,6 @@ module.exports = {
   SemanticAnalyzer,
   SimpleAnalyzer,
   CppToCTranspiler,
+  CppToWatTranspiler,
   Cpp98Compiler
 };

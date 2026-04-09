@@ -19,3 +19,7 @@ Saidas suportadas:
 - C gerado (`--c-out`)
 - WAT (`--wat-out`)
 - WASM (`--wasm-out`)
+
+Observacao:
+
+- A geracao de WAT/WASM usa backend integrado do `cpp-compiler.js` (nao copia mais `runtime.wat`).
