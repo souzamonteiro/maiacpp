@@ -1,0 +1,8 @@
+{
+  "shouldParse": false,
+  "mustContainCompiler": [
+    "Parser falhou",
+    "Usando fallback simples.",
+    "104_negative_namespace_combo_regression.cpp"
+  ]
+}

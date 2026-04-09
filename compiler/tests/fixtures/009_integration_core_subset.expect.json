@@ -1,0 +1,15 @@
+{
+  "shouldParse": true,
+  "mustContainCompiler": [
+    "Parser: ok",
+    "009_integration_core_subset.cpp",
+    "/* Target: C89 */"
+  ],
+  "mustContain": [
+    "<templateDeclaration>",
+    "<operatorFunctionId>",
+    "<newExpression>",
+    "<deleteExpression>",
+    "<EOF/>"
+  ]
+}

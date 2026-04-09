@@ -29,6 +29,15 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - Add focused fixtures for combinations (namespace + class + template + functions).
    - Remove fallback in positive-path compilation for those fixtures.
 
+## Phase 1 Progress (Current)
+
+- Added positive integration fixture:
+   - `compiler/tests/fixtures/009_integration_core_subset.cpp`
+   - Covers class + template + function-pointer typedef + casts + new/delete/placement-new.
+- Added regression tracker for known parser gap:
+   - `compiler/tests/fixtures/104_negative_namespace_combo_regression.cpp`
+   - Documents current fallback when namespace blocks are combined with additional global declarations.
+
 2. Semantic coverage expansion:
    - Global function collection and symbol resolution.
    - Local declarations and initialization handling consistency.
