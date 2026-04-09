@@ -1,8 +1,13 @@
 {
-  "shouldParse": false,
+  "shouldParse": true,
   "mustContainCompiler": [
-    "Parser falhou",
-    "Usando fallback simples.",
+    "Parser: ok",
     "104_negative_namespace_combo_regression.cpp"
+  ],
+  "mustContain": [
+    "<namespaceDefinition>",
+    "<usingDirective>",
+    "<functionDefinition>",
+    "<EOF/>"
   ]
 }

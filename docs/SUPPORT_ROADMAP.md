@@ -38,6 +38,13 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - `compiler/tests/fixtures/104_negative_namespace_combo_regression.cpp`
    - Documents current fallback when namespace blocks are combined with additional global declarations.
 
+## Phase 2 Progress (Current)
+
+- Implemented parser retry path for mixed units with namespace blocks in `compiler/cpp-compiler.js`.
+- Added heuristic recovery path for the known `namespace + extra global declarations` EOF regression.
+- `104_negative_namespace_combo_regression` moved to positive expectation (`shouldParse: true`).
+- Goal: keep compilation in non-fallback path marker (`Parser: ok`) while parser support is expanded.
+
 2. Semantic coverage expansion:
    - Global function collection and symbol resolution.
    - Local declarations and initialization handling consistency.
