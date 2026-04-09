@@ -917,16 +917,43 @@ class SimpleAnalyzer {
 }
 
 class CppToCTranspiler {
-  constructor(analysis) {
+  constructor(analysis, options = {}) {
     this.analysis = analysis;
+    this.options = options;
     this.em = new CEmitter();
+    this.ambiguityEvents = [];
   }
 
   transpile() {
     this.emitHeaders();
     this.emitClasses();
     this.emitGlobalFunctionStubs();
+    this.emitAmbiguitySummary();
     return this.em.code();
+  }
+
+  emitAmbiguitySummary() {
+    if (!Array.isArray(this.ambiguityEvents) || this.ambiguityEvents.length === 0) return;
+
+    const byCaller = new Map();
+    for (const ev of this.ambiguityEvents) {
+      const key = `${ev.caller || ''}|${ev.selected || ''}`;
+      if (!byCaller.has(key)) byCaller.set(key, ev);
+    }
+
+    const sourceName = path.basename(this.options.filePath || 'input.cpp');
+    const items = Array.from(byCaller.values()).sort((a, b) => {
+      const ak = `${a.caller || ''}|${a.selected || ''}`;
+      const bk = `${b.caller || ''}|${b.selected || ''}`;
+      return ak.localeCompare(bk);
+    });
+
+    this.em.line(`/* Overload ambiguity summary (source: ${sourceName}): ${items.length} case(s) */`);
+    for (const ev of items) {
+      const count = Array.isArray(ev.candidates) ? ev.candidates.length : 0;
+      this.em.line(`/* - caller ${ev.caller}: selected ${ev.selected} among ${count} candidate(s) */`);
+    }
+    this.em.line();
   }
 
   emitHeaders() {
@@ -1087,6 +1114,13 @@ class CppToCTranspiler {
         if (lowered.diagnostic) {
           this.em.line(`/* ${lowered.diagnostic} */`);
         }
+        if (lowered.ambiguity) {
+          this.ambiguityEvents.push({
+            caller: lowered.ambiguity.caller,
+            selected: lowered.ambiguity.selected,
+            candidates: lowered.ambiguity.candidates || []
+          });
+        }
         this.em.line(`return ${lowered.expr};`);
       } else {
         for (const p of fn.params || []) {
@@ -1125,10 +1159,17 @@ class CppToCTranspiler {
 
     const sigTypes = (match.params || []).map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
     const calleeMangled = mangle(match.name, sigTypes, null, match.namespacePath || []);
-    const diagnostic = resolution && resolution.ambiguity
-      ? `Overload ambiguity resolved by stable key: ${resolution.ambiguity.selected}`
+    const ambiguity = resolution && resolution.ambiguity
+      ? {
+        caller: this.functionStableKey(fn),
+        selected: resolution.ambiguity.selected,
+        candidates: resolution.ambiguity.candidates || []
+      }
       : null;
-    return { expr: `${calleeMangled}(${(call.args || []).join(', ')})`, diagnostic };
+    const diagnostic = ambiguity
+      ? `Overload ambiguity resolved by stable key: ${ambiguity.selected}`
+      : null;
+    return { expr: `${calleeMangled}(${(call.args || []).join(', ')})`, diagnostic, ambiguity };
   }
 
   inferCallArgType(arg, currentFn) {
@@ -1556,7 +1597,7 @@ class Cpp98Compiler {
   compile() {
     const source = fs.readFileSync(this.filePath, 'utf8');
     const analysis = this.analyze(source);
-    const transpiler = new CppToCTranspiler(analysis);
+    const transpiler = new CppToCTranspiler(analysis, { filePath: this.filePath });
     return transpiler.transpile();
   }
 

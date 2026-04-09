@@ -1,0 +1,16 @@
+{
+  "shouldParse": true,
+  "mustContainCompiler": [
+    "Parser: ok",
+    "030_ambiguity_summary_count.cpp",
+    "Overload ambiguity resolved by stable key: A::B::add(long,long)",
+    "Overload ambiguity summary (source: 030_ambiguity_summary_count.cpp): 1 case(s)",
+    "caller A::C::sum2(int,int): selected A::B::add(long,long) among 2 candidate(s)",
+    "return A_B_add__ll(x, y);"
+  ],
+  "mustContain": [
+    "<namespaceDefinition>",
+    "<functionDefinition>",
+    "<EOF/>"
+  ]
+}

@@ -188,6 +188,15 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - `compiler/tests/fixtures/029_ambiguity_stable_fallback_diagnostic.cpp`
    - Validates diagnostic marker and deterministic selected callee (`A_B_add__ll`) in an ambiguous tie scenario.
 
+## Phase 15 Progress (Current)
+
+- Added per-file ambiguity summary in generated C output:
+   - emits total ambiguity case count for the source file
+   - emits one line per unique caller/selected-callee ambiguity event.
+- Added regression fixture:
+   - `compiler/tests/fixtures/030_ambiguity_summary_count.cpp`
+   - Validates summary header/count and detailed caller/selection line.
+
 4. WAT backend expansion:
    - Generate function stubs for global functions systematically.
    - Incremental lowering for arithmetic, calls, and local variable flow.
