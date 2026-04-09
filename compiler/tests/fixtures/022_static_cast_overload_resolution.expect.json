@@ -1,0 +1,14 @@
+{
+  "shouldParse": true,
+  "mustContainCompiler": [
+    "Parser: ok",
+    "022_static_cast_overload_resolution.cpp",
+    "long sum2__ii(int x, int y)",
+    "return add__ll(static_cast<long>(x), static_cast<long>(y));"
+  ],
+  "mustContain": [
+    "<functionDefinition>",
+    "<returnStatement>",
+    "<EOF/>"
+  ]
+}

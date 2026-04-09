@@ -349,6 +349,38 @@ function stripClassLikeBlocks(segment) {
 function inferGlobalFunctions(source) {
   const functions = [];
 
+  function stripUnaryPrefix(text) {
+    let t = String(text || '').trim();
+    while (/^[-+]/.test(t)) {
+      t = t.slice(1).trim();
+    }
+    return t;
+  }
+
+  function splitSimpleArgs(argsText) {
+    const out = [];
+    let depthParen = 0;
+    let depthAngle = 0;
+    let cur = '';
+    const text = String(argsText || '');
+    for (let i = 0; i < text.length; i += 1) {
+      const ch = text[i];
+      if (ch === '(') depthParen += 1;
+      else if (ch === ')' && depthParen > 0) depthParen -= 1;
+      else if (ch === '<') depthAngle += 1;
+      else if (ch === '>' && depthAngle > 0) depthAngle -= 1;
+
+      if (ch === ',' && depthParen === 0 && depthAngle === 0) {
+        if (cur.trim()) out.push(cur.trim());
+        cur = '';
+        continue;
+      }
+      cur += ch;
+    }
+    if (cur.trim()) out.push(cur.trim());
+    return out;
+  }
+
   function inferSimpleReturnExpr(body, params) {
     const clean = String(body || '')
       .replace(/\/\*[\s\S]*?\*\//g, '')
@@ -391,30 +423,45 @@ function inferGlobalFunctions(source) {
     const callee = calleeParts[calleeParts.length - 1];
     const calleeNamespacePath = calleeParts.slice(0, -1);
     const argsText = (m[2] || '').trim();
-    const args = argsText ? argsText.split(',').map((s) => s.trim()).filter(Boolean) : [];
+    const args = argsText ? splitSimpleArgs(argsText) : [];
 
     const allowed = new Set((params || []).map((p) => p.name));
     const castRx = /^\(\s*([A-Za-z_][A-Za-z0-9_:\s\*]*)\s*\)\s*(.+)$/;
-    for (const arg of args) {
-      if (/^[-+]?\d+(?:[uU]|[lL]|[uU][lL]|[lL][uU])?$/.test(arg)) continue;
-      if (/^[-+]?(?:\d+\.\d*|\d*\.\d+)(?:[eE][-+]?\d+)?[fFlL]?$/.test(arg)) continue;
+    const staticCastRx = /^static_cast\s*<\s*([^>]+)\s*>\s*\((.+)\)$/;
 
-      const castMatch = arg.match(castRx);
-      if (castMatch) {
-        const castType = normalizeTypeText(castMatch[1] || '');
-        if (!castType) return null;
-        const valueText = String(castMatch[2] || '').trim();
-        if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(valueText)) {
-          if (!allowed.has(valueText)) return null;
-          continue;
-        }
-        if (/^[-+]?\d+(?:[uU]|[lL]|[uU][lL]|[lL][uU])?$/.test(valueText)) continue;
-        if (/^[-+]?(?:\d+\.\d*|\d*\.\d+)(?:[eE][-+]?\d+)?[fFlL]?$/.test(valueText)) continue;
-        return null;
+    function isAllowedSimpleValue(valueText) {
+      const raw = String(valueText || '').trim();
+      if (!raw) return false;
+
+      const unaryStripped = stripUnaryPrefix(raw);
+      if (!unaryStripped) return false;
+
+      if (/^[-+]?\d+(?:[uU]|[lL]|[uU][lL]|[lL][uU])?$/.test(unaryStripped)) return true;
+      if (/^[-+]?(?:\d+\.\d*|\d*\.\d+)(?:[eE][-+]?\d+)?[fFlL]?$/.test(unaryStripped)) return true;
+
+      const scMatch = unaryStripped.match(staticCastRx);
+      if (scMatch) {
+        const castType = normalizeTypeText(scMatch[1] || '');
+        if (!castType) return false;
+        return isAllowedSimpleValue(scMatch[2]);
       }
 
-      if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(arg)) return null;
-      if (!allowed.has(arg)) return null;
+      const castMatch = unaryStripped.match(castRx);
+      if (castMatch) {
+        const castType = normalizeTypeText(castMatch[1] || '');
+        if (!castType) return false;
+        return isAllowedSimpleValue(castMatch[2]);
+      }
+
+      if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(unaryStripped)) {
+        return allowed.has(unaryStripped);
+      }
+
+      return false;
+    }
+
+    for (const arg of args) {
+      if (!isAllowedSimpleValue(arg)) return null;
     }
 
     return {
@@ -1056,6 +1103,16 @@ class CppToCTranspiler {
   inferCallArgType(arg, currentFn) {
     const text = String(arg || '').trim();
     if (!text) return null;
+
+    const unary = text.match(/^([+-]+)\s*(.+)$/);
+    if (unary) {
+      return this.inferCallArgType(unary[2], currentFn);
+    }
+
+    const staticCastMatch = text.match(/^static_cast\s*<\s*([^>]+)\s*>\s*\((.+)\)$/);
+    if (staticCastMatch) {
+      return normalizeTypeText(staticCastMatch[1] || '');
+    }
 
     const castMatch = text.match(/^\(\s*([A-Za-z_][A-Za-z0-9_:\s\*]*)\s*\)\s*(.+)$/);
     if (castMatch) {

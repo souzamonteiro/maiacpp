@@ -132,6 +132,18 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - `compiler/tests/fixtures/020_literal_suffix_overload_type_resolution.cpp`
    - Validates suffix-driven lowering to `return add__ff(1.0f, y);`.
 
+## Phase 10 Progress (Current)
+
+- Extended simple-call validation and arg-type inference with:
+   - unary argument handling (e.g. `-x`, `+x`)
+   - `static_cast<T>(expr)` argument handling
+   - safer argument splitting with nesting awareness for parentheses/angle brackets.
+- Added overload regression fixtures:
+   - `compiler/tests/fixtures/021_unary_arg_overload_resolution.cpp`
+   - Validates unary-arg lowering to `return neg__i(-x);`.
+   - `compiler/tests/fixtures/022_static_cast_overload_resolution.cpp`
+   - Validates cast-driven lowering to `return add__ll(static_cast<long>(x), static_cast<long>(y));`.
+
 4. WAT backend expansion:
    - Generate function stubs for global functions systematically.
    - Incremental lowering for arithmetic, calls, and local variable flow.
