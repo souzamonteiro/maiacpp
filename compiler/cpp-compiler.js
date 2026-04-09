@@ -1547,7 +1547,7 @@ class CppToWatTranspiler {
       if (fn.name === 'main' && (fn.namespacePath || []).length === 0) {
         continue;
       }
-      const sigTypes = (fn.params || []).map((p) => ({ kind: 'int', name: p.type }));
+      const sigTypes = (fn.params || []).map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
       const fnName = mangle(fn.name, sigTypes, null, fn.namespacePath || []);
       const resultType = this.mapCTypeToWat(fn.returnType);
       const params = [];
@@ -1558,15 +1558,176 @@ class CppToWatTranspiler {
 
       this.em.line(`(func $${fnName} (export "${fnName}") ${params.join(' ')}${resultType ? ` (result ${resultType})` : ''}`);
       this.em.level += 1;
-      if (resultType === 'f32') this.em.line('f32.const 0');
-      else if (resultType === 'f64') this.em.line('f64.const 0');
-      else if (resultType === 'i64') this.em.line('i64.const 0');
-      else if (resultType === 'i32') this.em.line('i32.const 0');
-      else this.em.line('nop');
+      if (fn.simpleReturnExpr && resultType) {
+        if (!this.emitWatForSimpleReturnExpr(fn, resultType)) {
+          this.emitWatZero(resultType);
+        }
+      } else if (fn.simpleReturnCall && resultType) {
+        if (!this.emitWatForSimpleReturnCall(fn, fns, resultType)) {
+          this.emitWatZero(resultType);
+        }
+      } else if (resultType) {
+        this.emitWatZero(resultType);
+      } else {
+        this.em.line('nop');
+      }
       this.em.level -= 1;
       this.em.line(')');
     }
     this.em.line();
+  }
+
+  typeKindFromText(typeText) {
+    const t = (typeText || '').trim();
+    if (t.endsWith('*')) return 'pointer';
+    if (BUILTIN_TYPES[t]) return t;
+    return 'class';
+  }
+
+  emitWatZero(resultType) {
+    if (resultType === 'f32') this.em.line('f32.const 0');
+    else if (resultType === 'f64') this.em.line('f64.const 0');
+    else if (resultType === 'i64') this.em.line('i64.const 0');
+    else this.em.line('i32.const 0');
+  }
+
+  emitWatForSimpleReturnExpr(fn, resultType) {
+    if (resultType !== 'i32' && resultType !== 'i64') return false;
+    const expr = String(fn.simpleReturnExpr || '').trim();
+    if (!expr) return false;
+
+    // Tokenize a conservative arithmetic subset.
+    const tokens = [];
+    const rx = /([A-Za-z_][A-Za-z0-9_]*|\d+|\+|\-|\*|\/|%|\(|\))/g;
+    let m;
+    while ((m = rx.exec(expr)) !== null) tokens.push(m[1]);
+    if (tokens.join('') !== expr.replace(/\s+/g, '')) return false;
+
+    const output = [];
+    const ops = [];
+    const precedence = { '+': 1, '-': 1, '*': 2, '/': 2, '%': 2 };
+    for (const t of tokens) {
+      if (/^\d+$/.test(t) || /^[A-Za-z_][A-Za-z0-9_]*$/.test(t)) {
+        output.push(t);
+      } else if (t in precedence) {
+        while (ops.length > 0) {
+          const top = ops[ops.length - 1];
+          if (!(top in precedence) || precedence[top] < precedence[t]) break;
+          output.push(ops.pop());
+        }
+        ops.push(t);
+      } else if (t === '(') {
+        ops.push(t);
+      } else if (t === ')') {
+        let found = false;
+        while (ops.length > 0) {
+          const top = ops.pop();
+          if (top === '(') {
+            found = true;
+            break;
+          }
+          output.push(top);
+        }
+        if (!found) return false;
+      } else {
+        return false;
+      }
+    }
+    while (ops.length > 0) {
+      const top = ops.pop();
+      if (top === '(') return false;
+      output.push(top);
+    }
+
+    const paramNames = new Set((fn.params || []).map((p) => p.name));
+    for (const t of output) {
+      if (/^\d+$/.test(t)) {
+        const constOp = resultType === 'i64' ? 'i64.const' : 'i32.const';
+        this.em.line(`${constOp} ${t}`);
+      } else if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(t)) {
+        if (!paramNames.has(t)) return false;
+        this.em.line(`local.get $${t}`);
+      } else {
+        const opPrefix = resultType === 'i64' ? 'i64' : 'i32';
+        if (t === '+') this.em.line(`${opPrefix}.add`);
+        else if (t === '-') this.em.line(`${opPrefix}.sub`);
+        else if (t === '*') this.em.line(`${opPrefix}.mul`);
+        else if (t === '/') this.em.line(`${opPrefix}.div_s`);
+        else if (t === '%') this.em.line(`${opPrefix}.rem_s`);
+        else return false;
+      }
+    }
+
+    return true;
+  }
+
+  emitWatForSimpleReturnCall(fn, allFns, resultType) {
+    const call = fn.simpleReturnCall;
+    if (!call || !call.callee) return false;
+    const args = Array.isArray(call.args) ? call.args : [];
+
+    const target = this.resolveWatGlobalFunction(call.callee, args.length, fn.namespacePath || [], allFns, call.calleeNamespacePath || [], Boolean(call.absolute));
+    if (!target) return false;
+
+    const sigTypes = (target.params || []).map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
+    const callee = mangle(target.name, sigTypes, null, target.namespacePath || []);
+
+    const params = Array.isArray(target.params) ? target.params : [];
+    for (let i = 0; i < args.length; i += 1) {
+      const arg = String(args[i] || '').trim();
+      const expected = this.mapCTypeToWat(params[i]?.type || '') || 'i32';
+      if (/^[-+]?\d+$/.test(arg)) {
+        const instr = expected === 'i64' ? 'i64.const' : 'i32.const';
+        this.em.line(`${instr} ${Number.parseInt(arg, 10) | 0}`);
+      } else if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(arg)) {
+        this.em.line(`local.get $${arg}`);
+      } else {
+        return false;
+      }
+    }
+
+    this.em.line(`call $${callee}`);
+    if ((this.mapCTypeToWat(target.returnType) || null) !== resultType) {
+      // Keep conservative: mismatched return types not lowered yet.
+      this.em.line('drop');
+      this.emitWatZero(resultType);
+    }
+    return true;
+  }
+
+  resolveWatGlobalFunction(name, arity, namespacePath, allFns, qualifiedNamespacePath = [], isAbsoluteQualified = false) {
+    const list = Array.isArray(allFns) ? allFns : [];
+    const by = (ns) => list.find((f) => f.name === name && (f.params || []).length === arity && this.sameNs(f.namespacePath || [], ns || []));
+
+    if (qualifiedNamespacePath.length > 0) {
+      const qualified = by(qualifiedNamespacePath);
+      if (qualified) return qualified;
+
+      if (!isAbsoluteQualified) {
+        const current = Array.isArray(namespacePath) ? namespacePath : [];
+        for (let cut = current.length; cut >= 0; cut -= 1) {
+          const candidateNs = [...current.slice(0, cut), ...qualifiedNamespacePath];
+          const rel = by(candidateNs);
+          if (rel) return rel;
+        }
+      }
+    }
+
+    const same = by(namespacePath || []);
+    if (same) return same;
+    const global = by([]);
+    if (global) return global;
+    return list.find((f) => f.name === name && (f.params || []).length === arity) || null;
+  }
+
+  sameNs(a, b) {
+    const left = Array.isArray(a) ? a : [];
+    const right = Array.isArray(b) ? b : [];
+    if (left.length !== right.length) return false;
+    for (let i = 0; i < left.length; i += 1) {
+      if (left[i] !== right[i]) return false;
+    }
+    return true;
   }
 
   emitMainStub() {
