@@ -27,6 +27,13 @@ def parse_node_main_rc(stdout_text):
     return int(m.group(1))
 
 
+def parse_browser_main_rc(stdout_text):
+    m = re.search(r"\[browser-host\]\s+main\(\)\s+=>\s+(-?\d+)\s*$", stdout_text, re.MULTILINE)
+    if not m:
+        return None
+    return int(m.group(1))
+
+
 def normalize_node_program_output(stdout_text):
     lines = stdout_text.splitlines()
     out = []
@@ -45,6 +52,22 @@ def normalize_node_program_output(stdout_text):
     return "\n".join(out).strip()
 
 
+def normalize_browser_program_output(stdout_text):
+    lines = stdout_text.splitlines()
+    out = []
+    for ln in lines:
+        if ln.startswith("Parsing: "):
+            continue
+        if ln.startswith("Parser: "):
+            continue
+        if ln.startswith("C gerado em: "):
+            continue
+        if ln.startswith("[browser-host] main() => "):
+            continue
+        out.append(ln)
+    return "\n".join(out).strip()
+
+
 def normalize_native_output(stdout_text):
     return "\n".join(stdout_text.splitlines()).strip()
 
@@ -53,6 +76,7 @@ def main():
     parser = argparse.ArgumentParser(description="Compare native C++ output with MaiaCpp->MaiaC->WASM output")
     parser.add_argument("--file", default="./compiler/test_cpp98_extended.cpp")
     parser.add_argument("--out-dir", default="./out/reports/cpp-vs-c")
+    parser.add_argument("--runtime", choices=["node", "browser-host"], default="node")
     parser.add_argument("--keep-temp", action="store_true")
     args = parser.parse_args()
 
@@ -72,8 +96,15 @@ def main():
     cpp_compiler = repo_root / "compiler" / "cpp-compiler.js"
     webcpp = repo_root / "bin" / "webcpp.sh"
     node_runner = repo_root / "tools" / "node" / "run-wasm-node.js"
+    browser_runner = repo_root / "tools" / "browser" / "run-wasm-browser-host.js"
 
-    for required in [cpp_compiler, webcpp, node_runner]:
+    required_tools = [cpp_compiler, webcpp]
+    if args.runtime == "node":
+        required_tools.append(node_runner)
+    else:
+        required_tools.append(browser_runner)
+
+    for required in required_tools:
         if not required.exists():
             print(f"[fail] required tool missing: {required}")
             return 2
@@ -110,23 +141,29 @@ def main():
             print(wasm_build.stderr)
             return 1
 
-        wasm_run = run_cmd(["node", str(node_runner), str(wasm_file)], repo_root)
+        runtime_runner = node_runner if args.runtime == "node" else browser_runner
+        wasm_run = run_cmd(["node", str(runtime_runner), str(wasm_file)], repo_root)
         if wasm_run.returncode != 0:
-            print("[fail] Node WASM runner failed")
+            print(f"[fail] {args.runtime} WASM runner failed")
             print(wasm_run.stdout)
             print(wasm_run.stderr)
             return 1
 
         native_out = normalize_native_output(native_run.stdout)
-        wasm_out = normalize_node_program_output(wasm_build.stdout + ("\n" + wasm_run.stdout if wasm_run.stdout else ""))
+        runner_out = wasm_build.stdout + ("\n" + wasm_run.stdout if wasm_run.stdout else "")
+        if args.runtime == "node":
+            wasm_out = normalize_node_program_output(runner_out)
+            wasm_rc = parse_node_main_rc(wasm_run.stdout)
+        else:
+            wasm_out = normalize_browser_program_output(runner_out)
+            wasm_rc = parse_browser_main_rc(wasm_run.stdout)
 
         native_rc = native_run.returncode
-        wasm_rc = parse_node_main_rc(wasm_run.stdout)
 
         ok = True
 
         if wasm_rc is None:
-            print("[fail] could not parse [node] main() return code")
+            print(f"[fail] could not parse [{args.runtime}] main() return code")
             ok = False
         elif wasm_rc != native_rc:
             print(f"[fail] return code mismatch: native={native_rc}, wasm={wasm_rc}")
@@ -149,6 +186,7 @@ def main():
         print(f"- Input: {input_cpp.relative_to(repo_root)}")
         print(f"- Generated C: {generated_c.relative_to(repo_root)}")
         print(f"- Native compiler: {cxx}")
+        print(f"- Runtime host: {args.runtime}")
         if wasm_rc is not None:
             print(f"- Return code: native={native_rc}, wasm={wasm_rc}")
         print(f"- Stdout equal: {'yes' if native_out == wasm_out else 'no'}")

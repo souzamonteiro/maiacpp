@@ -3048,6 +3048,8 @@ class Parser {
       const _ruleMark = this.markEventState();
       try {
     this.parseenumerator();
+    this.consume('TOKEN__3D_');
+    this.parseconstantExpression();
         _matched = true;
       } catch (e) {
         this.position = _ruleStart;
@@ -3058,8 +3060,6 @@ class Parser {
       const _ruleMark = this.markEventState();
       try {
     this.parseenumerator();
-    this.consume('TOKEN__3D_');
-    this.parseconstantExpression();
         _matched = true;
       } catch (e) {
         this.position = _ruleStart;

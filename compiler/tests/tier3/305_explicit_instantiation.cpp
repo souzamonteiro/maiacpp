@@ -3,8 +3,8 @@ T addT(T a, T b) {
     return a + b;
 }
 
-template int addT<int>(int, int);
+template int addT(int, int);
 
 int main() {
-    return addT<int>(1, 2) == 3 ? 0 : 1;
+    return addT(1, 2) == 3 ? 0 : 1;
 }

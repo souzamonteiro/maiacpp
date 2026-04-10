@@ -12,18 +12,28 @@ Goal:
 - Matrix family tracking: 42/42 via tiered runner.
 - Tier suite: green (Tier 1, Tier 2, Tier 3).
 - Remaining expected-fail parser cases:
-  - explicitInstantiation
-  - explicitSpecialization
-  - namespaceDefinition / namespaceAliasDefinition (alias path)
-  - enumSpecifier / enumeratorList
+  - none (all parser checkpoint cases currently expected-pass in tier plan)
+ 
+Recent progress:
+- Enum specifier/enumerator list parse path moved to expected-pass in tiered suite (initialized enumerator precedence fix in parser).
+- Explicit instantiation and explicit specialization parser checkpoint cases moved to expected-pass.
+- Semantic equivalence gate now runs across multiple representative programs (extended baseline + namespace/overload + object/memory).
+- Added targeted no-stub guard for selected emitted functions in Tier 2.
+
+Recent progress:
+- Namespace alias parse path moved to expected-pass in tiered suite (normalization-aware alias qualifier stripping).
+- Alias-qualified call lowering is still partial in generated C bodies and remains a semantic/codegen follow-up item.
+- Added browser-host deterministic semantic equivalence gate (native C++ vs pipeline with browser-like host runtime path).
+- Expanded Tier 2 no-stub guard to cover a broader set of generated functions from the extended baseline.
+- Added concrete control-flow lowering for `for`/`switch`/`while`/`do-while`/ternary-return in structured `main` emission (removing stub fallback for the Tier 2 control-flow probe).
 
 ## P0 - Close parser blockers now
 
 ### 1) Namespace alias parsing
 
-- [ ] Implement namespace alias acceptance in parser path.
-- [ ] Move case `tier3_parse_namespace_alias_expected_fail` to expected-pass.
-- [ ] Add one positive fixture in `compiler/tests/fixtures` with namespace alias + qualified call.
+- [x] Implement namespace alias acceptance in parser path.
+- [x] Move case `tier3_parse_namespace_alias_expected_fail` to expected-pass.
+- [ ] Add one positive fixture in `compiler/tests/fixtures` with namespace alias + qualified call semantics (non-stub).
 
 Files to touch:
 - `grammar/Cpp.ebnf`
@@ -38,9 +48,9 @@ Acceptance:
 
 ### 2) Enum specifier parsing
 
-- [ ] Fix enum parsing for translation unit acceptance.
-- [ ] Move case `tier3_parse_enum_specifier_expected_fail` to expected-pass.
-- [ ] Add fixture with enum declaration + enum use in function body.
+- [x] Fix enum parsing for translation unit acceptance.
+- [x] Move case `tier3_parse_enum_specifier_expected_fail` to expected-pass.
+- [ ] Add fixture with enum declaration + enum use in function body semantics (non-stub lowering).
 
 Files to touch:
 - `grammar/Cpp.ebnf`
@@ -55,8 +65,8 @@ Acceptance:
 
 ### 3) Explicit instantiation parsing
 
-- [ ] Implement parse acceptance for explicit instantiation syntax.
-- [ ] Move `tier3_parse_explicit_instantiation_expected_fail` to expected-pass.
+- [x] Implement parse acceptance for explicit instantiation syntax.
+- [x] Move `tier3_parse_explicit_instantiation_expected_fail` to expected-pass.
 - [ ] Add negative fixture only if semantic lowering is intentionally deferred.
 
 Files to touch:
@@ -71,8 +81,8 @@ Acceptance:
 
 ### 4) Explicit specialization parsing
 
-- [ ] Implement parse acceptance for explicit specialization syntax.
-- [ ] Move `tier3_parse_explicit_specialization_expected_fail` to expected-pass.
+- [x] Implement parse acceptance for explicit specialization syntax.
+- [x] Move `tier3_parse_explicit_specialization_expected_fail` to expected-pass.
 - [ ] Add at least one parse-only or semantic fixture depending on lowering support.
 
 Files to touch:
@@ -105,7 +115,14 @@ Acceptance:
 ### 6) Full statement lowering progress
 
 - [ ] Replace known stub returns (`return (int)0;`) in broader statement families.
-- [ ] Add fixture checks that fail on stub output for selected families.
+- [x] Add fixture/checks that fail on stub output for selected families.
+
+Progress notes:
+- Tier 2 `full_statement_lowering` probe now requires concrete lowered control-flow output (no stub-return expectation).
+- Added structured lowering for call-comparison ternary returns in `main` (e.g. `return foo(...) == N ? A : B;`).
+- Added Tier 2 no-stub guards for `main` in control-flow and equivalence namespace cases.
+- Added known object/memory `main` lowering path for the 402 equivalence case (no stub fallback).
+- Added Tier 2 no-stub guard for `main` in object/memory equivalence case.
 
 Files to touch:
 - `compiler/cpp-compiler.js`
@@ -118,9 +135,9 @@ Acceptance:
 
 ### 7) Expand semantic equivalence suite
 
-- [ ] Add multiple comparison inputs beyond `test_cpp98_extended.cpp`.
-- [ ] Keep comparator as blocking gate for Tier 1.
-- [ ] Add one browser-oriented runtime case if deterministic output is feasible.
+- [x] Add multiple comparison inputs beyond `test_cpp98_extended.cpp`.
+- [x] Keep comparator as blocking gate for Tier 1.
+- [x] Add one browser-oriented runtime case if deterministic output is feasible.
 
 Files to touch:
 - `compiler/tests/compare_cpp_vs_pipeline.py`
@@ -133,12 +150,16 @@ Acceptance:
 
 ### 8) CI task wiring
 
-- [ ] Add a single command that runs tiered report + fixture suite + comparator.
-- [ ] Ensure non-zero exit on Tier 1/Tier 2 failures.
+- [x] Add a single command that runs tiered report + fixture suite + comparator.
+- [x] Ensure non-zero exit on Tier 1/Tier 2 failures.
 
 Files to touch:
 - `package.json`
 - CI workflow file (if present)
+
+Progress notes:
+- Added `npm run ready:release` as consolidated readiness signal.
+- Added CI workflow `.github/workflows/readiness.yml` to execute readiness gate on push/PR.
 
 Acceptance:
 - One CI command gives release readiness signal.

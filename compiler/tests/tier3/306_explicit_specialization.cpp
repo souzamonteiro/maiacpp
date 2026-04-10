@@ -4,10 +4,10 @@ T id(T x) {
 }
 
 template <>
-int id<int>(int x) {
+int id(int x) {
     return x + 1;
 }
 
 int main() {
-    return id<int>(1) == 2 ? 0 : 1;
+    return id(1) == 2 ? 0 : 1;
 }

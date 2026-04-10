@@ -32,6 +32,113 @@
         "stdoutContains": [
           "[ok] native C++ output matches MaiaCpp pipeline output"
         ]
+      },
+      {
+        "id": "tier1_semantic_compare_namespace_overload",
+        "family": "runtime_semantic_equivalence_namespace",
+        "matrixFamily": "executable behavior conformance suite against C++98 semantics",
+        "command": [
+          "python3",
+          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "--file",
+          "./compiler/tests/equivalence/401_namespace_overload.cpp"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] native C++ output matches MaiaCpp pipeline output"
+        ]
+      },
+      {
+        "id": "tier1_semantic_compare_object_memory",
+        "family": "runtime_semantic_equivalence_object_memory",
+        "matrixFamily": "executable behavior conformance suite against C++98 semantics",
+        "command": [
+          "python3",
+          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "--file",
+          "./compiler/tests/equivalence/402_object_memory.cpp"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] native C++ output matches MaiaCpp pipeline output"
+        ]
+      },
+      {
+        "id": "tier1_semantic_compare_browser_host",
+        "family": "runtime_semantic_equivalence_browser_host",
+        "matrixFamily": "runtime host integration (printf in Node/browser)",
+        "command": [
+          "python3",
+          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "--file",
+          "./compiler/tests/equivalence/401_namespace_overload.cpp",
+          "--runtime",
+          "browser-host"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] native C++ output matches MaiaCpp pipeline output"
+        ]
+      },
+      {
+        "id": "tier1_semantic_compare_using_directive",
+        "family": "using_directive_semantic_equivalence",
+        "matrixFamily": "usingDeclaration / usingDirective",
+        "command": [
+          "python3",
+          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "--file",
+          "./compiler/tests/equivalence/403_using_directive.cpp"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] native C++ output matches MaiaCpp pipeline output"
+        ]
+      },
+      {
+        "id": "tier1_semantic_compare_namespace_alias",
+        "family": "namespace_alias_semantic_equivalence",
+        "matrixFamily": "namespaceDefinition / namespaceAliasDefinition",
+        "command": [
+          "python3",
+          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "--file",
+          "./compiler/tests/equivalence/404_namespace_alias.cpp"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] native C++ output matches MaiaCpp pipeline output"
+        ]
+      },
+      {
+        "id": "tier1_semantic_compare_pointer_cv",
+        "family": "pointer_cv_semantic_equivalence",
+        "matrixFamily": "pointer / ptrOperator / cvQualifierSeq",
+        "command": [
+          "python3",
+          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "--file",
+          "./compiler/tests/equivalence/405_pointer_cv.cpp"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] native C++ output matches MaiaCpp pipeline output"
+        ]
+      },
+      {
+        "id": "tier1_semantic_compare_elaborated_type",
+        "family": "elaborated_type_semantic_equivalence",
+        "matrixFamily": "elaboratedTypeSpecifier",
+        "command": [
+          "python3",
+          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "--file",
+          "./compiler/tests/equivalence/406_elaborated_type.cpp"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] native C++ output matches MaiaCpp pipeline output"
+        ]
       }
     ],
     "tier2": [
@@ -132,7 +239,147 @@
         "expectExitCode": 0,
         "stdoutContains": [
           "int main(void)",
-          "return (int)0;"
+          "for (i = 0; i < 3; ++i)",
+          "switch (acc)",
+          "while (acc > 0)",
+          "do {",
+          "return (acc == 1) ? 0 : 1;"
+        ]
+      },
+      {
+        "id": "tier2_no_stub_selected_functions",
+        "family": "selected_no_stub_guard",
+        "matrixFamily": "full statement lowering",
+        "command": [
+          "python3",
+          "./compiler/tests/assert_no_stub_returns.py",
+          "--file",
+          "./compiler/test_cpp98_extended.cpp",
+          "--functions",
+          "run_namespace_tests,run_control_expr_tests,run_class_tests,run_template_tests,run_arithmetic_function_tests,run_cast_tests,run_new_delete_tests,sum_ns_int__ii,sum_nested__ii,sum_tiebreak__ii,add__ii,multiply__ii"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] selected emitted C functions have no stub return"
+        ]
+      },
+      {
+        "id": "tier2_no_stub_control_flow_main",
+        "family": "control_flow_no_stub_guard",
+        "matrixFamily": "full statement lowering",
+        "command": [
+          "python3",
+          "./compiler/tests/assert_no_stub_returns.py",
+          "--file",
+          "./compiler/tests/tier3/313_control_flow.cpp",
+          "--functions",
+          "main"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] selected emitted C functions have no stub return"
+        ]
+      },
+      {
+        "id": "tier2_no_stub_equivalence_namespace_main",
+        "family": "equivalence_no_stub_guard",
+        "matrixFamily": "executable behavior conformance suite against C++98 semantics",
+        "command": [
+          "python3",
+          "./compiler/tests/assert_no_stub_returns.py",
+          "--file",
+          "./compiler/tests/equivalence/401_namespace_overload.cpp",
+          "--functions",
+          "main"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] selected emitted C functions have no stub return"
+        ]
+      },
+      {
+        "id": "tier2_no_stub_equivalence_object_memory_main",
+        "family": "equivalence_object_memory_no_stub_guard",
+        "matrixFamily": "executable behavior conformance suite against C++98 semantics",
+        "command": [
+          "python3",
+          "./compiler/tests/assert_no_stub_returns.py",
+          "--file",
+          "./compiler/tests/equivalence/402_object_memory.cpp",
+          "--functions",
+          "main"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] selected emitted C functions have no stub return"
+        ]
+      },
+      {
+        "id": "tier2_no_stub_using_directive_main",
+        "family": "using_directive_no_stub_guard",
+        "matrixFamily": "usingDeclaration / usingDirective",
+        "command": [
+          "python3",
+          "./compiler/tests/assert_no_stub_returns.py",
+          "--file",
+          "./compiler/tests/equivalence/403_using_directive.cpp",
+          "--functions",
+          "main"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] selected emitted C functions have no stub return"
+        ]
+      },
+      {
+        "id": "tier2_no_stub_namespace_alias_main",
+        "family": "namespace_alias_no_stub_guard",
+        "matrixFamily": "namespaceDefinition / namespaceAliasDefinition",
+        "command": [
+          "python3",
+          "./compiler/tests/assert_no_stub_returns.py",
+          "--file",
+          "./compiler/tests/equivalence/404_namespace_alias.cpp",
+          "--functions",
+          "main"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] selected emitted C functions have no stub return"
+        ]
+      },
+      {
+        "id": "tier2_no_stub_pointer_cv_main",
+        "family": "pointer_cv_no_stub_guard",
+        "matrixFamily": "pointer / ptrOperator / cvQualifierSeq",
+        "command": [
+          "python3",
+          "./compiler/tests/assert_no_stub_returns.py",
+          "--file",
+          "./compiler/tests/equivalence/405_pointer_cv.cpp",
+          "--functions",
+          "main"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] selected emitted C functions have no stub return"
+        ]
+      },
+      {
+        "id": "tier2_no_stub_elaborated_type_main",
+        "family": "elaborated_type_no_stub_guard",
+        "matrixFamily": "elaboratedTypeSpecifier",
+        "command": [
+          "python3",
+          "./compiler/tests/assert_no_stub_returns.py",
+          "--file",
+          "./compiler/tests/equivalence/406_elaborated_type.cpp",
+          "--functions",
+          "main"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] selected emitted C functions have no stub return"
         ]
       }
     ],
@@ -212,9 +459,9 @@
           "--ast-json-out",
           "{tmpDir}/305_explicit_instantiation.ast.json"
         ],
-        "expectExitCode": 1,
-        "stderrContains": [
-          "TOKEN_template"
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
         ]
       },
       {
@@ -228,9 +475,9 @@
           "--ast-json-out",
           "{tmpDir}/306_explicit_specialization.ast.json"
         ],
-        "expectExitCode": 1,
-        "stderrContains": [
-          "TOKEN_template"
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
         ]
       },
       {
@@ -276,9 +523,9 @@
           "--ast-json-out",
           "{tmpDir}/309_namespace_alias.ast.json"
         ],
-        "expectExitCode": 1,
-        "stderrContains": [
-          "TOKEN_int"
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
         ]
       },
       {
@@ -292,9 +539,9 @@
           "--ast-json-out",
           "{tmpDir}/310_enum_specifier.ast.json"
         ],
-        "expectExitCode": 1,
-        "stderrContains": [
-          "Expected at least one translationUnitItem"
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
         ]
       },
       {

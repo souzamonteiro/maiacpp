@@ -13,8 +13,8 @@ Status legend:
 - declaration / declarationSpecifiers / initDeclaratorList: partial
 - usingDeclaration / usingDirective: partial
 - namespaceDefinition / namespaceAliasDefinition: partial
-- linkageSpecification: missing
-- asmDefinition: missing
+- linkageSpecification: partial
+- asmDefinition: partial
 
 ## B. Types and Declarators
 
@@ -23,7 +23,7 @@ Status legend:
 - enumSpecifier / enumeratorList: partial
 - elaboratedTypeSpecifier: partial
 - declarator family: partial
-- abstractDeclarator family: missing
+- abstractDeclarator family: partial
 - pointer / ptrOperator / cvQualifierSeq: partial
 
 ## C. Templates
@@ -31,8 +31,8 @@ Status legend:
 - templateDeclaration: partial
 - templateParameterList / typeParameter: partial
 - templateId / templateArgumentList: partial
-- explicitInstantiation: missing
-- explicitSpecialization: missing
+- explicitInstantiation: partial
+- explicitSpecialization: partial
 
 ## D. Expressions
 
@@ -41,7 +41,7 @@ Status legend:
 - unaryExpression full set: partial
 - postfixExpression full set: partial
 - newExpression / deleteExpression: partial
-- throwExpression: missing
+- throwExpression: partial
 
 ## E. Statements and Control Flow
 
@@ -49,7 +49,7 @@ Status legend:
 - if/else / switch: partial
 - loops (while/do/for): partial
 - jumpStatement full behavior: partial
-- tryBlock / handlerSeq / handler: missing
+- tryBlock / handlerSeq / handler: partial
 
 ## F. Functions, Classes, and Object Semantics
 
@@ -57,7 +57,7 @@ Status legend:
 - ctorInitializer / memInitializerList: partial
 - constructor/destructor behavior: partial
 - inheritance and virtual semantics: partial
-- conversion/function operator IDs: missing
+- conversion/function operator IDs: partial
 
 ## G. Preprocessor
 
@@ -69,7 +69,7 @@ Status legend:
 
 - symbol mangling: done
 - global function lowering (simple return/call patterns): partial
-- full statement lowering: missing
+- full statement lowering: partial
 
 ### MaiaC bridge / runtime.wat integration
 
@@ -80,7 +80,7 @@ Status legend:
 ## I. Runtime Validation
 
 - parser/codegen fixture suite: done for current tracked subset (40/40 fixtures passing)
-- executable behavior conformance suite against C++98 semantics: missing
+- executable behavior conformance suite against C++98 semantics: partial
 
 ## J. Mandatory Completion Criteria
 

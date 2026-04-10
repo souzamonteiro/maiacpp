@@ -30,7 +30,13 @@
     "test": "bash ./bin/webcpp.sh --file ./compiler/test.cpp --ast-json-out ./out/test.ast.json --c-out ./out/test.c",
     "compile:test": "bash ./bin/webcpp.sh --file ./compiler/test.cpp --c-out ./out/test.c",
     "report:tiers": "python3 ./compiler/tests/run_tiered_cpp98.py",
-    "compare:cpp-vs-pipeline": "python3 ./compiler/tests/compare_cpp_vs_pipeline.py --file ./compiler/test_cpp98_extended.cpp"
+    "compare:cpp-vs-pipeline": "python3 ./compiler/tests/compare_cpp_vs_pipeline.py --file ./compiler/test_cpp98_extended.cpp",
+    "check:fixtures": "python3 ./compiler/tests/run_fixtures.py --fixtures-dir ./compiler/tests/fixtures --parser ./compiler/cpp-compiler.js --mode compiler",
+    "check:equiv:extended": "python3 ./compiler/tests/compare_cpp_vs_pipeline.py --file ./compiler/test_cpp98_extended.cpp",
+    "check:equiv:namespace": "python3 ./compiler/tests/compare_cpp_vs_pipeline.py --file ./compiler/tests/equivalence/401_namespace_overload.cpp",
+    "check:equiv:object-memory": "python3 ./compiler/tests/compare_cpp_vs_pipeline.py --file ./compiler/tests/equivalence/402_object_memory.cpp",
+    "check:equiv:browser-host": "python3 ./compiler/tests/compare_cpp_vs_pipeline.py --file ./compiler/tests/equivalence/401_namespace_overload.cpp --runtime browser-host",
+    "ready:release": "python3 ./compiler/tests/run_tiered_cpp98.py && python3 ./compiler/tests/run_fixtures.py --fixtures-dir ./compiler/tests/fixtures --parser ./compiler/cpp-compiler.js --mode compiler && python3 ./compiler/tests/compare_cpp_vs_pipeline.py --file ./compiler/test_cpp98_extended.cpp && python3 ./compiler/tests/compare_cpp_vs_pipeline.py --file ./compiler/tests/equivalence/401_namespace_overload.cpp && python3 ./compiler/tests/compare_cpp_vs_pipeline.py --file ./compiler/tests/equivalence/402_object_memory.cpp && python3 ./compiler/tests/compare_cpp_vs_pipeline.py --file ./compiler/tests/equivalence/401_namespace_overload.cpp --runtime browser-host"
   },
   "repository": {
     "type": "git",
