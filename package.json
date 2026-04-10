@@ -1,0 +1,58 @@
+{
+  "name": "maiacpp",
+  "version": "1.0.0",
+  "description": "MaiaCpp (WebCpp): C++98 to C transpiler integrated with MaiaC.",
+  "license": "Apache-2.0",
+  "main": "compiler/cpp-compiler.js",
+  "bin": {
+    "webcpp": "compiler/cpp-compiler.js"
+  },
+  "files": [
+    "bin/webcpp.sh",
+    "bin/run-test-cpp.sh",
+    "bin/run-test-node.sh",
+    "bin/run-test-console.sh",
+    "compiler/cpp-compiler.js",
+    "compiler/cpp-parser.js",
+    "compiler/parse-tree-collector.js",
+    "compiler/runtime.wat",
+    "grammar/Cpp_ Grammar.md",
+    "docs/ARCHITECTURE.md",
+    "docs/AST_100_IMPLEMENTATION_TODO.md",
+    "docs/CONFORMANCE_MATRIX.md",
+    "docs/EBNF_IMPLEMENTATION_AUDIT.md",
+    "docs/ROADMAP.md",
+    "docs/SUPPORT_ROADMAP.md",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "bash ./bin/webcpp.sh --file ./compiler/test.cpp --ast-json-out ./out/test.ast.json --c-out ./out/test.c",
+    "compile:test": "bash ./bin/webcpp.sh --file ./compiler/test.cpp --c-out ./out/test.c",
+    "report:tiers": "python3 ./compiler/tests/run_tiered_cpp98.py",
+    "compare:cpp-vs-pipeline": "python3 ./compiler/tests/compare_cpp_vs_pipeline.py --file ./compiler/test_cpp98_extended.cpp"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/souzamonteiro/maiacpp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/souzamonteiro/maiacpp/issues"
+  },
+  "homepage": "https://github.com/souzamonteiro/maiacpp#readme",
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "cpp",
+    "c++",
+    "c++98",
+    "transpiler",
+    "compiler",
+    "wasm",
+    "webassembly"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

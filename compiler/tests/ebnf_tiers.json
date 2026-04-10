@@ -1,0 +1,702 @@
+{
+  "version": 1,
+  "description": "Tiered MaiaCpp conformance execution plan (Tier 1 runtime, Tier 2 compile, Tier 3 parse-tracking).",
+  "tiers": {
+    "tier1": [
+      {
+        "id": "tier1_extended_runtime_node",
+        "family": "runtime_integration",
+        "matrixFamily": "runtime host integration (printf in Node/browser)",
+        "command": [
+          "bash",
+          "./bin/run-test-node.sh",
+          "./compiler/test_cpp98_extended.cpp"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "ALL TESTS PASSED",
+          "[node] main() => 0"
+        ]
+      },
+      {
+        "id": "tier1_semantic_compare_cpp_vs_pipeline",
+        "family": "runtime_semantic_equivalence",
+        "matrixFamily": "executable behavior conformance suite against C++98 semantics",
+        "command": [
+          "python3",
+          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "--file",
+          "./compiler/test_cpp98_extended.cpp"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] native C++ output matches MaiaCpp pipeline output"
+        ]
+      }
+    ],
+    "tier2": [
+      {
+        "id": "tier2_fixture_suite_compiler",
+        "family": "parser_codegen_regression",
+        "matrixFamily": "parser/codegen fixture suite",
+        "command": [
+          "python3",
+          "./compiler/tests/run_fixtures.py",
+          "--fixtures-dir",
+          "./compiler/tests/fixtures",
+          "--parser",
+          "./compiler/cpp-compiler.js",
+          "--mode",
+          "compiler"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "All fixtures passed: 40"
+        ]
+      },
+      {
+        "id": "tier2_symbol_mangling_probe",
+        "family": "symbol_mangling",
+        "matrixFamily": "symbol mangling",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/fixtures/010_namespace_class_mangling.cpp"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "void N_C_init(C* self);",
+          "int N_C_m(C* self);"
+        ]
+      },
+      {
+        "id": "tier2_global_lowering_probe",
+        "family": "global_function_lowering",
+        "matrixFamily": "global function lowering (simple return/call patterns)",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/fixtures/012_global_simple_return_lowering.cpp"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "int add__ii(int a, int b)",
+          "return a + b;"
+        ]
+      },
+      {
+        "id": "tier2_maiac_bridge_consumable",
+        "family": "maiac_bridge_consumable",
+        "matrixFamily": "MaiaCpp C emission consumable by MaiaC",
+        "command": [
+          "bash",
+          "./bin/webcpp.sh",
+          "--file",
+          "./compiler/test_cpp98_extended.cpp",
+          "--wasm-out",
+          "{tmpDir}/bridge_consumable.wasm"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok",
+          "C gerado em:"
+        ]
+      },
+      {
+        "id": "tier2_runtime_wat_non_c_lowerable_probe",
+        "family": "runtime_wat_non_c_lowerable",
+        "matrixFamily": "runtime.wat support for non-C-lowerable features",
+        "command": [
+          "bash",
+          "./bin/webcpp.sh",
+          "--file",
+          "./compiler/tests/tier3/303_try_throw_catch.cpp",
+          "--wasm-out",
+          "{tmpDir}/runtime_non_c_lowerable.wasm"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok",
+          "C gerado em:"
+        ]
+      },
+      {
+        "id": "tier2_full_statement_lowering_probe",
+        "family": "full_statement_lowering",
+        "matrixFamily": "full statement lowering",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/tier3/313_control_flow.cpp"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "int main(void)",
+          "return (int)0;"
+        ]
+      }
+    ],
+    "tier3": [
+      {
+        "id": "tier3_parse_linkage_specification",
+        "family": "linkageSpecification",
+        "matrixFamily": "linkageSpecification",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/tier3/301_linkage_specification.cpp",
+          "--ast-json-out",
+          "{tmpDir}/301_linkage_specification.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_asm_definition",
+        "family": "asmDefinition",
+        "matrixFamily": "asmDefinition",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/tier3/302_asm_definition.cpp",
+          "--ast-json-out",
+          "{tmpDir}/302_asm_definition.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_try_throw_catch",
+        "family": "tryBlock_handler_throwExpression",
+        "matrixFamily": "tryBlock / handlerSeq / handler",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/tier3/303_try_throw_catch.cpp",
+          "--ast-json-out",
+          "{tmpDir}/303_try_throw_catch.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_abstract_declarator",
+        "family": "abstractDeclarator_family",
+        "matrixFamily": "abstractDeclarator family",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/tier3/304_abstract_declarator.cpp",
+          "--ast-json-out",
+          "{tmpDir}/304_abstract_declarator.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_explicit_instantiation_expected_fail",
+        "family": "explicitInstantiation",
+        "matrixFamily": "explicitInstantiation",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/tier3/305_explicit_instantiation.cpp",
+          "--ast-json-out",
+          "{tmpDir}/305_explicit_instantiation.ast.json"
+        ],
+        "expectExitCode": 1,
+        "stderrContains": [
+          "TOKEN_template"
+        ]
+      },
+      {
+        "id": "tier3_parse_explicit_specialization_expected_fail",
+        "family": "explicitSpecialization",
+        "matrixFamily": "explicitSpecialization",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/tier3/306_explicit_specialization.cpp",
+          "--ast-json-out",
+          "{tmpDir}/306_explicit_specialization.ast.json"
+        ],
+        "expectExitCode": 1,
+        "stderrContains": [
+          "TOKEN_template"
+        ]
+      },
+      {
+        "id": "tier3_parse_throw_expression",
+        "family": "throwExpression",
+        "matrixFamily": "throwExpression",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/tier3/307_throw_expression.cpp",
+          "--ast-json-out",
+          "{tmpDir}/307_throw_expression.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_using_directive",
+        "family": "usingDeclaration_usingDirective",
+        "matrixFamily": "usingDeclaration / usingDirective",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/tier3/308_using_directive.cpp",
+          "--ast-json-out",
+          "{tmpDir}/308_using_directive.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_namespace_alias_expected_fail",
+        "family": "namespace_alias_definition",
+        "matrixFamily": "namespaceDefinition / namespaceAliasDefinition",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/tier3/309_namespace_alias.cpp",
+          "--ast-json-out",
+          "{tmpDir}/309_namespace_alias.ast.json"
+        ],
+        "expectExitCode": 1,
+        "stderrContains": [
+          "TOKEN_int"
+        ]
+      },
+      {
+        "id": "tier3_parse_enum_specifier_expected_fail",
+        "family": "enum_specifier_enumerator_list",
+        "matrixFamily": "enumSpecifier / enumeratorList",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/tier3/310_enum_specifier.cpp",
+          "--ast-json-out",
+          "{tmpDir}/310_enum_specifier.ast.json"
+        ],
+        "expectExitCode": 1,
+        "stderrContains": [
+          "Expected at least one translationUnitItem"
+        ]
+      },
+      {
+        "id": "tier3_parse_pointer_cv",
+        "family": "pointer_ptrOperator_cvQualifierSeq",
+        "matrixFamily": "pointer / ptrOperator / cvQualifierSeq",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/tier3/311_pointer_cv.cpp",
+          "--ast-json-out",
+          "{tmpDir}/311_pointer_cv.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_declaration_specifiers",
+        "family": "declaration_specifiers_init",
+        "matrixFamily": "declaration / declarationSpecifiers / initDeclaratorList",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/tier3/312_declarations.cpp",
+          "--ast-json-out",
+          "{tmpDir}/312_declarations.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_control_flow_compound",
+        "family": "compound_declaration_statement",
+        "matrixFamily": "compoundStatement / declarationStatement",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/tier3/313_control_flow.cpp",
+          "--ast-json-out",
+          "{tmpDir}/313_control_flow_compound.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_control_flow_if_switch",
+        "family": "if_else_switch",
+        "matrixFamily": "if/else / switch",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/tier3/313_control_flow.cpp",
+          "--ast-json-out",
+          "{tmpDir}/313_control_flow_if_switch.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_control_flow_loops",
+        "family": "loops_while_do_for",
+        "matrixFamily": "loops (while/do/for)",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/tier3/313_control_flow.cpp",
+          "--ast-json-out",
+          "{tmpDir}/313_control_flow_loops.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_control_flow_jumps",
+        "family": "jump_statement",
+        "matrixFamily": "jumpStatement full behavior",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/tier3/313_control_flow.cpp",
+          "--ast-json-out",
+          "{tmpDir}/313_control_flow_jumps.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_function_definition",
+        "family": "function_definition",
+        "matrixFamily": "functionDefinition",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/tier3/313_control_flow.cpp",
+          "--ast-json-out",
+          "{tmpDir}/313_function_definition.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_translation_unit",
+        "family": "translation_unit",
+        "matrixFamily": "translationUnit / translationUnitItem",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/tier3/312_declarations.cpp",
+          "--ast-json-out",
+          "{tmpDir}/312_translation_unit.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_external_declarations",
+        "family": "external_declaration_set",
+        "matrixFamily": "externalDeclaration set",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/tier3/312_declarations.cpp",
+          "--ast-json-out",
+          "{tmpDir}/312_external_declaration.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_builtin_type_specifier",
+        "family": "builtin_simple_type_specifier",
+        "matrixFamily": "builtinSimpleTypeSpecifier",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/tier3/312_declarations.cpp",
+          "--ast-json-out",
+          "{tmpDir}/312_builtin_type.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_class_base_clause",
+        "family": "class_specifier_base_clause",
+        "matrixFamily": "classSpecifier / classHead / baseClause",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/test_cpp98_extended.cpp",
+          "--ast-json-out",
+          "{tmpDir}/test_cpp98_class_base.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_declarator_family",
+        "family": "declarator_family",
+        "matrixFamily": "declarator family",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/tier3/311_pointer_cv.cpp",
+          "--ast-json-out",
+          "{tmpDir}/311_declarator_family.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_template_declaration",
+        "family": "template_declaration",
+        "matrixFamily": "templateDeclaration",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/test_cpp98_extended.cpp",
+          "--ast-json-out",
+          "{tmpDir}/test_cpp98_template_declaration.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_template_parameters",
+        "family": "template_parameter_list",
+        "matrixFamily": "templateParameterList / typeParameter",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/test_cpp98_extended.cpp",
+          "--ast-json-out",
+          "{tmpDir}/test_cpp98_template_params.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_template_id_arguments",
+        "family": "template_id_argument_list",
+        "matrixFamily": "templateId / templateArgumentList",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/test_cpp98_extended.cpp",
+          "--ast-json-out",
+          "{tmpDir}/test_cpp98_template_id.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_assignment_arithmetic",
+        "family": "assignment_arithmetic",
+        "matrixFamily": "assignment and arithmetic hierarchy",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/tier3/313_control_flow.cpp",
+          "--ast-json-out",
+          "{tmpDir}/313_assignment_arith.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_cast_expressions",
+        "family": "cast_expression_family",
+        "matrixFamily": "castExpression family",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/test_cpp98_extended.cpp",
+          "--ast-json-out",
+          "{tmpDir}/test_cpp98_cast_family.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_unary_expressions",
+        "family": "unary_expression_set",
+        "matrixFamily": "unaryExpression full set",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/tier3/313_control_flow.cpp",
+          "--ast-json-out",
+          "{tmpDir}/313_unary_expression.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_postfix_expressions",
+        "family": "postfix_expression_set",
+        "matrixFamily": "postfixExpression full set",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/test_cpp98_extended.cpp",
+          "--ast-json-out",
+          "{tmpDir}/test_cpp98_postfix_expression.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_new_delete_expressions",
+        "family": "new_delete_expression",
+        "matrixFamily": "newExpression / deleteExpression",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/test_cpp98_extended.cpp",
+          "--ast-json-out",
+          "{tmpDir}/test_cpp98_new_delete.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_ctor_meminitializer",
+        "family": "ctor_meminitializer",
+        "matrixFamily": "ctorInitializer / memInitializerList",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/test_cpp98_extended.cpp",
+          "--ast-json-out",
+          "{tmpDir}/test_cpp98_ctor_meminit.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_ctor_dtor_behavior",
+        "family": "constructor_destructor_behavior",
+        "matrixFamily": "constructor/destructor behavior",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/test_cpp98_extended.cpp",
+          "--ast-json-out",
+          "{tmpDir}/test_cpp98_ctor_dtor_behavior.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_inheritance_virtual",
+        "family": "inheritance_virtual_semantics",
+        "matrixFamily": "inheritance and virtual semantics",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/test_cpp98_extended.cpp",
+          "--ast-json-out",
+          "{tmpDir}/test_cpp98_inheritance_virtual.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_elaborated_type_specifier",
+        "family": "elaborated_type_specifier",
+        "matrixFamily": "elaboratedTypeSpecifier",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/tier3/314_elaborated_type_specifier.cpp",
+          "--ast-json-out",
+          "{tmpDir}/314_elaborated_type.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      },
+      {
+        "id": "tier3_parse_conversion_operator_id",
+        "family": "conversion_operator_id",
+        "matrixFamily": "conversion/function operator IDs",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/tier3/315_conversion_operator_id.cpp",
+          "--ast-json-out",
+          "{tmpDir}/315_conversion_operator_id.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
+      }
+    ]
+  }
+}

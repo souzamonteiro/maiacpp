@@ -34,6 +34,44 @@ Fluxo unificado (default: `compiler/test.cpp`):
 bash ./bin/run-test-cpp.sh --target all
 ```
 
+Baseline estendido C++98 (maior cobertura no estado atual):
+
+```bash
+bash ./bin/run-test-cpp.sh --file ./compiler/test_cpp98_extended.cpp --target all
+```
+
+Suíte tierizada C++98 + relatório EBNF (produção):
+
+```bash
+python3 ./compiler/tests/run_tiered_cpp98.py
+```
+
+Comparação semântica C++ nativo vs pipeline C gerado:
+
+```bash
+python3 ./compiler/tests/compare_cpp_vs_pipeline.py --file ./compiler/test_cpp98_extended.cpp
+```
+
+Esse comando:
+
+- compila e executa o C++98 nativo
+- gera C via MaiaCpp e executa o pipeline MaiaCpp -> MaiaC -> WASM no Node
+- compara stdout e código de retorno
+- salva o C gerado em `out/reports/cpp-vs-c/<arquivo>.generated.c`
+
+Saída machine-readable:
+
+- `out/reports/ebnf-tiered-report.json`
+
+Tiers atuais:
+
+- Tier 1: runtime Node/WASM (cenário end-to-end)
+- Tier 2: regressão de compilação (fixtures)
+- Tier 3: rastreamento parse-only para famílias ainda em lacuna (ex.: linkage/asm/try-catch)
+
+O relatório também informa quantas famílias da matriz EBNF já estão rastreadas por casos tierizados (`matrixTracking`).
+No estado atual, esse rastreamento já cobre a maior parte da matriz e deve ser atualizado a cada execução do runner tierizado.
+
 Alvos individuais:
 
 ```bash
@@ -75,3 +113,4 @@ O `test.cpp` continua como baseline completo e nao foi alterado.
 - See `docs/ARCHITECTURE.md` for an English architecture overview.
 - See `docs/EBNF_IMPLEMENTATION_AUDIT.md` for a detailed gap definition against `grammar/Cpp.ebnf`.
 - See `docs/CONFORMANCE_MATRIX.md` for implementation status by grammar family.
+- See `docs/PRACTICAL_READINESS_TODO.md` for execution-focused tasks to make MaiaCpp production-ready.

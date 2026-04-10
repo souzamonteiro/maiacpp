@@ -79,7 +79,7 @@ Status legend:
 
 ## I. Runtime Validation
 
-- parser/codegen fixture suite: done for current subset
+- parser/codegen fixture suite: done for current tracked subset (40/40 fixtures passing)
 - executable behavior conformance suite against C++98 semantics: missing
 
 ## J. Mandatory Completion Criteria
@@ -91,3 +91,10 @@ To claim 100 percent ready, each grammar family must be done in all layers:
 3. C backend behavior
 4. MaiaC bridge behavior
 5. runtime validation fixture
+
+## K. Migration Checkpoint (AST-First Rollout)
+
+- `cpp-compiler.js` now supports `--ast-strict` to force AST-only parsing/semantic path.
+- Default mode remains compatibility-first while AST migration is in progress.
+- Current compatibility lane status: fixture parity recovered (40/40) with legacy function hints enabled by default.
+- Strict lane remains opt-in (`--ast-strict`) and is the target default after removing remaining source-hint/fallback dependencies.

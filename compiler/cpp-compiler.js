@@ -330,6 +330,87 @@ function parseParamList(paramListText) {
   return params;
 }
 
+function cleanFunctionBodyText(bodyText) {
+  return String(bodyText || '')
+    .replace(/^[\s\{]+/, '')
+    .replace(/[\s\}]+$/, '')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/.*$/gm, '')
+    .trim();
+}
+
+function inferSimpleReturnExprFromBody(bodyText, params) {
+  const clean = cleanFunctionBodyText(bodyText);
+  const m = clean.match(/^return\s*([^;]+);\s*$/);
+  if (!m) return null;
+
+  const expr = m[1].trim();
+  if (!expr || /::/.test(expr)) return null;
+  if (/\b[A-Za-z_][A-Za-z0-9_]*\s*\(/.test(expr)) return null;
+
+  const ids = expr.match(/[A-Za-z_][A-Za-z0-9_]*/g) || [];
+  const allowed = new Set((params || []).map((p) => p.name));
+  for (const id of ids) {
+    if (!allowed.has(id)) return null;
+  }
+
+  return expr;
+}
+
+function inferSimpleReturnCallFromBody(bodyText) {
+  const clean = cleanFunctionBodyText(bodyText);
+  const m = clean.match(/^return\s*((?:::)?(?:[A-Za-z_][A-Za-z0-9_]*\s*::\s*)*[A-Za-z_][A-Za-z0-9_]*)\s*\((.*)\)\s*;\s*$/);
+  if (!m) return null;
+
+  const calleeText = (m[1] || '').replace(/\s+/g, '');
+  const absolute = calleeText.startsWith('::');
+  const calleeNormalized = absolute ? calleeText.slice(2) : calleeText;
+  const calleeParts = calleeNormalized.split('::').filter(Boolean);
+  if (calleeParts.length === 0) return null;
+
+  const argsText = (m[2] || '').trim();
+  const args = argsText
+    ? argsText.split(',').map((s) => s.trim()).filter(Boolean)
+    : [];
+
+  return {
+    callee: calleeParts[calleeParts.length - 1],
+    calleeNamespacePath: calleeParts.slice(0, -1),
+    absolute,
+    args
+  };
+}
+
+function inferSimpleIfReturnFromBody(bodyText, params) {
+  const clean = cleanFunctionBodyText(bodyText);
+  const withElse = clean.match(/^if\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=|<=|>=|<|>)\s*([A-Za-z_][A-Za-z0-9_]*|[-+]?\d+)\s*\)\s*\{\s*return\s*([-+]?\d+)\s*;\s*\}\s*else\s*\{\s*return\s*([-+]?\d+)\s*;\s*\}\s*$/);
+  const noElse = clean.match(/^if\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=|<=|>=|<|>)\s*([A-Za-z_][A-Za-z0-9_]*|[-+]?\d+)\s*\)\s*\{\s*return\s*([-+]?\d+)\s*;\s*\}\s*return\s*([-+]?\d+)\s*;\s*$/);
+  const ternary = clean.match(/^return\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=|<=|>=|<|>)\s*([A-Za-z_][A-Za-z0-9_]*|[-+]?\d+)\s*\)\s*\?\s*([-+]?\d+)\s*:\s*([-+]?\d+)\s*;\s*$/);
+  const m = withElse || noElse || ternary;
+  if (!m) return null;
+
+  const allowed = new Set((params || []).map((p) => p.name));
+  const leftName = m[1];
+  if (!allowed.has(leftName)) return null;
+
+  const rhsRaw = m[3];
+  const rhsIsConst = /^[-+]?\d+$/.test(rhsRaw);
+  if (!rhsIsConst && !allowed.has(rhsRaw)) return null;
+
+  const right = rhsIsConst
+    ? { kind: 'const', value: Number.parseInt(rhsRaw, 10) | 0 }
+    : { kind: 'param', name: rhsRaw };
+
+  return {
+    kind: 'var_cmp',
+    leftName,
+    right,
+    op: m[2],
+    thenValue: Number.parseInt(m[4], 10) | 0,
+    elseValue: Number.parseInt(m[5], 10) | 0
+  };
+}
+
 function stripClassLikeBlocks(segment) {
   const text = String(segment || '');
   let out = '';
@@ -1387,12 +1468,18 @@ class SemanticAnalyzer {
     const specifiers = this.findFirstNonterminal(declaration, 'declarationSpecifiers');
     const returnType = normalizeTypeText(this.text(specifiers));
     const params = this.extractParametersFromDeclarator(declarator);
+    const bodyText = this.text(functionBody);
 
     return {
       name,
       returnType,
       params,
-      namespacePath: [...this.namespaceStack]
+      namespacePath: [...this.namespaceStack],
+      bodyText,
+      simpleReturnExpr: inferSimpleReturnExprFromBody(bodyText, params),
+      simpleReturnCall: inferSimpleReturnCallFromBody(bodyText),
+      simpleIfReturn: inferSimpleIfReturnFromBody(bodyText, params),
+      deterministicNoParamI32Return: null
     };
   }
 
@@ -1933,10 +2020,10 @@ class CppToCTranspiler {
       this.em.level += 1;
       if (fn.name === 'main' && !fn.namespacePath?.length && structuredMain) {
         this.emitStructuredMain(structuredMain);
-      } else if (this.emitKnownRunLowering(fn, fns)) {
-        // Lowered from known C++ baseline patterns.
-      } else if (Number.isInteger(fn.deterministicNoParamI32Return) && fn.returnType !== 'void') {
+        } else if (Number.isInteger(fn.deterministicNoParamI32Return) && fn.returnType !== 'void') {
         this.em.line(`return ${fn.deterministicNoParamI32Return | 0};`);
+        } else if (this.emitKnownRunLowering(fn, fns)) {
+          // Lowered from known C++ baseline patterns.
       } else if (fn.simpleIfReturn && fn.returnType !== 'void') {
         const lowered = this.lowerSimpleIfReturn(fn);
         if (lowered) this.em.line(`return ${lowered};`);
@@ -2535,34 +2622,50 @@ class Cpp98Compiler {
   }
 
   collectParseTree(source) {
-    const parseSources = [];
-    const normalized = normalizeForParser(source);
+    if (!(this.options && this.options.astStrict)) {
+      const parseSources = [];
+      const normalized = normalizeForParser(source);
 
-    if (normalized !== source) {
-      parseSources.push({ text: normalized, label: 'Parser: ok (namespace normalized)' });
-    }
-    parseSources.push({ text: source, label: 'Parser: ok' });
-
-    let lastErr = null;
-
-    for (let i = 0; i < parseSources.length; i += 1) {
-      const candidate = parseSources[i];
-      try {
-        const collector = new ParseTreeCollector();
-        const parser = new Parser(candidate.text, collector);
-        parser.parse();
-
-        if (!collector.root) {
-          throw new Error('Nenhuma árvore de parse disponível');
-        }
-
-        return { collector, candidate, usedNormalized: candidate.text !== source };
-      } catch (err) {
-        lastErr = err;
+      if (normalized !== source) {
+        parseSources.push({ text: normalized, label: 'Parser: ok (namespace normalized)' });
       }
+      parseSources.push({ text: source, label: 'Parser: ok' });
+
+      let lastErr = null;
+
+      for (let i = 0; i < parseSources.length; i += 1) {
+        const candidate = parseSources[i];
+        try {
+          const collector = new ParseTreeCollector();
+          const parser = new Parser(candidate.text, collector);
+          parser.parse();
+
+          if (!collector.root) {
+            throw new Error('Nenhuma árvore de parse disponível');
+          }
+
+          return { collector, candidate, usedNormalized: candidate.text !== source };
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+
+      throw lastErr || new Error('Falha ao gerar árvore de parse');
     }
 
-    throw lastErr || new Error('Falha ao gerar árvore de parse');
+    const collector = new ParseTreeCollector();
+    const parser = new Parser(source, collector);
+    parser.parse();
+
+    if (!collector.root) {
+      throw new Error('Nenhuma árvore de parse disponível');
+    }
+
+    return {
+      collector,
+      candidate: { text: source, label: 'Parser: ok' },
+      usedNormalized: false
+    };
   }
 
   emitAstArtifacts(options = {}) {
@@ -2589,62 +2692,70 @@ class Cpp98Compiler {
   analyze(source) {
     console.log(`Parsing: ${this.filePath}`);
     let lastErr = null;
+    const astStrict = !!(this.options && this.options.astStrict);
 
     try {
       const { collector, candidate, usedNormalized } = this.collectParseTree(source);
       console.log(candidate.label);
       const sema = new SemanticAnalyzer(collector.root, { source });
       const analysis = sema.analyze();
-      if (usedNormalized) {
-        analysis.functions = [];
+      if (!astStrict || (this.options && this.options.sourceHints)) {
+        this.applySourceClassHints(analysis, source, { usedNormalized });
       }
-      this.applySourceClassHints(analysis, source);
       return analysis;
     } catch (err) {
       lastErr = err;
     }
 
-    console.log(`Parser falhou (${lastErr ? lastErr.message : 'erro desconhecido'}). Usando fallback simples.`);
-    return new SimpleAnalyzer(this.filePath).analyze();
+    console.log(`Parser falhou (${lastErr ? lastErr.message : 'erro desconhecido'}).`);
+    if (!astStrict || (this.options && this.options.legacyFallback)) {
+      console.log('Usando fallback simples.');
+      return new SimpleAnalyzer(this.filePath).analyze();
+    }
+    throw lastErr || new Error('Falha ao analisar AST');
   }
 
-  applySourceClassHints(analysis, source) {
+  applySourceClassHints(analysis, source, context = {}) {
     if (!analysis) return;
 
     const nsMap = inferClassNamespaceMap(source);
     const fallback = new SimpleAnalyzer(this.filePath).analyze();
 
-    const functionKey = (fn) => {
+    const functionLooseKey = (fn) => {
       const sig = (fn.params || []).map((p) => normalizeTypeText(p.type || '')).join(',');
-      return `${(fn.namespacePath || []).join('::')}::${fn.name}(${sig})`;
+      return `${fn.name}(${sig})`;
     };
 
-    if (fallback.functions && fallback.functions.length > 0) {
-      if (!analysis.functions || analysis.functions.length === 0) {
-        analysis.functions = fallback.functions.map((f) => ({
-          ...f,
-          params: (f.params || []).map((p) => ({ ...p })),
-          namespacePath: [...(f.namespacePath || [])]
-        }));
-      } else {
-        const fallbackByKey = new Map();
-        for (const fn of fallback.functions) {
-          fallbackByKey.set(functionKey(fn), fn);
-        }
+    if (this.options && this.options.legacyFunctionHints && fallback.functions && fallback.functions.length > 0) {
+      const astFns = Array.isArray(analysis.functions) ? analysis.functions : [];
+      const astByLooseKey = new Map();
+      for (const fn of astFns) {
+        const key = functionLooseKey(fn);
+        const list = astByLooseKey.get(key) || [];
+        list.push(fn);
+        astByLooseKey.set(key, list);
+      }
 
-        analysis.functions = analysis.functions.map((fn) => {
-          const hinted = fallbackByKey.get(functionKey(fn));
-          if (!hinted) return fn;
-          return {
-            ...fn,
-            simpleReturnExpr: fn.simpleReturnExpr || hinted.simpleReturnExpr || null,
-            simpleReturnCall: fn.simpleReturnCall || hinted.simpleReturnCall || null,
-            simpleIfReturn: fn.simpleIfReturn || hinted.simpleIfReturn || null,
-            deterministicNoParamI32Return: Number.isInteger(fn.deterministicNoParamI32Return)
-              ? fn.deterministicNoParamI32Return
-              : hinted.deterministicNoParamI32Return
-          };
-        });
+      // While parser normalization is still required for some sources, keep fallback
+      // namespace/signature metadata as canonical and enrich it with AST body-derived hints.
+      const mergedFns = fallback.functions.map((fn) => {
+        const candidates = astByLooseKey.get(functionLooseKey(fn)) || [];
+        const astFn = candidates.length === 1 ? candidates[0] : null;
+        return {
+          ...fn,
+          simpleReturnExpr: fn.simpleReturnExpr || (astFn && astFn.simpleReturnExpr) || null,
+          simpleReturnCall: fn.simpleReturnCall || (astFn && astFn.simpleReturnCall) || null,
+          simpleIfReturn: fn.simpleIfReturn || (astFn && astFn.simpleIfReturn) || null,
+          deterministicNoParamI32Return: Number.isInteger(fn.deterministicNoParamI32Return)
+            ? fn.deterministicNoParamI32Return
+            : ((astFn && Number.isInteger(astFn.deterministicNoParamI32Return))
+              ? astFn.deterministicNoParamI32Return
+              : null)
+        };
+      });
+
+      if (mergedFns.length > 0) {
+        analysis.functions = mergedFns;
       }
     }
 
@@ -2719,7 +2830,7 @@ class Cpp98Compiler {
 if (require.main === module) {
   const args = process.argv.slice(2);
   if (!args.length) {
-    console.log('Uso: node cpp-compiler.js <arquivo.cpp> [--output arquivo.c] [--ast-show] [--ast-xml-out arquivo.xml] [--ast-json-out arquivo.json] [--verbose]');
+    console.log('Uso: node cpp-compiler.js <arquivo.cpp> [--output arquivo.c] [--ast-show] [--ast-xml-out arquivo.xml] [--ast-json-out arquivo.json] [--verbose] [--ast-strict] [--source-hints] [--legacy-fallback] [--legacy-function-hints] [--no-legacy-function-hints]');
     process.exit(1);
   }
 
@@ -2737,7 +2848,13 @@ if (require.main === module) {
   }
 
   try {
-    const compiler = new Cpp98Compiler(input, { verbose: args.includes('--verbose') });
+    const compiler = new Cpp98Compiler(input, {
+      verbose: args.includes('--verbose'),
+      astStrict: args.includes('--ast-strict'),
+      sourceHints: args.includes('--source-hints'),
+      legacyFallback: args.includes('--legacy-fallback'),
+      legacyFunctionHints: args.includes('--legacy-function-hints') || !args.includes('--no-legacy-function-hints')
+    });
 
     if (astXmlOut) {
       fs.mkdirSync(path.dirname(astXmlOut), { recursive: true });

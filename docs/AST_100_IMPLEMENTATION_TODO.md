@@ -1,6 +1,6 @@
 # MaiaCpp AST-First 100 Percent TODO
 
-Date: 2026-04-09
+Date: 2026-04-10
 
 Goal:
 - Remove all regex/source heuristics from the compilation path.
@@ -30,6 +30,19 @@ Goal:
 - Multiple grammar families are parse-level only, not semantic/codegen complete.
 
 ## 3) Implementation Phases
+
+## Phase 0 - Migration Safety Rail (introduced)
+
+- [x] Add an opt-in AST-first strict mode in compiler path (`--ast-strict`) to validate AST-only behavior without breaking the current baseline.
+- [x] Keep legacy normalized/fallback behavior as default while fixture parity is incomplete.
+- [x] Recover fixture baseline parity after AST migration checkpoints (compiler fixtures: 40/40 passing).
+- [x] Keep compatibility lane explicit for function-level hints (`--legacy-function-hints`, default on; opt-out via `--no-legacy-function-hints`).
+- [ ] Flip default to AST-strict after parity for fixture families currently relying on source-hint/fallback paths.
+
+Acceptance:
+- AST-only path is executable today via explicit flag.
+- Default path remains stable for existing fixtures while migration work is in progress.
+- Regression suite currently passes fully in compatibility mode (40/40 fixtures).
 
 ## Phase A - AST Semantic Core
 
