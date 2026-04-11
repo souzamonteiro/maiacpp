@@ -12,7 +12,7 @@ Status legend:
 - externalDeclaration set: partial
 - declaration / declarationSpecifiers / initDeclaratorList: partial
 - usingDeclaration / usingDirective: done
-- namespaceDefinition / namespaceAliasDefinition: partial
+- namespaceDefinition / namespaceAliasDefinition: done
 - linkageSpecification: done
 - asmDefinition: partial
 
