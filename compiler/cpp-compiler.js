@@ -2113,10 +2113,6 @@ class CppToCTranspiler {
       && source.includes('catch (E&)')
       && source.includes('return 1;');
 
-    const looksLikeAsmDefinitionMain = source.includes('asm("nop");')
-      && source.includes('int main()')
-      && source.includes('return 0;');
-
     const looksLikeThrowExpressionMain = source.includes('int main()')
       && source.includes('throw 1;')
       && !source.includes('catch (');
@@ -2127,13 +2123,7 @@ class CppToCTranspiler {
       && !looksLikeDeclarationsMain
       && !looksLikeConversionOperatorMain
       && !looksLikeTryThrowCatchMain
-      && !looksLikeThrowExpressionMain
-      && !looksLikeAsmDefinitionMain) return false;
-
-    if (looksLikeAsmDefinitionMain) {
-      this.em.line('return 0;');
-      return true;
-    }
+      && !looksLikeThrowExpressionMain) return false;
 
     if (looksLikeThrowExpressionMain) {
       this.em.line('__exc_throw(1, 0);');
@@ -2260,7 +2250,9 @@ class CppToCTranspiler {
 
   emitStructuredMainOps(ops) {
     for (const op of ops || []) {
-      if (op.kind === 'printf') {
+      if (op.kind === 'noop') {
+        continue;
+      } else if (op.kind === 'printf') {
         if (!op.arg) this.em.line(`printf("${op.fmtRaw}");`);
         else if (op.arg.type === 'int') this.em.line(`printf("${op.fmtRaw}", ${op.arg.value | 0});`);
         else if (op.arg.type === 'var') this.em.line(`printf("${op.fmtRaw}", ${op.arg.name});`);
@@ -2372,6 +2364,11 @@ class CppToCTranspiler {
       return null;
     };
 
+    const parseAsmNoop = (text) => {
+      const m = text.match(/^asm\s*\(\s*"(?:\\.|[^"\\])*"\s*\)\s*;\s*/);
+      return m ? { consumed: m[0].length, op: { kind: 'noop' } } : null;
+    };
+
     const parsePrintf = (text) => {
       const m = text.match(/^printf\s*\(\s*"((?:\\.|[^"\\])*)"\s*(?:,\s*([^\)]+))?\)\s*;\s*/);
       if (!m) return null;
@@ -2468,7 +2465,8 @@ class CppToCTranspiler {
       const out = [];
       let t = String(blockText || '').trim();
       while (t.length > 0) {
-        const p = parsePrintf(t)
+        const p = parseAsmNoop(t)
+          || parsePrintf(t)
           || parseInc(t)
           || parseDec(t)
           || parseAddAssignVar(t)
@@ -2491,7 +2489,7 @@ class CppToCTranspiler {
         continue;
       }
 
-      const p = parsePrintf(rest) || parseInc(rest) || parseReturn(rest);
+      const p = parseAsmNoop(rest) || parsePrintf(rest) || parseInc(rest) || parseReturn(rest);
       if (p) {
         ops.push(p.op);
         rest = rest.slice(p.consumed).trim();
