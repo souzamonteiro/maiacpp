@@ -54,7 +54,7 @@ Status legend:
 ## F. Functions, Classes, and Object Semantics
 
 - functionDefinition: done
-- ctorInitializer / memInitializerList: partial
+- ctorInitializer / memInitializerList: done
 - constructor/destructor behavior: partial
 - inheritance and virtual semantics: partial
 - conversion/function operator IDs: partial
