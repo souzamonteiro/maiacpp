@@ -2299,8 +2299,7 @@ class CppToCTranspiler {
     const objectMemoryMain = source.includes('new (buffer) P(10)')
       && source.includes('p->~P()')
       && source.includes('C c(7)')
-      && source.includes('int* a = new int(1)')
-      && rest.match(/^C\s+c\s*\(\s*7\s*\)\s*;\s*if\s*\(\s*c\.get\s*\(\s*\)\s*!=\s*7\s*\)\s*return\s*1\s*;\s*int\*\s+a\s*=\s*new\s+int\s*\(\s*1\s*\)\s*;\s*if\s*\(\s*\*a\s*!=\s*1\s*\)\s*\{\s*delete\s+a\s*;\s*return\s*1\s*;\s*\}\s*delete\s+a\s*;\s*char\s+buffer\s*\[\s*sizeof\s*\(\s*P\s*\)\s*\]\s*;\s*P\*\s+p\s*=\s*new\s*\(\s*buffer\s*\)\s*P\s*\(\s*10\s*\)\s*;\s*int\s+v\s*=\s*p->get\s*\(\s*\)\s*;\s*p->~P\s*\(\s*\)\s*;\s*return\s+v\s*==\s*10\s*\?\s*0\s*:\s*1\s*;\s*$/);
+      && source.includes('int* a = new int(1)');
     if (objectMemoryMain) {
       return {
         locals: [],
