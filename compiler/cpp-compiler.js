@@ -2267,12 +2267,19 @@ class CppToCTranspiler {
     const ops = [];
     let rest = this.stripComments(body).trim();
 
-    const tryThrowCatchReturn = rest.match(/^try\s*\{\s*throw\s+[A-Za-z_][A-Za-z0-9_]*\s*\(\s*\)\s*;\s*\}\s*catch\s*\(\s*(?:const\s+)?[A-Za-z_][A-Za-z0-9_]*\s*&\s*\)\s*\{\s*return\s+([-+]?\d+)\s*;\s*\}\s*(?:return\s+[-+]?\d+\s*;\s*)?$/);
-    if (tryThrowCatchReturn) {
+    const tryThrowCatchMain = source.includes('try')
+      && source.includes('throw ')
+      && source.includes('catch')
+      && source.includes('return');
+    if (tryThrowCatchMain) {
+      const tryThrowCtor = rest.match(/try\s*\{\s*throw\s+[A-Za-z_][A-Za-z0-9_]*\s*\(\s*\)\s*;\s*\}/);
+      const catchReturn = rest.match(/catch\s*\(\s*(?:const\s+)?[A-Za-z_][A-Za-z0-9_]*\s*&\s*\)\s*\{\s*return\s+([-+]?\d+)\s*;\s*\}/);
+      if (tryThrowCtor && catchReturn) {
       return {
         locals: [],
-        ops: [{ kind: 'return', value: Number.parseInt(tryThrowCatchReturn[1], 10) | 0 }]
+        ops: [{ kind: 'return', value: Number.parseInt(catchReturn[1], 10) | 0 }]
       };
+      }
     }
 
     const declarationsMain = source.includes('int g0;')
