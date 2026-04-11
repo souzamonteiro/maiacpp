@@ -14,7 +14,7 @@ Status legend:
 - usingDeclaration / usingDirective: done
 - namespaceDefinition / namespaceAliasDefinition: done
 - linkageSpecification: done
-- asmDefinition: partial
+- asmDefinition: done
 
 ## B. Types and Declarators
 
