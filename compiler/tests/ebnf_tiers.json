@@ -132,6 +132,40 @@
         ]
       },
       {
+        "id": "tier1_semantic_compare_browser_host_explicit_instantiation",
+        "family": "runtime_semantic_equivalence_browser_host",
+        "matrixFamily": "runtime host integration (printf in Node/browser)",
+        "command": [
+          "python3",
+          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "--file",
+          "./compiler/tests/equivalence/416_explicit_instantiation.cpp",
+          "--runtime",
+          "browser-host"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] native C++ output matches MaiaCpp pipeline output"
+        ]
+      },
+      {
+        "id": "tier1_semantic_compare_browser_host_explicit_specialization",
+        "family": "runtime_semantic_equivalence_browser_host",
+        "matrixFamily": "runtime host integration (printf in Node/browser)",
+        "command": [
+          "python3",
+          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "--file",
+          "./compiler/tests/equivalence/417_explicit_specialization.cpp",
+          "--runtime",
+          "browser-host"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] native C++ output matches MaiaCpp pipeline output"
+        ]
+      },
+      {
         "id": "tier1_semantic_compare_using_directive",
         "family": "using_directive_semantic_equivalence",
         "matrixFamily": "usingDeclaration / usingDirective",
@@ -835,7 +869,7 @@
         ]
       },
       {
-        "id": "tier3_parse_explicit_instantiation_expected_fail",
+        "id": "tier3_parse_explicit_instantiation",
         "family": "explicitInstantiation",
         "matrixFamily": "explicitInstantiation",
         "command": [
@@ -851,7 +885,7 @@
         ]
       },
       {
-        "id": "tier3_parse_explicit_specialization_expected_fail",
+        "id": "tier3_parse_explicit_specialization",
         "family": "explicitSpecialization",
         "matrixFamily": "explicitSpecialization",
         "command": [
