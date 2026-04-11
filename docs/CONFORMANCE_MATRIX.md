@@ -21,7 +21,7 @@ Status legend:
 - builtinSimpleTypeSpecifier: partial
 - classSpecifier / classHead / baseClause: partial
 - enumSpecifier / enumeratorList: partial
-- elaboratedTypeSpecifier: partial
+- elaboratedTypeSpecifier: done
 - declarator family: partial
 - abstractDeclarator family: partial
 - pointer / ptrOperator / cvQualifierSeq: done
