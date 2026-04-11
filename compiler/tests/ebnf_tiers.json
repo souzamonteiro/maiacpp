@@ -229,6 +229,21 @@
         "stdoutContains": [
           "[ok] native C++ output matches MaiaCpp pipeline output"
         ]
+      },
+      {
+        "id": "tier1_semantic_compare_throw_expression",
+        "family": "throw_expression_semantic_equivalence",
+        "matrixFamily": "throwExpression",
+        "command": [
+          "python3",
+          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "--file",
+          "./compiler/tests/equivalence/413_throw_expression.cpp"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] native C++ output matches MaiaCpp pipeline output"
+        ]
       }
     ],
     "tier2": [
@@ -549,6 +564,23 @@
           "./compiler/tests/assert_no_stub_returns.py",
           "--file",
           "./compiler/tests/equivalence/412_try_throw_catch.cpp",
+          "--functions",
+          "main"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] selected emitted C functions have no stub return"
+        ]
+      },
+      {
+        "id": "tier2_no_stub_throw_expression_main",
+        "family": "throw_expression_no_stub_guard",
+        "matrixFamily": "throwExpression",
+        "command": [
+          "python3",
+          "./compiler/tests/assert_no_stub_returns.py",
+          "--file",
+          "./compiler/tests/equivalence/413_throw_expression.cpp",
           "--functions",
           "main"
         ],

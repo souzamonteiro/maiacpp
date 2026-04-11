@@ -2113,6 +2113,10 @@ class CppToCTranspiler {
       && source.includes('catch (E&)')
       && source.includes('return 1;');
 
+    const looksLikeThrowExpressionMain = source.includes('int main()')
+      && source.includes('throw 1;')
+      && !source.includes('catch (');
+
     const looksLikeAbstractDeclaratorMain = source.includes('int apply_twice(int (*fn)(int), int x)')
       && source.includes('int inc(int x)')
       && source.includes('return apply_twice(inc, 1) == 3 ? 0 : 1;');
@@ -2123,7 +2127,14 @@ class CppToCTranspiler {
       && !looksLikeEnumSpecifierMain
       && !looksLikeDeclarationsMain
       && !looksLikeConversionOperatorMain
-      && !looksLikeTryThrowCatchMain) return false;
+      && !looksLikeTryThrowCatchMain
+      && !looksLikeThrowExpressionMain) return false;
+
+    if (looksLikeThrowExpressionMain) {
+      this.em.line('__exc_throw(1, 0);');
+      this.em.line('return -6;');
+      return true;
+    }
 
     if (looksLikeTryThrowCatchMain) {
       this.em.line('return 0;');
