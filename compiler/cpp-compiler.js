@@ -2039,8 +2039,6 @@ class CppToCTranspiler {
           // Lowered from known object/memory baseline pattern.
         } else if (Number.isInteger(fn.deterministicNoParamI32Return) && fn.returnType !== 'void') {
         this.em.line(`return ${fn.deterministicNoParamI32Return | 0};`);
-        } else if (this.emitKnownRunLowering(fn, fns)) {
-          // Lowered from known C++ baseline patterns.
       } else if (fn.simpleIfReturn && fn.returnType !== 'void') {
         const lowered = this.lowerSimpleIfReturn(fn);
         if (lowered) this.em.line(`return ${lowered};`);
@@ -2243,84 +2241,6 @@ class CppToCTranspiler {
     const cls = classes.get(className);
     const sigTypes = (paramTypeNames || []).map((t) => ({ kind: this.typeKindFromText(t), name: t }));
     return mangle(memberName, sigTypes, className, cls.namespacePath || []);
-  }
-
-  emitKnownRunLowering(fn, allFns) {
-    if (!fn || fn.returnType !== 'int' || (fn.params || []).length !== 0) return false;
-    if (fn.namespacePath && fn.namespacePath.length > 0) return false;
-
-    if (fn.name === 'run_class_tests') {
-      const cInit = this.resolveClassMangled('C', 'init', ['int']) || 'C_init__i';
-      const cGet = this.resolveClassMangled('C', 'get', []) || 'C_get';
-      this.em.line('C c;');
-      this.em.line(`${cInit}(&c, 42);`);
-      this.em.line(`return (${cGet}(&c) == 42) ? 1 : 0;`);
-      return true;
-    }
-
-    if (fn.name === 'run_template_tests') {
-      this.em.line('Box box;');
-      this.em.line('int* data = (int*)(&box);');
-      this.em.line('*(data + 0) = 10;');
-      this.em.line('*(data + 1) = 20;');
-      this.em.line('return (((*(data + 0)) + (*(data + 1)) == 30) ? 1 : 0);');
-      return true;
-    }
-
-    if (fn.name === 'run_function_pointer_tests') {
-      const addFn = this.resolveGlobalMangled('add', 2, fn.namespacePath || []);
-      const multiplyFn = this.resolveGlobalMangled('multiply', 2, fn.namespacePath || []);
-      this.em.line('int s = 0;');
-      this.em.line('int m = 0;');
-      this.em.line(`s = ${addFn}(7, 3);`);
-      this.em.line(`m = ${multiplyFn}(7, 3);`);
-      this.em.line('return (s == 10 && m == 21) ? 1 : 0;');
-      return true;
-    }
-
-    if (fn.name === 'run_cast_tests') {
-      const dInit = this.resolveClassMangled('DDerived', 'init', ['int']) || 'DDerived_init__i';
-      const dValue = this.resolveClassMangled('DDerived', 'value', []) || 'DDerived_value';
-      this.em.line('DDerived d;');
-      this.em.line('int n = 0;');
-      this.em.line(`${dInit}(&d, 15);`);
-      this.em.line('n = 3;');
-      this.em.line(`if (${dValue}(&d) != 15) return 0;`);
-      this.em.line('if (n != 3) {');
-      this.em.level += 1;
-      this.em.line('return 0;');
-      this.em.level -= 1;
-      this.em.line('}');
-      this.em.line('return 1;');
-      return true;
-    }
-
-    if (fn.name === 'run_new_delete_tests') {
-      const pInit = this.resolveClassMangled('P', 'init', ['int']) || 'P_init__i';
-      const pGet = this.resolveClassMangled('P', 'get', []) || 'P_get';
-      const pDestroy = this.resolveClassMangled('P', 'destroy', []) || 'P_destroy';
-      this.em.line('int* a = 0;');
-      this.em.line('char buffer[sizeof(P)];');
-      this.em.line('P* p = 0;');
-      this.em.line('int v = 0;');
-      this.em.line('a = (int*)__malloc(sizeof(int));');
-      this.em.line('*a = 1;');
-      this.em.line('if (*a != 1) {');
-      this.em.level += 1;
-      this.em.line('__free(a);');
-      this.em.line('return 0;');
-      this.em.level -= 1;
-      this.em.line('}');
-      this.em.line('__free(a);');
-      this.em.line('p = (P*)buffer;');
-      this.em.line(`${pInit}(p, 10);`);
-      this.em.line(`v = ${pGet}(p);`);
-      this.em.line(`${pDestroy}(p);`);
-      this.em.line('return (v == 10) ? 1 : 0;');
-      return true;
-    }
-
-    return false;
   }
 
   lowerSimpleIfReturn(fn) {
