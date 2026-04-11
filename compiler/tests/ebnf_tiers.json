@@ -1363,6 +1363,22 @@
         "stdoutContains": [
           "Parser: ok"
         ]
+      },
+      {
+        "id": "tier3_parse_preprocessing_directive",
+        "family": "preprocessing_directive",
+        "matrixFamily": "PreprocessingDirective family",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/tests/tier3/316_preprocessing_directive.cpp",
+          "--ast-json-out",
+          "{tmpDir}/316_preprocessing_directive.ast.json"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Parser: ok"
+        ]
       }
     ]
   }

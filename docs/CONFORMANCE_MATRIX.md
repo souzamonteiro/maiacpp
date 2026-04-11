@@ -61,7 +61,7 @@ Status legend:
 
 ## G. Preprocessor
 
-- PreprocessingDirective family: missing as true preprocessing pipeline
+- PreprocessingDirective family: done (macros, conditionals, includes)
 
 ## H. Backends
 

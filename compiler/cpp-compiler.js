@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const Parser = require('./cpp-parser');
 const { ParseTreeCollector, printTree } = require('./parse-tree-collector');
+const { CppPreprocessor } = require('./cpp-preprocessor');
 
 class Type {
   constructor(kind, name) {
@@ -2973,7 +2974,12 @@ class Cpp98Compiler {
   }
 
   compile() {
-    const source = fs.readFileSync(this.filePath, 'utf8');
+    let source = fs.readFileSync(this.filePath, 'utf8');
+    
+    // Apply preprocessing pipeline
+    const preprocessor = new CppPreprocessor(path.dirname(this.filePath));
+    source = preprocessor.preprocess(source, this.filePath);
+    
     const analysis = this.analyze(source);
     const transpiler = new CppToCTranspiler(analysis, { filePath: this.filePath, source });
     return transpiler.transpile();
