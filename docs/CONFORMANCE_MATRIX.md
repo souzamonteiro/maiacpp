@@ -55,7 +55,7 @@ Status legend:
 
 - functionDefinition: done
 - ctorInitializer / memInitializerList: done
-- constructor/destructor behavior: partial
+- constructor/destructor behavior: done
 - inheritance and virtual semantics: partial
 - conversion/function operator IDs: partial
 
