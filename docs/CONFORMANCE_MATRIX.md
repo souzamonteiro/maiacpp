@@ -41,7 +41,7 @@ Status legend:
 - unaryExpression full set: partial
 - postfixExpression full set: partial
 - newExpression / deleteExpression: partial
-- throwExpression: partial
+- throwExpression: done
 
 ## E. Statements and Control Flow
 
