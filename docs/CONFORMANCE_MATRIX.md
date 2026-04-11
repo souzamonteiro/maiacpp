@@ -8,7 +8,7 @@ Status legend:
 
 ## A. Translation Unit and Declarations
 
-- translationUnit / translationUnitItem: partial
+- translationUnit / translationUnitItem: done
 - externalDeclaration set: partial
 - declaration / declarationSpecifiers / initDeclaratorList: partial
 - usingDeclaration / usingDirective: done
