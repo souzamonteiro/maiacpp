@@ -24,7 +24,7 @@ Status legend:
 - elaboratedTypeSpecifier: partial
 - declarator family: partial
 - abstractDeclarator family: partial
-- pointer / ptrOperator / cvQualifierSeq: partial
+- pointer / ptrOperator / cvQualifierSeq: done
 
 ## C. Templates
 
