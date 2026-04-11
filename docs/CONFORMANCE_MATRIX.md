@@ -49,7 +49,7 @@ Status legend:
 - if/else / switch: done
 - loops (while/do/for): done
 - jumpStatement full behavior: done
-- tryBlock / handlerSeq / handler: partial
+- tryBlock / handlerSeq / handler: done
 
 ## F. Functions, Classes, and Object Semantics
 
