@@ -3,3 +3,4 @@ node_modules/
 *.dSYM/
 *.o
 *.wasm
+.DS_Store

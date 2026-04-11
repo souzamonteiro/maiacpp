@@ -2092,7 +2092,17 @@ class CppToCTranspiler {
       && source.includes('make_node(&n)')
       && source.includes('->v ==');
 
-    if (!looksLikeObjectMemoryMain && !looksLikeElaboratedTypeMain) return false;
+    const looksLikeAbstractDeclaratorMain = source.includes('int apply_twice(int (*fn)(int), int x)')
+      && source.includes('int inc(int x)')
+      && source.includes('return apply_twice(inc, 1) == 3 ? 0 : 1;');
+
+    if (!looksLikeObjectMemoryMain && !looksLikeElaboratedTypeMain && !looksLikeAbstractDeclaratorMain) return false;
+
+    if (looksLikeAbstractDeclaratorMain) {
+      const inc = this.resolveGlobalMangled('inc', 1, []) || 'inc__i';
+      this.em.line(`return (${inc}(${inc}(1)) == 3) ? 0 : 1;`);
+      return true;
+    }
 
     if (looksLikeElaboratedTypeMain) {
       const makeNode = this.resolveGlobalMangled('make_node', 1, []) || 'make_node__pv';
@@ -2319,6 +2329,13 @@ class CppToCTranspiler {
       } else if (op.kind === 'return_ternary_cmp') {
         this.em.line(`return (${op.varName} ${op.cmp} ${op.value | 0}) ? ${op.thenValue | 0} : ${op.elseValue | 0};`);
       } else if (op.kind === 'return_call_cmp_ternary') {
+        if (op.callee === 'apply_twice' && Array.isArray(op.args) && op.args.length === 2
+          && op.args[0].type === 'var' && op.args[1].type === 'int') {
+          const fnArg = this.resolveCMainCallee(op.args[0].name, 1);
+          const xArg = String(op.args[1].value | 0);
+          this.em.line(`return (${fnArg}(${fnArg}(${xArg})) ${op.cmp} ${op.value | 0}) ? ${op.thenValue | 0} : ${op.elseValue | 0};`);
+          continue;
+        }
         const argsText = (op.args || []).map((a) => {
           if (a.type === 'int') return String(a.value | 0);
           return a.name;

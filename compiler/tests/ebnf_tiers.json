@@ -139,6 +139,36 @@
         "stdoutContains": [
           "[ok] native C++ output matches MaiaCpp pipeline output"
         ]
+      },
+      {
+        "id": "tier1_semantic_compare_abstract_declarator",
+        "family": "abstract_declarator_semantic_equivalence",
+        "matrixFamily": "abstractDeclarator family",
+        "command": [
+          "python3",
+          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "--file",
+          "./compiler/tests/equivalence/407_abstract_declarator.cpp"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] native C++ output matches MaiaCpp pipeline output"
+        ]
+      },
+      {
+        "id": "tier1_semantic_compare_control_flow",
+        "family": "control_flow_semantic_equivalence",
+        "matrixFamily": "full statement lowering",
+        "command": [
+          "python3",
+          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "--file",
+          "./compiler/tests/equivalence/408_control_flow.cpp"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] native C++ output matches MaiaCpp pipeline output"
+        ]
       }
     ],
     "tier2": [
@@ -374,6 +404,23 @@
           "./compiler/tests/assert_no_stub_returns.py",
           "--file",
           "./compiler/tests/equivalence/406_elaborated_type.cpp",
+          "--functions",
+          "main"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] selected emitted C functions have no stub return"
+        ]
+      },
+      {
+        "id": "tier2_no_stub_abstract_declarator_main",
+        "family": "abstract_declarator_no_stub_guard",
+        "matrixFamily": "abstractDeclarator family",
+        "command": [
+          "python3",
+          "./compiler/tests/assert_no_stub_returns.py",
+          "--file",
+          "./compiler/tests/equivalence/407_abstract_declarator.cpp",
           "--functions",
           "main"
         ],
