@@ -23,7 +23,7 @@ Status legend:
 - enumSpecifier / enumeratorList: done
 - elaboratedTypeSpecifier: done
 - declarator family: done
-- abstractDeclarator family: partial
+- abstractDeclarator family: done
 - pointer / ptrOperator / cvQualifierSeq: done
 
 ## C. Templates
