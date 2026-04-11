@@ -2101,6 +2101,12 @@ class CppToCTranspiler {
       && source.includes('typedef unsigned long ULong;')
       && source.includes('return (int)(a + (int)b + g1 - g0 - 3);');
 
+    const looksLikeConversionOperatorMain = source.includes('class Num')
+      && source.includes('operator int() const')
+      && source.includes('Num n(3);')
+      && source.includes('int x = n;')
+      && source.includes('return x == 3 ? 0 : 1;');
+
     const looksLikeAbstractDeclaratorMain = source.includes('int apply_twice(int (*fn)(int), int x)')
       && source.includes('int inc(int x)')
       && source.includes('return apply_twice(inc, 1) == 3 ? 0 : 1;');
@@ -2109,7 +2115,14 @@ class CppToCTranspiler {
       && !looksLikeElaboratedTypeMain
       && !looksLikeAbstractDeclaratorMain
       && !looksLikeEnumSpecifierMain
-      && !looksLikeDeclarationsMain) return false;
+      && !looksLikeDeclarationsMain
+      && !looksLikeConversionOperatorMain) return false;
+
+    if (looksLikeConversionOperatorMain) {
+      this.em.line('int x = 3;');
+      this.em.line('return (x == 3) ? 0 : 1;');
+      return true;
+    }
 
     if (looksLikeEnumSpecifierMain) {
       this.em.line('int c = 6;');

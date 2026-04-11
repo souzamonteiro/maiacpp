@@ -199,6 +199,21 @@
         "stdoutContains": [
           "[ok] native C++ output matches MaiaCpp pipeline output"
         ]
+      },
+      {
+        "id": "tier1_semantic_compare_conversion_operator",
+        "family": "conversion_operator_semantic_equivalence",
+        "matrixFamily": "conversion/function operator IDs",
+        "command": [
+          "python3",
+          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "--file",
+          "./compiler/tests/equivalence/411_conversion_operator_id.cpp"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] native C++ output matches MaiaCpp pipeline output"
+        ]
       }
     ],
     "tier2": [
@@ -485,6 +500,23 @@
           "./compiler/tests/assert_no_stub_returns.py",
           "--file",
           "./compiler/tests/equivalence/410_declarations.cpp",
+          "--functions",
+          "main"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] selected emitted C functions have no stub return"
+        ]
+      },
+      {
+        "id": "tier2_no_stub_conversion_operator_main",
+        "family": "conversion_operator_no_stub_guard",
+        "matrixFamily": "conversion/function operator IDs",
+        "command": [
+          "python3",
+          "./compiler/tests/assert_no_stub_returns.py",
+          "--file",
+          "./compiler/tests/equivalence/411_conversion_operator_id.cpp",
           "--functions",
           "main"
         ],
