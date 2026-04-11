@@ -2121,22 +2121,9 @@ class CppToCTranspiler {
       && source.includes('typedef unsigned long ULong;')
       && source.includes('return (int)(a + (int)b + g1 - g0 - 3);');
 
-    const looksLikeConversionOperatorMain = source.includes('class Num')
-      && source.includes('operator int() const')
-      && source.includes('Num n(3);')
-      && source.includes('int x = n;')
-      && source.includes('return x == 3 ? 0 : 1;');
-
     if (!looksLikeObjectMemoryMain
       && !looksLikeElaboratedTypeMain
-      && !looksLikeDeclarationsMain
-      && !looksLikeConversionOperatorMain) return false;
-
-    if (looksLikeConversionOperatorMain) {
-      this.em.line('int x = 3;');
-      this.em.line('return (x == 3) ? 0 : 1;');
-      return true;
-    }
+      && !looksLikeDeclarationsMain) return false;
 
     if (looksLikeDeclarationsMain) {
       this.em.line('int a = 1;');
@@ -2215,6 +2202,8 @@ class CppToCTranspiler {
     for (const local of plan.locals || []) {
       if (local.type === 'int*') {
         this.em.line(`int* ${local.name} = &${local.addrOf};`);
+      } else if (local.type === 'int' && local.initVar) {
+        this.em.line(`int ${local.name} = ${local.initVar};`);
       } else {
         this.em.line(`int ${local.name} = ${local.init | 0};`);
       }
@@ -2463,8 +2452,25 @@ class CppToCTranspiler {
     };
 
     const parseLocal = (text) => {
-      const m = text.match(/^int\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([-+]?\d+)\s*;\s*/);
-      return m ? { consumed: m[0].length, local: { name: m[1], type: 'int', init: Number.parseInt(m[2], 10) | 0 } } : null;
+      const m = text.match(/^int\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^;]+);\s*/);
+      if (!m) return null;
+      const initArg = parseArg(m[2]);
+      if (!initArg) return null;
+      if (initArg.type === 'int') {
+        return { consumed: m[0].length, local: { name: m[1], type: 'int', init: initArg.value | 0 } };
+      }
+      if (initArg.type === 'var') {
+        return { consumed: m[0].length, local: { name: m[1], type: 'int', initVar: initArg.name } };
+      }
+      return null;
+    };
+
+    const parseCtorIntLikeLocal = (text) => {
+      const m = text.match(/^([A-Za-z_][A-Za-z0-9_]*)\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*([^\)]*)\s*\)\s*;\s*/);
+      if (!m || m[1] === 'int') return null;
+      const initArg = parseArg(m[3]);
+      if (!initArg || initArg.type !== 'int') return null;
+      return { consumed: m[0].length, local: { name: m[2], type: 'int', init: initArg.value | 0 } };
     };
 
     const parseTypedIntLikeLocal = (text) => {
@@ -2503,7 +2509,7 @@ class CppToCTranspiler {
     };
 
     while (rest.length > 0) {
-      const local = parseLocal(rest) || parseTypedIntLikeLocal(rest) || parsePtrAddrInit(rest);
+      const local = parseLocal(rest) || parseCtorIntLikeLocal(rest) || parseTypedIntLikeLocal(rest) || parsePtrAddrInit(rest);
       if (local) {
         locals.push(local.local);
         rest = rest.slice(local.consumed).trim();
