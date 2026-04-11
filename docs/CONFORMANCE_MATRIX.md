@@ -45,7 +45,7 @@ Status legend:
 
 ## E. Statements and Control Flow
 
-- compoundStatement / declarationStatement: partial
+- compoundStatement / declarationStatement: done
 - if/else / switch: done
 - loops (while/do/for): done
 - jumpStatement full behavior: partial
