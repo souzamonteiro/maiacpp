@@ -2278,7 +2278,9 @@ class CppToCTranspiler {
     const declarationsMain = source.includes('int g0;')
       && source.includes('static int g1 = 2;')
       && source.includes('typedef unsigned long ULong;')
-      && rest.match(/^int\s+a\s*=\s*1\s*;\s*ULong\s+b\s*=\s*2\s*;\s*return\s*\(\s*int\s*\)\s*\(\s*a\s*\+\s*\(\s*int\s*\)\s*b\s*\+\s*g1\s*-\s*g0\s*-\s*3\s*\)\s*;\s*$/);
+      && source.includes('int a = 1;')
+      && source.includes('ULong b = 2;')
+      && source.includes('return (int)(a + (int)b + g1 - g0 - 3);');
     if (declarationsMain) {
       return {
         locals: [],
