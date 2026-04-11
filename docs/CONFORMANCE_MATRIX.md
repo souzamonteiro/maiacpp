@@ -80,7 +80,7 @@ Status legend:
 ## I. Runtime Validation
 
 - parser/codegen fixture suite: done for current tracked subset (40/40 fixtures passing)
-- executable behavior conformance suite against C++98 semantics: partial
+- executable behavior conformance suite against C++98 semantics: done
 
 ## J. Mandatory Completion Criteria
 
