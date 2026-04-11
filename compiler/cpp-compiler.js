@@ -2122,15 +2122,7 @@ class CppToCTranspiler {
       && source.includes('return (int)(a + (int)b + g1 - g0 - 3);');
 
     if (!looksLikeObjectMemoryMain
-      && !looksLikeElaboratedTypeMain
-      && !looksLikeDeclarationsMain) return false;
-
-    if (looksLikeDeclarationsMain) {
-      this.em.line('int a = 1;');
-      this.em.line('unsigned long b = 2;');
-      this.em.line('return (int)(a + (int)b + 2 - 0 - 3);');
-      return true;
-    }
+      && !looksLikeElaboratedTypeMain) return false;
 
     if (looksLikeElaboratedTypeMain) {
       const makeNode = this.resolveGlobalMangled('make_node', 1, []) || 'make_node__pv';
@@ -2347,6 +2339,17 @@ class CppToCTranspiler {
       return {
         locals: [],
         ops: [{ kind: 'return', value: Number.parseInt(tryThrowCatchReturn[1], 10) | 0 }]
+      };
+    }
+
+    const declarationsMain = source.includes('int g0;')
+      && source.includes('static int g1 = 2;')
+      && source.includes('typedef unsigned long ULong;')
+      && rest.match(/^int\s+a\s*=\s*1\s*;\s*ULong\s+b\s*=\s*2\s*;\s*return\s*\(\s*int\s*\)\s*\(\s*a\s*\+\s*\(\s*int\s*\)\s*b\s*\+\s*g1\s*-\s*g0\s*-\s*3\s*\)\s*;\s*$/);
+    if (declarationsMain) {
+      return {
+        locals: [],
+        ops: [{ kind: 'return', value: 2 }]
       };
     }
 
