@@ -68,13 +68,13 @@ Status legend:
 ### C backend
 
 - symbol mangling: done
-- global function lowering (simple return/call patterns): partial
+- global function lowering (simple return/call patterns): done
 - full statement lowering: partial
 
 ### MaiaC bridge / runtime.wat integration
 
 - MaiaCpp C emission consumable by MaiaC: partial
-- runtime host integration (printf in Node/browser): partial
+- runtime host integration (printf in Node/browser): done
 - runtime.wat support for non-C-lowerable features: partial
 
 ## I. Runtime Validation
