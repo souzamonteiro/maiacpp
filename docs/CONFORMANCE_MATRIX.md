@@ -56,7 +56,7 @@ Status legend:
 - functionDefinition: done
 - ctorInitializer / memInitializerList: done
 - constructor/destructor behavior: done
-- inheritance and virtual semantics: partial
+- inheritance and virtual semantics: done
 - conversion/function operator IDs: partial
 
 ## G. Preprocessor
