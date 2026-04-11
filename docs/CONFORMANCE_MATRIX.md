@@ -22,7 +22,7 @@ Status legend:
 - classSpecifier / classHead / baseClause: done
 - enumSpecifier / enumeratorList: done
 - elaboratedTypeSpecifier: done
-- declarator family: partial
+- declarator family: done
 - abstractDeclarator family: partial
 - pointer / ptrOperator / cvQualifierSeq: done
 
