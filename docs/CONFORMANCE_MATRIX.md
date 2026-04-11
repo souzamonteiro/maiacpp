@@ -29,7 +29,7 @@ Status legend:
 ## C. Templates
 
 - templateDeclaration: done
-- templateParameterList / typeParameter: partial
+- templateParameterList / typeParameter: done
 - templateId / templateArgumentList: partial
 - explicitInstantiation: partial
 - explicitSpecialization: partial
