@@ -40,7 +40,7 @@ Status legend:
 - castExpression family: partial
 - unaryExpression full set: partial
 - postfixExpression full set: partial
-- newExpression / deleteExpression: partial
+- newExpression / deleteExpression: done
 - throwExpression: done
 
 ## E. Statements and Control Flow
