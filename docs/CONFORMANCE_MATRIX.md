@@ -46,7 +46,7 @@ Status legend:
 ## E. Statements and Control Flow
 
 - compoundStatement / declarationStatement: partial
-- if/else / switch: partial
+- if/else / switch: done
 - loops (while/do/for): partial
 - jumpStatement full behavior: partial
 - tryBlock / handlerSeq / handler: partial
