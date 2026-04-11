@@ -10,7 +10,7 @@ Status legend:
 
 - translationUnit / translationUnitItem: done
 - externalDeclaration set: done
-- declaration / declarationSpecifiers / initDeclaratorList: partial
+- declaration / declarationSpecifiers / initDeclaratorList: done
 - usingDeclaration / usingDirective: done
 - namespaceDefinition / namespaceAliasDefinition: done
 - linkageSpecification: done
