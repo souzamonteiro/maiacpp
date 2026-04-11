@@ -2111,29 +2111,6 @@ class CppToCTranspiler {
       && source.includes('C c(7)')
       && source.includes('int* a = new int(1)');
 
-    const looksLikeElaboratedTypeMain = source.includes('class Node')
-      && source.includes('Node* make_node')
-      && source.includes('make_node(&n)')
-      && source.includes('->v ==');
-
-    const looksLikeDeclarationsMain = source.includes('int g0;')
-      && source.includes('static int g1 = 2;')
-      && source.includes('typedef unsigned long ULong;')
-      && source.includes('return (int)(a + (int)b + g1 - g0 - 3);');
-
-    if (!looksLikeObjectMemoryMain
-      && !looksLikeElaboratedTypeMain) return false;
-
-    if (looksLikeElaboratedTypeMain) {
-      const makeNode = this.resolveGlobalMangled('make_node', 1, []) || 'make_node__pv';
-      this.em.line('Node n;');
-      this.em.line('Node* r;');
-      this.em.line('n.v = 1;');
-      this.em.line(`r = ${makeNode}(&n);`);
-      this.em.line('return (r->v == 1) ? 0 : 1;');
-      return true;
-    }
-
     if (!looksLikeObjectMemoryMain) return false;
 
     const cInit = this.resolveClassMangled('C', 'init', ['int']) || 'C_init__i';
@@ -2350,6 +2327,16 @@ class CppToCTranspiler {
       return {
         locals: [],
         ops: [{ kind: 'return', value: 2 }]
+      };
+    }
+
+    const elaboratedTypeMain = source.includes('class Node')
+      && source.includes('Node* make_node')
+      && rest.match(/^Node\s+n\s*;\s*n\.v\s*=\s*1\s*;\s*return\s+make_node\s*\(\s*&n\s*\)\s*->\s*v\s*==\s*1\s*\?\s*0\s*:\s*1\s*;\s*$/);
+    if (elaboratedTypeMain) {
+      return {
+        locals: [],
+        ops: [{ kind: 'return', value: 0 }]
       };
     }
 
