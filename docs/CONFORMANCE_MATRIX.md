@@ -31,7 +31,7 @@ Status legend:
 - templateDeclaration: done
 - templateParameterList / typeParameter: done
 - templateId / templateArgumentList: done
-- explicitInstantiation: partial
+- explicitInstantiation: done
 - explicitSpecialization: partial
 
 ## D. Expressions
