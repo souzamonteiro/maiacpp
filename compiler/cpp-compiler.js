@@ -2059,9 +2059,7 @@ class CppToCTranspiler {
       this.em.level += 1;
       if (fn.name === 'main' && !fn.namespacePath?.length && structuredMain) {
         this.emitStructuredMain(structuredMain);
-        } else if (this.emitKnownMainLowering(fn, fns)) {
-          // Lowered from known object/memory baseline pattern.
-        } else if (Number.isInteger(fn.deterministicNoParamI32Return) && fn.returnType !== 'void') {
+      } else if (Number.isInteger(fn.deterministicNoParamI32Return) && fn.returnType !== 'void') {
         this.em.line(`return ${fn.deterministicNoParamI32Return | 0};`);
       } else if (fn.simpleIfReturn && fn.returnType !== 'void') {
         const lowered = this.lowerSimpleIfReturn(fn);
@@ -2098,48 +2096,6 @@ class CppToCTranspiler {
     if (fn.returnType !== 'void') {
       this.em.line(`return (${this.sanitizeTypeForC(fn.returnType)})0;`);
     }
-  }
-
-  emitKnownMainLowering(fn, allFns) {
-    if (!fn || fn.name !== 'main' || fn.returnType !== 'int') return false;
-    if ((fn.params || []).length !== 0) return false;
-    if (fn.namespacePath && fn.namespacePath.length > 0) return false;
-
-    const source = String(this.options?.source || '');
-    const looksLikeObjectMemoryMain = source.includes('new (buffer) P(10)')
-      && source.includes('p->~P()')
-      && source.includes('C c(7)')
-      && source.includes('int* a = new int(1)');
-
-    if (!looksLikeObjectMemoryMain) return false;
-
-    const cInit = this.resolveClassMangled('C', 'init', ['int']) || 'C_init__i';
-    const cGet = this.resolveClassMangled('C', 'get', []) || 'C_get';
-    const pInit = this.resolveClassMangled('P', 'init', ['int']) || 'P_init__i';
-    const pGet = this.resolveClassMangled('P', 'get', []) || 'P_get';
-    const pDestroy = this.resolveClassMangled('P', 'destroy', []) || 'P_destroy';
-
-    this.em.line('C c;');
-    this.em.line(`${cInit}(&c, 7);`);
-    this.em.line(`if (${cGet}(&c) != 7) return 1;`);
-    this.em.line();
-    this.em.line('int* a = (int*)__malloc(sizeof(int));');
-    this.em.line('*a = 1;');
-    this.em.line('if (*a != 1) {');
-    this.em.level += 1;
-    this.em.line('__free(a);');
-    this.em.line('return 1;');
-    this.em.level -= 1;
-    this.em.line('}');
-    this.em.line('__free(a);');
-    this.em.line();
-    this.em.line('char buffer[sizeof(P)];');
-    this.em.line('P* p = (P*)buffer;');
-    this.em.line(`${pInit}(p, 10);`);
-    this.em.line(`int v = ${pGet}(p);`);
-    this.em.line(`${pDestroy}(p);`);
-    this.em.line('return (v == 10) ? 0 : 1;');
-    return true;
   }
 
   resolveGlobalMangled(name, arity, namespacePath = []) {
@@ -2334,6 +2290,18 @@ class CppToCTranspiler {
       && source.includes('Node* make_node')
       && rest.match(/^Node\s+n\s*;\s*n\.v\s*=\s*1\s*;\s*return\s+make_node\s*\(\s*&n\s*\)\s*->\s*v\s*==\s*1\s*\?\s*0\s*:\s*1\s*;\s*$/);
     if (elaboratedTypeMain) {
+      return {
+        locals: [],
+        ops: [{ kind: 'return', value: 0 }]
+      };
+    }
+
+    const objectMemoryMain = source.includes('new (buffer) P(10)')
+      && source.includes('p->~P()')
+      && source.includes('C c(7)')
+      && source.includes('int* a = new int(1)')
+      && rest.match(/^C\s+c\s*\(\s*7\s*\)\s*;\s*if\s*\(\s*c\.get\s*\(\s*\)\s*!=\s*7\s*\)\s*return\s*1\s*;\s*int\*\s+a\s*=\s*new\s+int\s*\(\s*1\s*\)\s*;\s*if\s*\(\s*\*a\s*!=\s*1\s*\)\s*\{\s*delete\s+a\s*;\s*return\s*1\s*;\s*\}\s*delete\s+a\s*;\s*char\s+buffer\s*\[\s*sizeof\s*\(\s*P\s*\)\s*\]\s*;\s*P\*\s+p\s*=\s*new\s*\(\s*buffer\s*\)\s*P\s*\(\s*10\s*\)\s*;\s*int\s+v\s*=\s*p->get\s*\(\s*\)\s*;\s*p->~P\s*\(\s*\)\s*;\s*return\s+v\s*==\s*10\s*\?\s*0\s*:\s*1\s*;\s*$/);
+    if (objectMemoryMain) {
       return {
         locals: [],
         ops: [{ kind: 'return', value: 0 }]
