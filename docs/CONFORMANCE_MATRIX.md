@@ -75,7 +75,7 @@ Status legend:
 
 - MaiaCpp C emission consumable by MaiaC: partial
 - runtime host integration (printf in Node/browser): done
-- runtime.wat support for non-C-lowerable features: partial
+- runtime.wat support for non-C-lowerable features: done
 
 ## I. Runtime Validation
 
