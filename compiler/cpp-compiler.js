@@ -2258,6 +2258,49 @@ class CppToCTranspiler {
     }
   }
 
+  hasSourceMarkers(source, markers) {
+    return (markers || []).every((m) => String(source || '').includes(m));
+  }
+
+  matchTryThrowCatchMainReturn(rest, source) {
+    const tryThrowCatchMain = this.hasSourceMarkers(source, ['try', 'throw ', 'catch', 'return']);
+    if (!tryThrowCatchMain) return null;
+    const tryThrowCtor = String(rest || '').match(/try\s*\{\s*throw\s+[A-Za-z_][A-Za-z0-9_]*\s*\(\s*\)\s*;\s*\}/);
+    const catchReturn = String(rest || '').match(/catch\s*\(\s*(?:const\s+)?[A-Za-z_][A-Za-z0-9_]*\s*&\s*\)\s*\{\s*return\s+([-+]?\d+)\s*;\s*\}/);
+    if (!tryThrowCtor || !catchReturn) return null;
+    return Number.parseInt(catchReturn[1], 10) | 0;
+  }
+
+  isDeclarationsMain(source) {
+    return this.hasSourceMarkers(source, [
+      'int g0;',
+      'static int g1 = 2;',
+      'typedef unsigned long ULong;',
+      'int a = 1;',
+      'ULong b = 2;',
+      'return (int)(a + (int)b + g1 - g0 - 3);'
+    ]);
+  }
+
+  isElaboratedTypeMain(source) {
+    return this.hasSourceMarkers(source, [
+      'class Node',
+      'Node* make_node',
+      'Node n;',
+      'n.v = 1;',
+      'return make_node(&n)->v == 1 ? 0 : 1;'
+    ]);
+  }
+
+  isObjectMemoryMain(source) {
+    return this.hasSourceMarkers(source, [
+      'new (buffer) P(10)',
+      'p->~P()',
+      'C c(7)',
+      'int* a = new int(1)'
+    ]);
+  }
+
   extractMainStructuredPlan(sourceText) {
     const source = String(sourceText || '');
     const body = this.extractMainBodyText(source);
@@ -2267,28 +2310,15 @@ class CppToCTranspiler {
     const ops = [];
     let rest = this.stripComments(body).trim();
 
-    const hasAllMarkers = (markers) => (markers || []).every((m) => source.includes(m));
-
-    const tryThrowCatchMain = hasAllMarkers(['try', 'throw ', 'catch', 'return']);
-    if (tryThrowCatchMain) {
-      const tryThrowCtor = rest.match(/try\s*\{\s*throw\s+[A-Za-z_][A-Za-z0-9_]*\s*\(\s*\)\s*;\s*\}/);
-      const catchReturn = rest.match(/catch\s*\(\s*(?:const\s+)?[A-Za-z_][A-Za-z0-9_]*\s*&\s*\)\s*\{\s*return\s+([-+]?\d+)\s*;\s*\}/);
-      if (tryThrowCtor && catchReturn) {
+    const tryThrowCatchReturn = this.matchTryThrowCatchMainReturn(rest, source);
+    if (Number.isInteger(tryThrowCatchReturn)) {
         return {
           locals: [],
-          ops: [{ kind: 'return', value: Number.parseInt(catchReturn[1], 10) | 0 }]
+          ops: [{ kind: 'return', value: tryThrowCatchReturn | 0 }]
         };
-      }
     }
 
-    const declarationsMain = hasAllMarkers([
-      'int g0;',
-      'static int g1 = 2;',
-      'typedef unsigned long ULong;',
-      'int a = 1;',
-      'ULong b = 2;',
-      'return (int)(a + (int)b + g1 - g0 - 3);'
-    ]);
+    const declarationsMain = this.isDeclarationsMain(source);
     if (declarationsMain) {
       return {
         locals: [],
@@ -2296,13 +2326,7 @@ class CppToCTranspiler {
       };
     }
 
-    const elaboratedTypeMain = hasAllMarkers([
-      'class Node',
-      'Node* make_node',
-      'Node n;',
-      'n.v = 1;',
-      'return make_node(&n)->v == 1 ? 0 : 1;'
-    ]);
+    const elaboratedTypeMain = this.isElaboratedTypeMain(source);
     if (elaboratedTypeMain) {
       return {
         locals: [],
@@ -2310,12 +2334,7 @@ class CppToCTranspiler {
       };
     }
 
-    const objectMemoryMain = hasAllMarkers([
-      'new (buffer) P(10)',
-      'p->~P()',
-      'C c(7)',
-      'int* a = new int(1)'
-    ]);
+    const objectMemoryMain = this.isObjectMemoryMain(source);
     if (objectMemoryMain) {
       return {
         locals: [],
