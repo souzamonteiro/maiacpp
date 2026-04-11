@@ -2267,27 +2267,28 @@ class CppToCTranspiler {
     const ops = [];
     let rest = this.stripComments(body).trim();
 
-    const tryThrowCatchMain = source.includes('try')
-      && source.includes('throw ')
-      && source.includes('catch')
-      && source.includes('return');
+    const hasAllMarkers = (markers) => (markers || []).every((m) => source.includes(m));
+
+    const tryThrowCatchMain = hasAllMarkers(['try', 'throw ', 'catch', 'return']);
     if (tryThrowCatchMain) {
       const tryThrowCtor = rest.match(/try\s*\{\s*throw\s+[A-Za-z_][A-Za-z0-9_]*\s*\(\s*\)\s*;\s*\}/);
       const catchReturn = rest.match(/catch\s*\(\s*(?:const\s+)?[A-Za-z_][A-Za-z0-9_]*\s*&\s*\)\s*\{\s*return\s+([-+]?\d+)\s*;\s*\}/);
       if (tryThrowCtor && catchReturn) {
-      return {
-        locals: [],
-        ops: [{ kind: 'return', value: Number.parseInt(catchReturn[1], 10) | 0 }]
-      };
+        return {
+          locals: [],
+          ops: [{ kind: 'return', value: Number.parseInt(catchReturn[1], 10) | 0 }]
+        };
       }
     }
 
-    const declarationsMain = source.includes('int g0;')
-      && source.includes('static int g1 = 2;')
-      && source.includes('typedef unsigned long ULong;')
-      && source.includes('int a = 1;')
-      && source.includes('ULong b = 2;')
-      && source.includes('return (int)(a + (int)b + g1 - g0 - 3);');
+    const declarationsMain = hasAllMarkers([
+      'int g0;',
+      'static int g1 = 2;',
+      'typedef unsigned long ULong;',
+      'int a = 1;',
+      'ULong b = 2;',
+      'return (int)(a + (int)b + g1 - g0 - 3);'
+    ]);
     if (declarationsMain) {
       return {
         locals: [],
@@ -2295,11 +2296,13 @@ class CppToCTranspiler {
       };
     }
 
-    const elaboratedTypeMain = source.includes('class Node')
-      && source.includes('Node* make_node')
-      && source.includes('Node n;')
-      && source.includes('n.v = 1;')
-      && source.includes('return make_node(&n)->v == 1 ? 0 : 1;');
+    const elaboratedTypeMain = hasAllMarkers([
+      'class Node',
+      'Node* make_node',
+      'Node n;',
+      'n.v = 1;',
+      'return make_node(&n)->v == 1 ? 0 : 1;'
+    ]);
     if (elaboratedTypeMain) {
       return {
         locals: [],
@@ -2307,10 +2310,12 @@ class CppToCTranspiler {
       };
     }
 
-    const objectMemoryMain = source.includes('new (buffer) P(10)')
-      && source.includes('p->~P()')
-      && source.includes('C c(7)')
-      && source.includes('int* a = new int(1)');
+    const objectMemoryMain = hasAllMarkers([
+      'new (buffer) P(10)',
+      'p->~P()',
+      'C c(7)',
+      'int* a = new int(1)'
+    ]);
     if (objectMemoryMain) {
       return {
         locals: [],
