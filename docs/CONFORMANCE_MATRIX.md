@@ -20,7 +20,7 @@ Status legend:
 
 - builtinSimpleTypeSpecifier: partial
 - classSpecifier / classHead / baseClause: partial
-- enumSpecifier / enumeratorList: partial
+- enumSpecifier / enumeratorList: done
 - elaboratedTypeSpecifier: done
 - declarator family: partial
 - abstractDeclarator family: partial
