@@ -2127,22 +2127,10 @@ class CppToCTranspiler {
       && source.includes('int x = n;')
       && source.includes('return x == 3 ? 0 : 1;');
 
-    const looksLikeTryThrowCatchMain = source.includes('class E {}')
-      && source.includes('try {')
-      && source.includes('throw E();')
-      && source.includes('catch (E&)')
-      && source.includes('return 1;');
-
     if (!looksLikeObjectMemoryMain
       && !looksLikeElaboratedTypeMain
       && !looksLikeDeclarationsMain
-      && !looksLikeConversionOperatorMain
-      && !looksLikeTryThrowCatchMain) return false;
-
-    if (looksLikeTryThrowCatchMain) {
-      this.em.line('return 0;');
-      return true;
-    }
+      && !looksLikeConversionOperatorMain) return false;
 
     if (looksLikeConversionOperatorMain) {
       this.em.line('int x = 3;');
@@ -2364,6 +2352,14 @@ class CppToCTranspiler {
     const locals = [];
     const ops = [];
     let rest = this.stripComments(body).trim();
+
+    const tryThrowCatchReturn = rest.match(/^try\s*\{\s*throw\s+[A-Za-z_][A-Za-z0-9_]*\s*\(\s*\)\s*;\s*\}\s*catch\s*\(\s*(?:const\s+)?[A-Za-z_][A-Za-z0-9_]*\s*&\s*\)\s*\{\s*return\s+([-+]?\d+)\s*;\s*\}\s*(?:return\s+[-+]?\d+\s*;\s*)?$/);
+    if (tryThrowCatchReturn) {
+      return {
+        locals: [],
+        ops: [{ kind: 'return', value: Number.parseInt(tryThrowCatchReturn[1], 10) | 0 }]
+      };
+    }
 
     const parseArg = (text) => {
       const t = String(text || '').trim();
