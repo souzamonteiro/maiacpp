@@ -253,6 +253,29 @@ function extractNamespaceAliasNames(source) {
   return names;
 }
 
+function extractSimpleEnumValues(source) {
+  const values = new Map();
+  const clean = String(source || '')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/.*$/gm, '');
+  const enumRx = /\benum\s+[A-Za-z_][A-Za-z0-9_]*\s*\{([\s\S]*?)\}\s*;/g;
+  let match;
+
+  while ((match = enumRx.exec(clean)) !== null) {
+    const items = String(match[1] || '').split(',').map((item) => item.trim()).filter(Boolean);
+    let currentValue = -1;
+
+    for (const item of items) {
+      const itemMatch = item.match(/^([A-Za-z_][A-Za-z0-9_]*)(?:\s*=\s*([-+]?\d+))?$/);
+      if (!itemMatch) continue;
+      currentValue = itemMatch[2] != null ? (Number.parseInt(itemMatch[2], 10) | 0) : (currentValue + 1);
+      values.set(itemMatch[1], currentValue);
+    }
+  }
+
+  return values;
+}
+
 function stripNamespaceQualifiers(source, namespaceNames) {
   let out = String(source || '');
   for (const ns of namespaceNames || []) {
@@ -1748,6 +1771,7 @@ class CppToCTranspiler {
     this.options = options;
     this.em = new CEmitter();
     this.ambiguityEvents = [];
+    this.enumValueMap = extractSimpleEnumValues(options.source || '');
     this.knownTypeNames = new Set([
       ...Object.keys(BUILTIN_TYPES),
       ...Array.from((analysis && analysis.classes) ? analysis.classes.keys() : []),
@@ -2092,10 +2116,6 @@ class CppToCTranspiler {
       && source.includes('make_node(&n)')
       && source.includes('->v ==');
 
-    const looksLikeEnumSpecifierMain = source.includes('enum Color')
-      && source.includes('Color c = BLUE;')
-      && source.includes('return c == BLUE ? 0 : 1;');
-
     const looksLikeDeclarationsMain = source.includes('int g0;')
       && source.includes('static int g1 = 2;')
       && source.includes('typedef unsigned long ULong;')
@@ -2115,7 +2135,6 @@ class CppToCTranspiler {
 
     if (!looksLikeObjectMemoryMain
       && !looksLikeElaboratedTypeMain
-      && !looksLikeEnumSpecifierMain
       && !looksLikeDeclarationsMain
       && !looksLikeConversionOperatorMain
       && !looksLikeTryThrowCatchMain) return false;
@@ -2128,12 +2147,6 @@ class CppToCTranspiler {
     if (looksLikeConversionOperatorMain) {
       this.em.line('int x = 3;');
       this.em.line('return (x == 3) ? 0 : 1;');
-      return true;
-    }
-
-    if (looksLikeEnumSpecifierMain) {
-      this.em.line('int c = 6;');
-      this.em.line('return (c == 6) ? 0 : 1;');
       return true;
     }
 
@@ -2292,7 +2305,10 @@ class CppToCTranspiler {
         this.em.level -= 1;
         this.em.line(`} while (${op.varName} < ${op.value | 0});`);
       } else if (op.kind === 'return_ternary_cmp') {
-        this.em.line(`return (${op.varName} ${op.cmp} ${op.value | 0}) ? ${op.thenValue | 0} : ${op.elseValue | 0};`);
+        const rhsText = op.rhs && op.rhs.type === 'int'
+          ? String(op.rhs.value | 0)
+          : (op.rhs && op.rhs.type === 'var' ? op.rhs.name : '0');
+        this.em.line(`return (${op.varName} ${op.cmp} ${rhsText}) ? ${op.thenValue | 0} : ${op.elseValue | 0};`);
       } else if (op.kind === 'return_call_cmp_ternary') {
         if (op.callee === 'apply_twice' && Array.isArray(op.args) && op.args.length === 2
           && op.args[0].type === 'var' && op.args[1].type === 'int') {
@@ -2353,6 +2369,7 @@ class CppToCTranspiler {
       const t = String(text || '').trim();
       if (!t) return null;
       if (/^[-+]?\d+$/.test(t)) return { type: 'int', value: Number.parseInt(t, 10) | 0 };
+      if (this.enumValueMap.has(t)) return { type: 'int', value: this.enumValueMap.get(t) | 0 };
       if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(t)) return { type: 'var', name: t };
       return null;
     };
@@ -2411,15 +2428,17 @@ class CppToCTranspiler {
     };
 
     const parseReturnTernaryCmp = (text) => {
-      const m = text.match(/^return\s+([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=|<=|>=|<|>)\s*([-+]?\d+)\s*\?\s*([-+]?\d+)\s*:\s*([-+]?\d+)\s*;\s*/);
+      const m = text.match(/^return\s+([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=|<=|>=|<|>)\s*([^?]+?)\s*\?\s*([-+]?\d+)\s*:\s*([-+]?\d+)\s*;\s*/);
       if (!m) return null;
+      const rhs = parseArg(m[3]);
+      if (!rhs || (rhs.type !== 'int' && rhs.type !== 'var')) return null;
       return {
         consumed: m[0].length,
         op: {
           kind: 'return_ternary_cmp',
           varName: m[1],
           cmp: m[2],
-          value: Number.parseInt(m[3], 10) | 0,
+          rhs,
           thenValue: Number.parseInt(m[4], 10) | 0,
           elseValue: Number.parseInt(m[5], 10) | 0
         }
@@ -2452,6 +2471,14 @@ class CppToCTranspiler {
       return m ? { consumed: m[0].length, local: { name: m[1], type: 'int', init: Number.parseInt(m[2], 10) | 0 } } : null;
     };
 
+    const parseTypedIntLikeLocal = (text) => {
+      const m = text.match(/^([A-Za-z_][A-Za-z0-9_]*)\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^;]+);\s*/);
+      if (!m || m[1] === 'int') return null;
+      const initArg = parseArg(m[3]);
+      if (!initArg || initArg.type !== 'int') return null;
+      return { consumed: m[0].length, local: { name: m[2], type: 'int', init: initArg.value | 0 } };
+    };
+
     const parsePtrAddrInit = (text) => {
       // const int* p = &var;  or  int* const q = &var;
       const m = text.match(/^(?:const\s+)?int\s*\*\s*(?:const\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*&([A-Za-z_][A-Za-z0-9_]*)\s*;\s*/);
@@ -2480,7 +2507,7 @@ class CppToCTranspiler {
     };
 
     while (rest.length > 0) {
-      const local = parseLocal(rest) || parsePtrAddrInit(rest);
+      const local = parseLocal(rest) || parseTypedIntLikeLocal(rest) || parsePtrAddrInit(rest);
       if (local) {
         locals.push(local.local);
         rest = rest.slice(local.consumed).trim();
