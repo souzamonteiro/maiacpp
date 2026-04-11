@@ -73,7 +73,7 @@ Status legend:
 
 ### MaiaC bridge / runtime.wat integration
 
-- MaiaCpp C emission consumable by MaiaC: partial
+- MaiaCpp C emission consumable by MaiaC: done
 - runtime host integration (printf in Node/browser): done
 - runtime.wat support for non-C-lowerable features: done
 
