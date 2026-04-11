@@ -2301,6 +2301,13 @@ class CppToCTranspiler {
     ]);
   }
 
+  buildStructuredMainReturnPlan(value) {
+    return {
+      locals: [],
+      ops: [{ kind: 'return', value: value | 0 }]
+    };
+  }
+
   extractMainStructuredPlan(sourceText) {
     const source = String(sourceText || '');
     const body = this.extractMainBodyText(source);
@@ -2312,34 +2319,22 @@ class CppToCTranspiler {
 
     const tryThrowCatchReturn = this.matchTryThrowCatchMainReturn(rest, source);
     if (Number.isInteger(tryThrowCatchReturn)) {
-        return {
-          locals: [],
-          ops: [{ kind: 'return', value: tryThrowCatchReturn | 0 }]
-        };
+      return this.buildStructuredMainReturnPlan(tryThrowCatchReturn);
     }
 
     const declarationsMain = this.isDeclarationsMain(source);
     if (declarationsMain) {
-      return {
-        locals: [],
-        ops: [{ kind: 'return', value: 2 }]
-      };
+      return this.buildStructuredMainReturnPlan(2);
     }
 
     const elaboratedTypeMain = this.isElaboratedTypeMain(source);
     if (elaboratedTypeMain) {
-      return {
-        locals: [],
-        ops: [{ kind: 'return', value: 0 }]
-      };
+      return this.buildStructuredMainReturnPlan(0);
     }
 
     const objectMemoryMain = this.isObjectMemoryMain(source);
     if (objectMemoryMain) {
-      return {
-        locals: [],
-        ops: [{ kind: 'return', value: 0 }]
-      };
+      return this.buildStructuredMainReturnPlan(0);
     }
 
     const parseArg = (text) => {
