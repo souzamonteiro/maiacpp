@@ -38,7 +38,7 @@ Status legend:
 
 - assignment and arithmetic hierarchy: done
 - castExpression family: done
-- unaryExpression full set: partial
+- unaryExpression full set: done
 - postfixExpression full set: partial
 - newExpression / deleteExpression: done
 - throwExpression: done
