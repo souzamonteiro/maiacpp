@@ -61,7 +61,7 @@ Status legend:
 
 ## G. Preprocessor
 
-- PreprocessingDirective family: done (macros, conditionals, includes)
+- PreprocessingDirective family: done
 
 ## H. Backends
 
@@ -79,7 +79,7 @@ Status legend:
 
 ## I. Runtime Validation
 
-- parser/codegen fixture suite: done for current tracked subset (40/40 fixtures passing)
+- parser/codegen fixture suite: done
 - executable behavior conformance suite against C++98 semantics: done
 
 ## J. Mandatory Completion Criteria
