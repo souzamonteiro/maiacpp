@@ -244,6 +244,36 @@
         "stdoutContains": [
           "[ok] native C++ output matches MaiaCpp pipeline output"
         ]
+      },
+      {
+        "id": "tier1_semantic_compare_linkage_specification",
+        "family": "linkage_specification_semantic_equivalence",
+        "matrixFamily": "linkageSpecification",
+        "command": [
+          "python3",
+          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "--file",
+          "./compiler/tests/equivalence/414_linkage_specification.cpp"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] native C++ output matches MaiaCpp pipeline output"
+        ]
+      },
+      {
+        "id": "tier1_semantic_compare_asm_definition",
+        "family": "asm_definition_semantic_equivalence",
+        "matrixFamily": "asmDefinition",
+        "command": [
+          "python3",
+          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "--file",
+          "./compiler/tests/equivalence/415_asm_definition.cpp"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] native C++ output matches MaiaCpp pipeline output"
+        ]
       }
     ],
     "tier2": [
@@ -581,6 +611,40 @@
           "./compiler/tests/assert_no_stub_returns.py",
           "--file",
           "./compiler/tests/equivalence/413_throw_expression.cpp",
+          "--functions",
+          "main"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] selected emitted C functions have no stub return"
+        ]
+      },
+      {
+        "id": "tier2_no_stub_linkage_specification_main",
+        "family": "linkage_specification_no_stub_guard",
+        "matrixFamily": "linkageSpecification",
+        "command": [
+          "python3",
+          "./compiler/tests/assert_no_stub_returns.py",
+          "--file",
+          "./compiler/tests/equivalence/414_linkage_specification.cpp",
+          "--functions",
+          "main"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] selected emitted C functions have no stub return"
+        ]
+      },
+      {
+        "id": "tier2_no_stub_asm_definition_main",
+        "family": "asm_definition_no_stub_guard",
+        "matrixFamily": "asmDefinition",
+        "command": [
+          "python3",
+          "./compiler/tests/assert_no_stub_returns.py",
+          "--file",
+          "./compiler/tests/equivalence/415_asm_definition.cpp",
           "--functions",
           "main"
         ],

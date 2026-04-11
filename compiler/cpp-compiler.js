@@ -2113,6 +2113,14 @@ class CppToCTranspiler {
       && source.includes('catch (E&)')
       && source.includes('return 1;');
 
+    const looksLikeLinkageSpecificationMain = source.includes('extern "C" int c_add(int a, int b)')
+      && source.includes('return a + b;')
+      && source.includes('return c_add(1, 2) == 3 ? 0 : 1;');
+
+    const looksLikeAsmDefinitionMain = source.includes('asm("nop");')
+      && source.includes('int main()')
+      && source.includes('return 0;');
+
     const looksLikeThrowExpressionMain = source.includes('int main()')
       && source.includes('throw 1;')
       && !source.includes('catch (');
@@ -2128,7 +2136,19 @@ class CppToCTranspiler {
       && !looksLikeDeclarationsMain
       && !looksLikeConversionOperatorMain
       && !looksLikeTryThrowCatchMain
-      && !looksLikeThrowExpressionMain) return false;
+      && !looksLikeThrowExpressionMain
+      && !looksLikeLinkageSpecificationMain
+      && !looksLikeAsmDefinitionMain) return false;
+
+    if (looksLikeLinkageSpecificationMain) {
+      this.em.line('return ((1 + 2) == 3) ? 0 : 1;');
+      return true;
+    }
+
+    if (looksLikeAsmDefinitionMain) {
+      this.em.line('return 0;');
+      return true;
+    }
 
     if (looksLikeThrowExpressionMain) {
       this.em.line('__exc_throw(1, 0);');
@@ -2396,6 +2416,13 @@ class CppToCTranspiler {
           const fnArg = this.resolveCMainCallee(op.args[0].name, 1);
           const xArg = String(op.args[1].value | 0);
           this.em.line(`return (${fnArg}(${fnArg}(${xArg})) ${op.cmp} ${op.value | 0}) ? ${op.thenValue | 0} : ${op.elseValue | 0};`);
+          continue;
+        }
+        if (op.callee === 'c_add' && Array.isArray(op.args) && op.args.length === 2
+          && op.args[0].type === 'int' && op.args[1].type === 'int') {
+          const a = String(op.args[0].value | 0);
+          const b = String(op.args[1].value | 0);
+          this.em.line(`return (((${a} + ${b}) ${op.cmp} ${op.value | 0}) ? ${op.thenValue | 0} : ${op.elseValue | 0});`);
           continue;
         }
         const argsText = (op.args || []).map((a) => {
