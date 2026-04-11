@@ -2113,23 +2113,12 @@ class CppToCTranspiler {
       && source.includes('catch (E&)')
       && source.includes('return 1;');
 
-    const looksLikeThrowExpressionMain = source.includes('int main()')
-      && source.includes('throw 1;')
-      && !source.includes('catch (');
-
     if (!looksLikeObjectMemoryMain
       && !looksLikeElaboratedTypeMain
       && !looksLikeEnumSpecifierMain
       && !looksLikeDeclarationsMain
       && !looksLikeConversionOperatorMain
-      && !looksLikeTryThrowCatchMain
-      && !looksLikeThrowExpressionMain) return false;
-
-    if (looksLikeThrowExpressionMain) {
-      this.em.line('__exc_throw(1, 0);');
-      this.em.line('return -6;');
-      return true;
-    }
+      && !looksLikeTryThrowCatchMain) return false;
 
     if (looksLikeTryThrowCatchMain) {
       this.em.line('return 0;');
@@ -2242,6 +2231,7 @@ class CppToCTranspiler {
     const last = ops[ops.length - 1];
     return !!last && (
       last.kind === 'return' ||
+      last.kind === 'throw_int' ||
       last.kind === 'return_ternary_cmp' ||
       last.kind === 'return_call_cmp_ternary' ||
       last.kind === 'return_deref_cmp_ternary'
@@ -2343,6 +2333,9 @@ class CppToCTranspiler {
         this.em.line('}');
       } else if (op.kind === 'return') {
         this.em.line(`return ${op.value | 0};`);
+      } else if (op.kind === 'throw_int') {
+        this.em.line(`__exc_throw(${op.value | 0}, 0);`);
+        this.em.line('return -6;');
       }
     }
   }
@@ -2395,6 +2388,10 @@ class CppToCTranspiler {
     const parseReturn = (text) => {
       const m = text.match(/^return\s+([-+]?\d+)\s*;\s*/);
       return m ? { consumed: m[0].length, op: { kind: 'return', value: Number.parseInt(m[1], 10) | 0 } } : null;
+    };
+    const parseThrowInt = (text) => {
+      const m = text.match(/^throw\s+([-+]?\d+)\s*;\s*/);
+      return m ? { consumed: m[0].length, op: { kind: 'throw_int', value: Number.parseInt(m[1], 10) | 0 } } : null;
     };
     const parseReturnDerefCmpTernary = (text) => {
       // return (*p == *q) ? 0 : 1;
@@ -2471,6 +2468,7 @@ class CppToCTranspiler {
           || parseDec(t)
           || parseAddAssignVar(t)
           || parseContinue(t)
+          || parseThrowInt(t)
           || parseReturnCallCmpTernary(t)
           || parseReturnTernaryCmp(t)
           || parseReturn(t);
@@ -2489,7 +2487,7 @@ class CppToCTranspiler {
         continue;
       }
 
-      const p = parseAsmNoop(rest) || parsePrintf(rest) || parseInc(rest) || parseReturn(rest);
+      const p = parseAsmNoop(rest) || parsePrintf(rest) || parseInc(rest) || parseThrowInt(rest) || parseReturn(rest);
       if (p) {
         ops.push(p.op);
         rest = rest.slice(p.consumed).trim();
