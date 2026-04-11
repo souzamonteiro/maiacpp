@@ -69,7 +69,7 @@ Status legend:
 
 - symbol mangling: done
 - global function lowering (simple return/call patterns): done
-- full statement lowering: partial
+- full statement lowering: done
 
 ### MaiaC bridge / runtime.wat integration
 
