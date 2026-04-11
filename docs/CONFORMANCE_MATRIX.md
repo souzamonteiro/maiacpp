@@ -47,7 +47,7 @@ Status legend:
 
 - compoundStatement / declarationStatement: partial
 - if/else / switch: done
-- loops (while/do/for): partial
+- loops (while/do/for): done
 - jumpStatement full behavior: partial
 - tryBlock / handlerSeq / handler: partial
 
