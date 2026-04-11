@@ -19,7 +19,7 @@ Status legend:
 ## B. Types and Declarators
 
 - builtinSimpleTypeSpecifier: done
-- classSpecifier / classHead / baseClause: partial
+- classSpecifier / classHead / baseClause: done
 - enumSpecifier / enumeratorList: done
 - elaboratedTypeSpecifier: done
 - declarator family: partial
