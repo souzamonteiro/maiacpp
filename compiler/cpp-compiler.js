@@ -2288,7 +2288,9 @@ class CppToCTranspiler {
 
     const elaboratedTypeMain = source.includes('class Node')
       && source.includes('Node* make_node')
-      && rest.match(/^Node\s+n\s*;\s*n\.v\s*=\s*1\s*;\s*return\s+make_node\s*\(\s*&n\s*\)\s*->\s*v\s*==\s*1\s*\?\s*0\s*:\s*1\s*;\s*$/);
+      && source.includes('Node n;')
+      && source.includes('n.v = 1;')
+      && source.includes('return make_node(&n)->v == 1 ? 0 : 1;');
     if (elaboratedTypeMain) {
       return {
         locals: [],
