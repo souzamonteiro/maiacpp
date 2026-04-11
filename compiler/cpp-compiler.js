@@ -2478,16 +2478,18 @@ class CppToCTranspiler {
       const out = [];
       let t = String(blockText || '').trim();
       while (t.length > 0) {
-        const p = parseAsmNoop(t)
-          || parsePrintf(t)
-          || parseInc(t)
-          || parseDec(t)
-          || parseAddAssignVar(t)
-          || parseContinue(t)
-          || parseThrowInt(t)
-          || parseReturnCallCmpTernary(t)
-          || parseReturnTernaryCmp(t)
-          || parseReturn(t);
+        const p = parseFirstMatch(t, [
+          parseAsmNoop,
+          parsePrintf,
+          parseInc,
+          parseDec,
+          parseAddAssignVar,
+          parseContinue,
+          parseThrowInt,
+          parseReturnCallCmpTernary,
+          parseReturnTernaryCmp,
+          parseReturn
+        ]);
         if (!p) return null;
         out.push(p.op);
         t = t.slice(p.consumed).trim();
@@ -2495,25 +2497,46 @@ class CppToCTranspiler {
       return out;
     };
 
+    const parseFirstMatch = (text, parsers) => {
+      for (const parse of parsers || []) {
+        const result = parse(text);
+        if (result) return result;
+      }
+      return null;
+    };
+
     while (rest.length > 0) {
-      const local = parseLocal(rest) || parseCtorIntLikeLocal(rest) || parseTypedIntLikeLocal(rest) || parsePtrAddrInit(rest);
+      const local = parseFirstMatch(rest, [
+        parseLocal,
+        parseCtorIntLikeLocal,
+        parseTypedIntLikeLocal,
+        parsePtrAddrInit
+      ]);
       if (local) {
         locals.push(local.local);
         rest = rest.slice(local.consumed).trim();
         continue;
       }
 
-      const p = parseAsmNoop(rest) || parsePrintf(rest) || parseInc(rest) || parseThrowInt(rest) || parseReturn(rest);
+      const p = parseFirstMatch(rest, [
+        parseAsmNoop,
+        parsePrintf,
+        parseInc,
+        parseThrowInt,
+        parseReturn
+      ]);
       if (p) {
         ops.push(p.op);
         rest = rest.slice(p.consumed).trim();
         continue;
       }
-      const pExtended = parseDec(rest)
-        || parseAddAssignVar(rest)
-        || parseReturnDerefCmpTernary(rest)
-        || parseReturnCallCmpTernary(rest)
-        || parseReturnTernaryCmp(rest);
+      const pExtended = parseFirstMatch(rest, [
+        parseDec,
+        parseAddAssignVar,
+        parseReturnDerefCmpTernary,
+        parseReturnCallCmpTernary,
+        parseReturnTernaryCmp
+      ]);
       if (pExtended) {
         ops.push(pExtended.op);
         rest = rest.slice(pExtended.consumed).trim();
