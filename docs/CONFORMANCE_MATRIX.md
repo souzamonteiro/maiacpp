@@ -11,7 +11,7 @@ Status legend:
 - translationUnit / translationUnitItem: partial
 - externalDeclaration set: partial
 - declaration / declarationSpecifiers / initDeclaratorList: partial
-- usingDeclaration / usingDirective: partial
+- usingDeclaration / usingDirective: done
 - namespaceDefinition / namespaceAliasDefinition: partial
 - linkageSpecification: done
 - asmDefinition: partial
