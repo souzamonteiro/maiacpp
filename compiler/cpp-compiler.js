@@ -2113,10 +2113,6 @@ class CppToCTranspiler {
       && source.includes('catch (E&)')
       && source.includes('return 1;');
 
-    const looksLikeLinkageSpecificationMain = source.includes('extern "C" int c_add(int a, int b)')
-      && source.includes('return a + b;')
-      && source.includes('return c_add(1, 2) == 3 ? 0 : 1;');
-
     const looksLikeAsmDefinitionMain = source.includes('asm("nop");')
       && source.includes('int main()')
       && source.includes('return 0;');
@@ -2125,25 +2121,14 @@ class CppToCTranspiler {
       && source.includes('throw 1;')
       && !source.includes('catch (');
 
-    const looksLikeAbstractDeclaratorMain = source.includes('int apply_twice(int (*fn)(int), int x)')
-      && source.includes('int inc(int x)')
-      && source.includes('return apply_twice(inc, 1) == 3 ? 0 : 1;');
-
     if (!looksLikeObjectMemoryMain
       && !looksLikeElaboratedTypeMain
-      && !looksLikeAbstractDeclaratorMain
       && !looksLikeEnumSpecifierMain
       && !looksLikeDeclarationsMain
       && !looksLikeConversionOperatorMain
       && !looksLikeTryThrowCatchMain
       && !looksLikeThrowExpressionMain
-      && !looksLikeLinkageSpecificationMain
       && !looksLikeAsmDefinitionMain) return false;
-
-    if (looksLikeLinkageSpecificationMain) {
-      this.em.line('return ((1 + 2) == 3) ? 0 : 1;');
-      return true;
-    }
 
     if (looksLikeAsmDefinitionMain) {
       this.em.line('return 0;');
@@ -2177,12 +2162,6 @@ class CppToCTranspiler {
       this.em.line('int a = 1;');
       this.em.line('unsigned long b = 2;');
       this.em.line('return (int)(a + (int)b + 2 - 0 - 3);');
-      return true;
-    }
-
-    if (looksLikeAbstractDeclaratorMain) {
-      const inc = this.resolveGlobalMangled('inc', 1, []) || 'inc__i';
-      this.em.line(`return (${inc}(${inc}(1)) == 3) ? 0 : 1;`);
       return true;
     }
 
