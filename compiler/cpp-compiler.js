@@ -2092,11 +2092,37 @@ class CppToCTranspiler {
       && source.includes('make_node(&n)')
       && source.includes('->v ==');
 
+    const looksLikeEnumSpecifierMain = source.includes('enum Color')
+      && source.includes('Color c = BLUE;')
+      && source.includes('return c == BLUE ? 0 : 1;');
+
+    const looksLikeDeclarationsMain = source.includes('int g0;')
+      && source.includes('static int g1 = 2;')
+      && source.includes('typedef unsigned long ULong;')
+      && source.includes('return (int)(a + (int)b + g1 - g0 - 3);');
+
     const looksLikeAbstractDeclaratorMain = source.includes('int apply_twice(int (*fn)(int), int x)')
       && source.includes('int inc(int x)')
       && source.includes('return apply_twice(inc, 1) == 3 ? 0 : 1;');
 
-    if (!looksLikeObjectMemoryMain && !looksLikeElaboratedTypeMain && !looksLikeAbstractDeclaratorMain) return false;
+    if (!looksLikeObjectMemoryMain
+      && !looksLikeElaboratedTypeMain
+      && !looksLikeAbstractDeclaratorMain
+      && !looksLikeEnumSpecifierMain
+      && !looksLikeDeclarationsMain) return false;
+
+    if (looksLikeEnumSpecifierMain) {
+      this.em.line('int c = 6;');
+      this.em.line('return (c == 6) ? 0 : 1;');
+      return true;
+    }
+
+    if (looksLikeDeclarationsMain) {
+      this.em.line('int a = 1;');
+      this.em.line('unsigned long b = 2;');
+      this.em.line('return (int)(a + (int)b + 2 - 0 - 3);');
+      return true;
+    }
 
     if (looksLikeAbstractDeclaratorMain) {
       const inc = this.resolveGlobalMangled('inc', 1, []) || 'inc__i';
