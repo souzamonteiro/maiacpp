@@ -48,7 +48,7 @@ Status legend:
 - compoundStatement / declarationStatement: done
 - if/else / switch: done
 - loops (while/do/for): done
-- jumpStatement full behavior: partial
+- jumpStatement full behavior: done
 - tryBlock / handlerSeq / handler: partial
 
 ## F. Functions, Classes, and Object Semantics
