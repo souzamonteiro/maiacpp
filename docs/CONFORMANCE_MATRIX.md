@@ -13,7 +13,7 @@ Status legend:
 - declaration / declarationSpecifiers / initDeclaratorList: partial
 - usingDeclaration / usingDirective: partial
 - namespaceDefinition / namespaceAliasDefinition: partial
-- linkageSpecification: partial
+- linkageSpecification: done
 - asmDefinition: partial
 
 ## B. Types and Declarators
