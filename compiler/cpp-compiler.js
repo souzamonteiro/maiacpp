@@ -2021,7 +2021,8 @@ class CppToCTranspiler {
       const sigTypes = (fn.params || []).map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
       const paramsText = this.formatParams(fn.params || [], true);
       const mangled = mangle(fn.name, sigTypes, null, fn.namespacePath || []);
-      this.em.line(`${fn.returnType} ${mangled}(${paramsText || 'void'});`);
+      const returnType = this.sanitizeTypeForC(fn.returnType);
+      this.em.line(`${returnType} ${mangled}(${paramsText || 'void'});`);
     }
     this.em.line();
 
@@ -2029,7 +2030,8 @@ class CppToCTranspiler {
       const sigTypes = (fn.params || []).map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
       const paramsText = this.formatParams(fn.params || [], true);
       const mangled = mangle(fn.name, sigTypes, null, fn.namespacePath || []);
-      this.em.line(`${fn.returnType} ${mangled}(${paramsText || 'void'}) {`);
+      const returnType = this.sanitizeTypeForC(fn.returnType);
+      this.em.line(`${returnType} ${mangled}(${paramsText || 'void'}) {`);
       this.em.level += 1;
       if (fn.name === 'main' && !fn.namespacePath?.length && structuredMain) {
         this.emitStructuredMain(structuredMain);
@@ -2072,7 +2074,7 @@ class CppToCTranspiler {
       this.em.line(`(void)${p.name};`);
     }
     if (fn.returnType !== 'void') {
-      this.em.line(`return (${fn.returnType})0;`);
+      this.em.line(`return (${this.sanitizeTypeForC(fn.returnType)})0;`);
     }
   }
 
@@ -2542,7 +2544,7 @@ class CppToCTranspiler {
         consumed: m[0].length,
         op: {
           kind: 'return_call_cmp_ternary',
-          callee: this.resolveCMainCallee(m[1], args.length),
+          callee: this.resolveCMainCallee(m[1], args),
           args,
           cmp: m[3],
           value: Number.parseInt(m[4], 10) | 0,
@@ -2676,8 +2678,18 @@ class CppToCTranspiler {
     return { locals, ops };
   }
 
-  resolveCMainCallee(name, arity) {
+  resolveCMainCallee(name, arityOrArgs) {
     const list = Array.isArray(this.analysis?.functions) ? this.analysis.functions : [];
+    const callArgs = Array.isArray(arityOrArgs) ? arityOrArgs : null;
+    const arity = Array.isArray(arityOrArgs) ? arityOrArgs.length : (arityOrArgs | 0);
+    const isAllIntArgs = Array.isArray(callArgs) && callArgs.length === arity && callArgs.every((a) => a && a.type === 'int');
+
+    const isExactIntSig = (f) => {
+      const params = Array.isArray(f?.params) ? f.params : [];
+      if (params.length !== arity) return false;
+      return params.every((p) => normalizeTypeText(p?.type || '') === 'int');
+    };
+
     // Handle qualified names like NS::func or A::B::func
     const parts = String(name || '').split('::').filter(Boolean);
     const baseName = parts[parts.length - 1];
@@ -2685,16 +2697,31 @@ class CppToCTranspiler {
     let fn;
     if (nsPath.length > 0) {
       // Qualified: try matching exact namespace path, then fall back to any namespace
-      fn = list.find((f) => f.name === baseName && (f.params || []).length === arity
+      if (isAllIntArgs) {
+        fn = list.find((f) => f.name === baseName && isExactIntSig(f)
+          && JSON.stringify(f.namespacePath || []) === JSON.stringify(nsPath));
+      }
+      if (!fn) {
+        fn = list.find((f) => f.name === baseName && (f.params || []).length === arity
         && JSON.stringify(f.namespacePath || []) === JSON.stringify(nsPath));
+      }
+      if (!fn && isAllIntArgs) {
+        fn = list.find((f) => f.name === baseName && isExactIntSig(f));
+      }
       if (!fn) fn = list.find((f) => f.name === baseName && (f.params || []).length === arity);
     } else {
       // Unqualified: prefer global scope, then fall back to any namespace (for using namespace)
-      fn = list.find((f) => f.name === baseName && (f.params || []).length === arity && (f.namespacePath || []).length === 0)
-        || list.find((f) => f.name === baseName && (f.params || []).length === arity);
+      if (isAllIntArgs) {
+        fn = list.find((f) => f.name === baseName && isExactIntSig(f) && (f.namespacePath || []).length === 0)
+          || list.find((f) => f.name === baseName && isExactIntSig(f));
+      }
+      if (!fn) {
+        fn = list.find((f) => f.name === baseName && (f.params || []).length === arity && (f.namespacePath || []).length === 0)
+          || list.find((f) => f.name === baseName && (f.params || []).length === arity);
+      }
     }
     if (!fn) return baseName;
-    const sigTypes = (fn.params || []).map((p) => ({ kind: 'int', name: p.type }));
+    const sigTypes = (fn.params || []).map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
     return mangle(fn.name, sigTypes, null, fn.namespacePath || []);
   }
 

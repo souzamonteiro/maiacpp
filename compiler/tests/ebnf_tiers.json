@@ -325,6 +325,36 @@
         "stdoutContains": [
           "[ok] native C++ output matches MaiaCpp pipeline output"
         ]
+      },
+      {
+        "id": "tier1_semantic_compare_explicit_instantiation",
+        "family": "explicit_instantiation_semantic_equivalence",
+        "matrixFamily": "explicitInstantiation",
+        "command": [
+          "python3",
+          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "--file",
+          "./compiler/tests/equivalence/416_explicit_instantiation.cpp"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] native C++ output matches MaiaCpp pipeline output"
+        ]
+      },
+      {
+        "id": "tier1_semantic_compare_explicit_specialization",
+        "family": "explicit_specialization_semantic_equivalence",
+        "matrixFamily": "explicitSpecialization",
+        "command": [
+          "python3",
+          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "--file",
+          "./compiler/tests/equivalence/417_explicit_specialization.cpp"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] native C++ output matches MaiaCpp pipeline output"
+        ]
       }
     ],
     "tier2": [
@@ -696,6 +726,40 @@
           "./compiler/tests/assert_no_stub_returns.py",
           "--file",
           "./compiler/tests/equivalence/415_asm_definition.cpp",
+          "--functions",
+          "main"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] selected emitted C functions have no stub return"
+        ]
+      },
+      {
+        "id": "tier2_no_stub_explicit_instantiation_main",
+        "family": "explicit_instantiation_no_stub_guard",
+        "matrixFamily": "explicitInstantiation",
+        "command": [
+          "python3",
+          "./compiler/tests/assert_no_stub_returns.py",
+          "--file",
+          "./compiler/tests/equivalence/416_explicit_instantiation.cpp",
+          "--functions",
+          "main"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] selected emitted C functions have no stub return"
+        ]
+      },
+      {
+        "id": "tier2_no_stub_explicit_specialization_main",
+        "family": "explicit_specialization_no_stub_guard",
+        "matrixFamily": "explicitSpecialization",
+        "command": [
+          "python3",
+          "./compiler/tests/assert_no_stub_returns.py",
+          "--file",
+          "./compiler/tests/equivalence/417_explicit_specialization.cpp",
           "--functions",
           "main"
         ],
