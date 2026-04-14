@@ -1830,6 +1830,50 @@ class CppToCTranspiler {
     this.em.line('extern void*  __malloc(unsigned long size);');
     this.em.line('extern void   __free(void* ptr);');
     this.em.line();
+    this.emitHostImportDecls(this.options.source || '');
+  }
+
+  /**
+   * Scan the C++ source for forward-declarations of host import functions
+   * (names starting with __  but not the built-in __exc_/__malloc/__free family)
+   * and emit them as C extern declarations so MaiaC can generate WAT imports.
+   */
+  emitHostImportDecls(sourceText) {
+    const clean = String(sourceText || '')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/[^\n]*/g, '');
+
+    const seen = new Set();
+    // Skip names that are already in the hard-coded prelude above.
+    const PRELUDE = new Set(['__exc_push','__exc_pop','__exc_active','__exc_type',
+      '__exc_data','__exc_throw','__exc_clear','__exc_matches','__malloc','__free']);
+
+    // Collect text from both top-level and from inside extern "C" { ... } blocks.
+    let allText = clean;
+    const externCRx = /extern\s+"C"\s*\{([^}]*)\}/gs;
+    let em;
+    while ((em = externCRx.exec(clean)) !== null) {
+      allText += '\n' + em[1];
+    }
+
+    // Match: returnType __funcName(params);
+    const declRx = /\b([A-Za-z_][A-Za-z0-9_\s*]*?)\s+(__[A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*;/g;
+    const lines = [];
+    let m;
+    while ((m = declRx.exec(allText)) !== null) {
+      const retType = m[1].trim().replace(/\s+/g, ' ');
+      const funcName = m[2];
+      const params = (m[3] || '').trim();
+      if (seen.has(funcName) || PRELUDE.has(funcName)) continue;
+      seen.add(funcName);
+      lines.push(`extern ${retType} ${funcName}(${params || 'void'});`);
+    }
+
+    if (lines.length > 0) {
+      this.em.line('/* Host import declarations */');
+      for (const l of lines) this.em.line(l);
+      this.em.line();
+    }
   }
 
   emitSourceTypedefs() {
@@ -2130,6 +2174,12 @@ class CppToCTranspiler {
         this.em.line(`int* ${local.name} = &${local.addrOf};`);
       } else if (local.type === 'int' && local.initVar) {
         this.em.line(`int ${local.name} = ${local.initVar};`);
+      } else if (local.type === 'double') {
+        if (local.initCall) {
+          this.em.line(`double ${local.name} = ${local.initCall}(${local.initCallArgs});`);
+        } else {
+          this.em.line(`double ${local.name} = ${local.init || 0};`);
+        }
       } else {
         this.em.line(`int ${local.name} = ${local.init | 0};`);
       }
@@ -2250,6 +2300,8 @@ class CppToCTranspiler {
         this.emitStructuredMainOps(op.thenOps || []);
         this.em.level -= 1;
         this.em.line('}');
+      } else if (op.kind === 'void_call') {
+        this.em.line(`${op.callee}(${op.rawArgs});`);
       } else if (op.kind === 'return') {
         this.em.line(`return ${op.value | 0};`);
       } else if (op.kind === 'throw_int') {
@@ -2356,6 +2408,24 @@ class CppToCTranspiler {
       const m = text.match(/^printf\s*\(\s*"((?:\\.|[^"\\])*)"\s*(?:,\s*([^\)]+))?\)\s*;\s*/);
       if (!m) return null;
       return { consumed: m[0].length, op: { kind: 'printf', fmtRaw: m[1] || '', arg: parseArg(m[2] || '') } };
+    };
+
+    // Generic void function-call statement: name(rawArgs);
+    // Handles string literals and one level of nested parens in the arg list.
+    const parseVoidCall = (text) => {
+      const m = text.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*\(((?:[^")(]|"(?:\\.|[^"\\])*"|\([^)]*\))*)\)\s*;\s*/);
+      if (!m) return null;
+      const name = m[1];
+      // Let the dedicated parsers handle these.
+      if (['if','for','while','do','switch','return','printf'].includes(name)) return null;
+      return { consumed: m[0].length, op: { kind: 'void_call', callee: name, rawArgs: (m[2] || '').trim() } };
+    };
+
+    // double local: double x = expr;
+    const parseLocalDouble = (text) => {
+      const m = text.match(/^double\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([A-Za-z_][A-Za-z0-9_]*)\s*\(((?:[^")(]|"(?:\\.|[^"\\])*"|\([^)]*\))*)\)\s*;\s*/);
+      if (!m) return null;
+      return { consumed: m[0].length, local: { name: m[1], type: 'double', initCall: m[2], initCallArgs: (m[3] || '').trim() } };
     };
 
     const parseInc = (text) => {
@@ -2509,6 +2579,7 @@ class CppToCTranspiler {
     while (rest.length > 0) {
       const local = parseFirstMatch(rest, [
         parseLocal,
+        parseLocalDouble,
         parseCtorIntLikeLocal,
         parseTypedIntLikeLocal,
         parsePtrAddrInit
@@ -2524,6 +2595,7 @@ class CppToCTranspiler {
         parsePrintf,
         parseInc,
         parseThrowInt,
+        parseVoidCall,
         parseReturn
       ]);
       if (p) {
