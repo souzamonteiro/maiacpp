@@ -27,10 +27,11 @@ MAIAC_COMPILER_JS="$(resolve_repo_tool "$REPO_ROOT/maiac/compiler/c-compiler.js"
 
 usage() {
 	cat <<'EOF'
-Usage: webcpp.sh --file input.cpp [options]
+Usage: webcpp.sh <input.cpp> [options]
+   or: webcpp.sh --file <input.cpp> [options]
 
 Options:
-	--file FILE            Input C++ source file.
+	--file FILE            Input C++ source file (legacy form).
 	--ast-show             Print AST tree to stdout.
 	--ast-xml-out FILE     Write AST as XML.
 	--ast-json-out FILE    Write AST as JSON.
@@ -42,8 +43,8 @@ Options:
 	-h, --help             Show this help.
 
 Examples:
-	webcpp.sh --file ./compiler/test.cpp --ast-show
-	webcpp.sh --file ./compiler/test.cpp --c-out ./out/test.c
+	webcpp.sh ./compiler/test.cpp --ast-show
+	webcpp.sh ./compiler/test.cpp --c-out ./out/test.c
 	webcpp.sh --file ./compiler/test.cpp --all --out-dir ./out
 
 Notes:
@@ -69,6 +70,10 @@ ALL_OUTPUTS=0
 
 while [[ $# -gt 0 ]]; do
 	case "$1" in
+		--)
+			shift
+			break
+			;;
 		--file)
 			[[ $# -ge 2 ]] || err "missing value for --file"
 			INPUT_FILE="$2"
@@ -116,15 +121,31 @@ while [[ $# -gt 0 ]]; do
 			usage
 			exit 0
 			;;
-		*)
+		-*)
 			err "unknown option: $1"
+			;;
+		*)
+			if [[ -z "$INPUT_FILE" ]]; then
+				INPUT_FILE="$1"
+				shift
+			else
+				err "unexpected positional argument: $1"
+			fi
 			;;
 	esac
 done
 
+if [[ $# -gt 0 ]]; then
+	if [[ -z "$INPUT_FILE" ]]; then
+		INPUT_FILE="$1"
+		shift
+	fi
+	[[ $# -eq 0 ]] || err "unexpected extra arguments: $*"
+fi
+
 [[ -n "$INPUT_FILE" ]] || {
 	usage
-	err "--file is required"
+	err "input file is required"
 }
 
 [[ -f "$COMPILER_JS" ]] || err "compiler not found: $COMPILER_JS"
