@@ -44,6 +44,6 @@ size_t strlen(const char* s);
 
 } // namespace std
 
-#define NULL /* implementation-defined */
+#define NULL 0 /* implementation-defined (WASM/MaiaC profile) */
 
 #endif

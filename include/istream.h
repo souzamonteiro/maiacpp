@@ -4,6 +4,7 @@
 #define _ISTREAM_
 
 #include <ios>
+#include <ostream>
 
 namespace std {
 

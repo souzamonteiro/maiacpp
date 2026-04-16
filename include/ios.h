@@ -8,52 +8,52 @@
 
 namespace std {
 
-typedef OFF_T streamoff;
-typedef SZ_T streamsize;
+typedef long streamoff;   /* implementation-defined (provisional WASM/MaiaC profile) */
+typedef long streamsize;  /* implementation-defined (provisional WASM/MaiaC profile) */
 
 template <class stateT> class fpos;
 
 class ios_base {
 public:
     class failure;
-    typedef T1 fmtflags;
-    static const fmtflags boolalpha;
-    static const fmtflags dec;
-    static const fmtflags fixed;
-    static const fmtflags hex;
-    static const fmtflags internal;
-    static const fmtflags left;
-    static const fmtflags oct;
-    static const fmtflags right;
-    static const fmtflags scientific;
-    static const fmtflags showbase;
-    static const fmtflags showpoint;
-    static const fmtflags showpos;
-    static const fmtflags skipws;
-    static const fmtflags unitbuf;
-    static const fmtflags uppercase;
-    static const fmtflags adjustfield;
-    static const fmtflags basefield;
-    static const fmtflags floatfield;
+    typedef int fmtflags;
+    static const fmtflags boolalpha  = 1 << 0;
+    static const fmtflags dec        = 1 << 1;
+    static const fmtflags fixed      = 1 << 2;
+    static const fmtflags hex        = 1 << 3;
+    static const fmtflags internal   = 1 << 4;
+    static const fmtflags left       = 1 << 5;
+    static const fmtflags oct        = 1 << 6;
+    static const fmtflags right      = 1 << 7;
+    static const fmtflags scientific = 1 << 8;
+    static const fmtflags showbase   = 1 << 9;
+    static const fmtflags showpoint  = 1 << 10;
+    static const fmtflags showpos    = 1 << 11;
+    static const fmtflags skipws     = 1 << 12;
+    static const fmtflags unitbuf    = 1 << 13;
+    static const fmtflags uppercase  = 1 << 14;
+    static const fmtflags adjustfield = left | right | internal;
+    static const fmtflags basefield   = dec | oct | hex;
+    static const fmtflags floatfield  = scientific | fixed;
 
-    typedef T2 iostate;
-    static const iostate badbit;
-    static const iostate eofbit;
-    static const iostate failbit;
-    static const iostate goodbit;
+    typedef int iostate;
+    static const iostate badbit  = 1 << 0;
+    static const iostate eofbit  = 1 << 1;
+    static const iostate failbit = 1 << 2;
+    static const iostate goodbit = 0;
 
-    typedef T3 openmode;
-    static const openmode app;
-    static const openmode ate;
-    static const openmode binary;
-    static const openmode in;
-    static const openmode out;
-    static const openmode trunc;
+    typedef int openmode;
+    static const openmode app    = 1 << 0;
+    static const openmode ate    = 1 << 1;
+    static const openmode binary = 1 << 2;
+    static const openmode in     = 1 << 3;
+    static const openmode out    = 1 << 4;
+    static const openmode trunc  = 1 << 5;
 
-    typedef T4 seekdir;
-    static const seekdir beg;
-    static const seekdir cur;
-    static const seekdir end;
+    typedef int seekdir;
+    static const seekdir beg = 0;
+    static const seekdir cur = 1;
+    static const seekdir end = 2;
 
     class Init;
 

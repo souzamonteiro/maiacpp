@@ -3,11 +3,13 @@
 #ifndef _CSTDLIB_
 #define _CSTDLIB_
 
+#include <cstddef>
+
 namespace std {
 
-typedef /* implementation-defined */ div_t;
-typedef /* implementation-defined */ ldiv_t;
-typedef /* implementation-defined */ size_t;
+typedef struct { int quot; int rem; } div_t;
+typedef struct { long quot; long rem; } ldiv_t;
+typedef unsigned int size_t;
 
 // String conversion
 double atof(const char* nptr);
@@ -55,10 +57,10 @@ size_t wcstombs(char* s, const wchar_t* pwcs, size_t n);
 
 } // namespace std
 
-#define EXIT_FAILURE /* implementation-defined */
-#define EXIT_SUCCESS /* implementation-defined */
-#define MB_CUR_MAX   /* implementation-defined */
-#define NULL         /* implementation-defined */
-#define RAND_MAX     /* implementation-defined */
+#define EXIT_FAILURE 1     /* implementation-defined (WASM/MaiaC profile) */
+#define EXIT_SUCCESS 0     /* implementation-defined (WASM/MaiaC profile) */
+#define MB_CUR_MAX   1     /* implementation-defined (WASM/MaiaC profile) */
+#define NULL         0     /* implementation-defined (WASM/MaiaC profile) */
+#define RAND_MAX     32767 /* implementation-defined (WASM/MaiaC profile) */
 
 #endif

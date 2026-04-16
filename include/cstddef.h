@@ -5,12 +5,12 @@
 
 namespace std {
 
-typedef /* implementation-defined */ ptrdiff_t;
-typedef /* implementation-defined */ size_t;
+typedef int ptrdiff_t;
+typedef unsigned int size_t;
 
 } // namespace std
 
-#define NULL      /* implementation-defined C++ null pointer constant */
-#define offsetof(type, member) /* implementation-defined */
+#define NULL 0 /* implementation-defined C++ null pointer constant (WASM/MaiaC profile) */
+#define offsetof(type, member) ((std::size_t)&((type*)0)->member) /* implementation-defined (WASM/MaiaC profile) */
 
 #endif

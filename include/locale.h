@@ -135,7 +135,7 @@ public:
     char narrow(char c, char dfault) const;
     const char* narrow(const char* low, const char* high, char dfault, char* to) const;
     static locale::id id;
-    static const size_t table_size = implementation_defined;
+    static const size_t table_size = 256; // implementation-defined (provisional WASM/MaiaC profile)
 protected:
     const mask* table() const throw();
     static const mask* classic_table() throw();

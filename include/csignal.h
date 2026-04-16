@@ -5,21 +5,21 @@
 
 namespace std {
 
-typedef /* implementation-defined */ sig_atomic_t;
+typedef int sig_atomic_t;
 
 void (*signal(int sig, void (*handler)(int)))(int);
 int raise(int sig);
 
 } // namespace std
 
-#define SIG_DFL /* implementation-defined */
-#define SIG_ERR /* implementation-defined */
-#define SIG_IGN /* implementation-defined */
-#define SIGABRT /* implementation-defined */
-#define SIGFPE  /* implementation-defined */
-#define SIGILL  /* implementation-defined */
-#define SIGINT  /* implementation-defined */
-#define SIGSEGV /* implementation-defined */
-#define SIGTERM /* implementation-defined */
+#define SIG_DFL ((void (*)(int))0)  /* implementation-defined (WASM/MaiaC profile) */
+#define SIG_ERR ((void (*)(int))-1) /* implementation-defined (WASM/MaiaC profile) */
+#define SIG_IGN ((void (*)(int))1)  /* implementation-defined (WASM/MaiaC profile) */
+#define SIGABRT 1                   /* implementation-defined (WASM/MaiaC profile) */
+#define SIGFPE  2                   /* implementation-defined (WASM/MaiaC profile) */
+#define SIGILL  3                   /* implementation-defined (WASM/MaiaC profile) */
+#define SIGINT  4                   /* implementation-defined (WASM/MaiaC profile) */
+#define SIGSEGV 5                   /* implementation-defined (WASM/MaiaC profile) */
+#define SIGTERM 6                   /* implementation-defined (WASM/MaiaC profile) */
 
 #endif

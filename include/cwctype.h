@@ -3,10 +3,12 @@
 #ifndef _CWCTYPE_
 #define _CWCTYPE_
 
+#include <cwchar>
+
 namespace std {
 
-typedef /* implementation-defined */ wctrans_t;
-typedef /* implementation-defined */ wctype_t;
+typedef int wctrans_t; /* implementation-defined (provisional until wide-char library is implemented) */
+typedef int wctype_t;  /* implementation-defined (provisional until wide-char library is implemented) */
 
 int iswalnum(wint_t wc);
 int iswalpha(wint_t wc);
@@ -29,6 +31,6 @@ wctrans_t wctrans(const char* property);
 
 } // namespace std
 
-#define WEOF /* implementation-defined */
+#define WEOF (-1) /* implementation-defined (WASM/MaiaC profile) */
 
 #endif

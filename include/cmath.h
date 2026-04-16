@@ -82,6 +82,6 @@ long double tanh(long double x);
 
 } // namespace std
 
-#define HUGE_VAL /* implementation-defined */
+#define HUGE_VAL 1e37 /* implementation-defined (WASM/MaiaC profile) */
 
 #endif

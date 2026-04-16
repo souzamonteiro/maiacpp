@@ -3,10 +3,12 @@
 #ifndef _CTIME_
 #define _CTIME_
 
+#include <cstddef>
+
 namespace std {
 
-typedef /* implementation-defined */ clock_t;
-typedef /* implementation-defined */ time_t;
+typedef long clock_t;
+typedef long time_t;
 
 struct tm {
     int tm_sec;
@@ -32,7 +34,7 @@ size_t strftime(char* s, size_t maxsize, const char* format, const struct tm* ti
 
 } // namespace std
 
-#define CLOCKS_PER_SEC /* implementation-defined */
-#define NULL           /* implementation-defined */
+#define CLOCKS_PER_SEC 1000000 /* implementation-defined (WASM/MaiaC profile) */
+#define NULL           0       /* implementation-defined (WASM/MaiaC profile) */
 
 #endif

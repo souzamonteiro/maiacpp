@@ -3,10 +3,14 @@
 #ifndef _CWCHAR_
 #define _CWCHAR_
 
+#include <cstddef>
+#include <cstdarg>
+#include <cstdio>
+
 namespace std {
 
-typedef /* implementation-defined */ mbstate_t;
-typedef /* implementation-defined */ wint_t;
+typedef int mbstate_t; /* implementation-defined (provisional until wide-char library is implemented) */
+typedef int wint_t;    /* implementation-defined (WASM/MaiaC profile) */
 
 // Wide character input/output
 int btowc(int c);
@@ -73,9 +77,9 @@ wchar_t* wmemset(wchar_t* s, wchar_t c, size_t n);
 
 } // namespace std
 
-#define NULL     /* implementation-defined */
-#define WCHAR_MAX /* implementation-defined */
-#define WCHAR_MIN /* implementation-defined */
-#define WEOF     /* implementation-defined */
+#define NULL      0           /* implementation-defined (WASM/MaiaC profile) */
+#define WCHAR_MAX 2147483647  /* implementation-defined (provisional until wchar model is finalized) */
+#define WCHAR_MIN (-2147483647 - 1) /* implementation-defined (provisional until wchar model is finalized) */
+#define WEOF      (-1)        /* implementation-defined (WASM/MaiaC profile) */
 
 #endif

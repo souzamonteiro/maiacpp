@@ -32,12 +32,12 @@ struct lconv* localeconv();
 
 } // namespace std
 
-#define LC_ALL      /* implementation-defined */
-#define LC_COLLATE  /* implementation-defined */
-#define LC_CTYPE    /* implementation-defined */
-#define LC_MONETARY /* implementation-defined */
-#define LC_NUMERIC  /* implementation-defined */
-#define LC_TIME     /* implementation-defined */
-#define NULL        /* implementation-defined */
+#define LC_ALL      0 /* implementation-defined (WASM/MaiaC profile) */
+#define LC_COLLATE  1 /* implementation-defined (WASM/MaiaC profile) */
+#define LC_CTYPE    2 /* implementation-defined (WASM/MaiaC profile) */
+#define LC_MONETARY 3 /* implementation-defined (WASM/MaiaC profile) */
+#define LC_NUMERIC  4 /* implementation-defined (WASM/MaiaC profile) */
+#define LC_TIME     5 /* implementation-defined (WASM/MaiaC profile) */
+#define NULL        0 /* implementation-defined (WASM/MaiaC profile) */
 
 #endif

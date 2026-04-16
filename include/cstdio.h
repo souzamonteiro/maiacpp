@@ -3,10 +3,13 @@
 #ifndef _CSTDIO_
 #define _CSTDIO_
 
+#include <cstddef>
+#include <cstdarg>
+
 namespace std {
 
-typedef /* implementation-defined */ FILE;
-typedef /* implementation-defined */ fpos_t;
+struct FILE;
+typedef long fpos_t;
 
 // File operations
 FILE* fopen(const char* filename, const char* mode);
@@ -62,23 +65,27 @@ int rename(const char* old, const char* new);
 FILE* tmpfile(void);
 char* tmpnam(char* s);
 
+extern FILE* stdin;
+extern FILE* stdout;
+extern FILE* stderr;
+
 } // namespace std
 
-#define BUFSIZ      /* implementation-defined */
-#define EOF         /* implementation-defined */
-#define FILENAME_MAX /* implementation-defined */
-#define FOPEN_MAX   /* implementation-defined */
-#define L_tmpnam    /* implementation-defined */
-#define NULL        /* implementation-defined */
-#define SEEK_CUR    /* implementation-defined */
-#define SEEK_END    /* implementation-defined */
-#define SEEK_SET    /* implementation-defined */
-#define TMP_MAX     /* implementation-defined */
-#define _IOFBF      /* implementation-defined */
-#define _IOLBF      /* implementation-defined */
-#define _IONBF      /* implementation-defined */
-#define stderr      /* implementation-defined */
-#define stdin       /* implementation-defined */
-#define stdout      /* implementation-defined */
+#define BUFSIZ       1024          /* implementation-defined (WASM/MaiaC profile) */
+#define EOF          (-1)          /* implementation-defined (WASM/MaiaC profile) */
+#define FILENAME_MAX 255           /* implementation-defined (WASM/MaiaC profile) */
+#define FOPEN_MAX    20            /* implementation-defined (WASM/MaiaC profile) */
+#define L_tmpnam     255           /* implementation-defined (WASM/MaiaC profile) */
+#define NULL         0             /* implementation-defined (WASM/MaiaC profile) */
+#define SEEK_CUR     1             /* implementation-defined (WASM/MaiaC profile) */
+#define SEEK_END     2             /* implementation-defined (WASM/MaiaC profile) */
+#define SEEK_SET     0             /* implementation-defined (WASM/MaiaC profile) */
+#define TMP_MAX      25            /* implementation-defined (WASM/MaiaC profile) */
+#define _IOFBF       0             /* implementation-defined (WASM/MaiaC profile) */
+#define _IOLBF       1             /* implementation-defined (WASM/MaiaC profile) */
+#define _IONBF       2             /* implementation-defined (WASM/MaiaC profile) */
+#define stderr       (::std::stderr) /* implementation-defined (WASM/MaiaC profile) */
+#define stdin        (::std::stdin)  /* implementation-defined (WASM/MaiaC profile) */
+#define stdout       (::std::stdout) /* implementation-defined (WASM/MaiaC profile) */
 
 #endif

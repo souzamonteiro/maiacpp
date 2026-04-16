@@ -5,12 +5,14 @@
 
 namespace std {
 
-typedef /* implementation-defined */ jmp_buf;
+typedef int jmp_buf[16];
+
+int setjmp(jmp_buf env);
 
 void longjmp(jmp_buf env, int val);
 
 } // namespace std
 
-#define setjmp(env) /* implementation-defined */
+#define setjmp(env) std::setjmp(env) /* implementation-defined (WASM/MaiaC profile) */
 
 #endif

@@ -3,8 +3,12 @@
 #ifndef _CERRNO_
 #define _CERRNO_
 
-#define errno   /* implementation-defined */
-#define EDOM    /* implementation-defined */
-#define ERANGE  /* implementation-defined */
+namespace std {
+extern int errno;
+} // namespace std
+
+#define errno  (::std::errno) /* implementation-defined (WASM/MaiaC profile) */
+#define EDOM   1              /* implementation-defined (WASM/MaiaC profile) */
+#define ERANGE 2              /* implementation-defined (WASM/MaiaC profile) */
 
 #endif

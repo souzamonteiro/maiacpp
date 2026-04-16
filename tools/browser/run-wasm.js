@@ -182,6 +182,9 @@
         __exc_pop: function () {},
         __exc_throw: function () {},
         __exc_active: function () { return 0; },
+        __exc_type: function () { return 0; },
+        __exc_data: function () {},
+        __exc_matches: function () { return 0; },
         __exc_clear: function () {}
       }
     };

@@ -28,6 +28,9 @@ function createEnvImports() {
     __exc_pop: () => {},
     __exc_throw: () => {},
     __exc_active: () => 0,
+    __exc_type: () => 0,
+    __exc_data: () => {},
+    __exc_matches: () => 0,
     __exc_clear: () => {}
   };
 

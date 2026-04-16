@@ -6,13 +6,10 @@
 
 #include <memory>
 #include <cstddef>
+#include <iterator>
 #include <iosfwd>
 
 namespace std {
-
-template<class charT> struct char_traits;
-template<> struct char_traits<char>;
-template<> struct char_traits<wchar_t>;
 
 template<class charT, class traits = char_traits<charT>,
          class Allocator = allocator<charT> >
@@ -27,8 +24,8 @@ public:
     typedef typename Allocator::const_reference const_reference;
     typedef typename Allocator::pointer pointer;
     typedef typename Allocator::const_pointer const_pointer;
-    typedef implementation defined iterator;
-    typedef implementation defined const_iterator;
+        typedef pointer iterator;             // implementation-defined: contiguous-storage profile
+        typedef const_pointer const_iterator; // implementation-defined: contiguous-storage profile
     typedef std::reverse_iterator<iterator> reverse_iterator;
     typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
 
