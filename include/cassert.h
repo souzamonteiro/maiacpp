@@ -5,10 +5,12 @@
 
 // Same as Standard C library header <assert.h>
 
+#include <cstdlib>
+
 #ifdef NDEBUG
 #define assert(ignore) ((void)0)
 #else
-#define assert(expression) /* implementation-defined */
+#define assert(expression) ((expression) ? (void)0 : ::std::abort())
 #endif
 
 #endif

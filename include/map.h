@@ -20,10 +20,10 @@ public:
     typedef Allocator allocator_type;
     typedef typename Allocator::reference reference;
     typedef typename Allocator::const_reference const_reference;
-    typedef implementation defined iterator;
-    typedef implementation defined const_iterator;
-    typedef implementation defined size_type;
-    typedef implementation defined difference_type;
+    typedef value_type* iterator;               // provisional iterator profile
+    typedef const value_type* const_iterator;   // provisional iterator profile
+    typedef size_t size_type;
+    typedef ptrdiff_t difference_type;
     typedef typename Allocator::pointer pointer;
     typedef typename Allocator::const_pointer const_pointer;
     typedef std::reverse_iterator<iterator> reverse_iterator;
@@ -127,10 +127,10 @@ public:
     typedef Allocator allocator_type;
     typedef typename Allocator::reference reference;
     typedef typename Allocator::const_reference const_reference;
-    typedef implementation defined iterator;
-    typedef implementation defined const_iterator;
-    typedef implementation defined size_type;
-    typedef implementation defined difference_type;
+    typedef value_type* iterator;               // provisional iterator profile
+    typedef const value_type* const_iterator;   // provisional iterator profile
+    typedef size_t size_type;
+    typedef ptrdiff_t difference_type;
     typedef typename Allocator::pointer pointer;
     typedef typename Allocator::const_pointer const_pointer;
     typedef std::reverse_iterator<iterator> reverse_iterator;

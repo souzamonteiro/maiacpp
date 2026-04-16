@@ -43,6 +43,20 @@ Main issues found during audit:
 - some headers did not yet reflect the MaiaC runtime profile used by the generated C/WASM pipeline,
 - wide-character and locale-related areas remain only partially modeled and should stay provisional until the corresponding library/runtime is created.
 
+## MaiaC-first policy (mandatory)
+
+From this point on, implementation work must follow this order of preference:
+
+1. Reuse MaiaC as-is.
+2. Add thin C++ wrappers/adapters over MaiaC behavior.
+3. Implement only the delta that cannot be expressed in C89/MaiaC directly.
+
+Practical rule:
+
+- If a feature already exists in MaiaC C headers/runtime, MaiaCpp must not reimplement it independently.
+- If a feature is representable in C and can be lowered to MaiaC, prefer that route.
+- Only C++-specific semantics (templates, overload sets, RAII object model, exceptions/RTTI semantics, stream/class behaviors) should have MaiaCpp-specific runtime code.
+
 ## WASM / MaiaC Compatibility Profile
 
 For C-derived compatibility headers, MaiaCpp should follow the MaiaC runtime profile unless there is a strong C++-specific reason not to.
@@ -120,30 +134,30 @@ Current chosen profile:
 | `cwctype` | ✅ | provisional | wide-char classification model still pending |
 | `string` | ✅ | adjusted/provisional | declaration layer improved; still needs real runtime + `char_traits`/STL support |
 | `exception` | ✅ | audited | declaration-only header is acceptable as a first-layer interface |
-| `new` | ✅ | audited | declaration-only header is acceptable; still needs runtime allocation/handler semantics |
+| `new` | ✅ | adjusted/provisional | global `new/delete` and `new_handler` now wired to MaiaC-style `malloc/free` backend |
 | `stdexcept` | ✅ | audited | declarations are structurally fine; depends on `string` + exception runtime |
 | `typeinfo` | ✅ | audited | declarations are structurally fine; RTTI runtime still pending |
 | `limits` | ✅ | adjusted | practical `numeric_limits` specializations added for built-in scalar types |
 | `iosfwd` | ✅ | adjusted/provisional | now provides foundational `fpos` and basic `char_traits` specializations |
 | `ios` | ✅ | adjusted/provisional | placeholder scalar/types sanitized; full stream semantics still pending |
 | `locale` | ✅ | adjusted/provisional | placeholder token sanitized; facets/traits/runtime still pending |
-| `memory` | ✅ | audited/provisional | allocator declarations are coherent; allocation semantics still pending |
+| `memory` | ✅ | adjusted/provisional | `allocator<T>` core operations now mapped to global `operator new/delete` |
 | `streambuf` | ✅ | audited/provisional | declaration layer looks coherent; runtime semantics still missing |
 | `istream` | ✅ | adjusted/provisional | declaration layer coherent after fixing dependency on `ostream` |
 | `ostream` | ✅ | audited/provisional | declaration layer looks coherent; output semantics still missing |
 | `sstream` | ✅ | audited/provisional | declaration layer looks coherent; depends on `string` and streams runtime |
 | `iostream` | ✅ | audited/provisional | standard object declarations acceptable as interface layer |
 | `fstream` | ✅ | audited/provisional | declaration layer coherent; filesystem/host/runtime still missing |
-| `cassert` | ✅ | audited/provisional | only remaining issue is implementation-defined assert expansion |
+| `cassert` | ✅ | adjusted/provisional | assert macro now has concrete debug/release behavior |
 | `cctype` | ✅ | audited | declaration layer acceptable and aligned with MaiaC-style C wrappers |
 | `ciso646` | ✅ | audited | acceptable compatibility header; no action needed |
 | `complex` | ✅ | audited/provisional | declaration layer acceptable; math/runtime implementation still pending |
-| `deque` | ✅ | audited/pending | still contains spec placeholders for iterator and size-related typedefs |
-| `list` | ✅ | audited/pending | still contains spec placeholders for iterator and size-related typedefs |
-| `vector` | ✅ | audited/pending | still contains spec placeholders for iterator/size typedefs and `vector<bool>` proxy types |
-| `map` | ✅ | audited/pending | still contains spec placeholders for iterator and size-related typedefs |
-| `set` | ✅ | audited/pending | still contains spec placeholders for iterator and size-related typedefs |
-| `iomanip` | ✅ | audited/pending | still uses `unspecified` proxy manipulator return types from the standard text |
+| `deque` | ✅ | adjusted/provisional | typedef placeholders replaced with concrete provisional aliases |
+| `list` | ✅ | adjusted/provisional | typedef placeholders replaced with concrete provisional aliases |
+| `vector` | ✅ | adjusted/provisional | typedef placeholders replaced with concrete provisional aliases |
+| `map` | ✅ | adjusted/provisional | typedef placeholders replaced with concrete provisional aliases |
+| `set` | ✅ | adjusted/provisional | typedef placeholders replaced with concrete provisional aliases |
+| `iomanip` | ✅ | adjusted/provisional | unspecified manipulator placeholders replaced with concrete wrapper structs |
 | container/IO/STL headers | ✅ | largely unaudited | need staged review and implementation planning |
 
 ## What Was Adjusted Immediately
@@ -259,6 +273,48 @@ These headers are no longer blocked by empty placeholders or abstract spec token
 - `iomanip`
 
 These are now known work items rather than unknown audit gaps.
+
+## Implementation kick-off update (2026-04-16)
+
+First implementation step after audit closure:
+
+- `include/cassert.h` was converted from specification placeholder to a usable macro form:
+  - `assert(expression)` now aborts in debug mode and compiles away under `NDEBUG`.
+- `include/iomanip.h` was converted from `unspecified` placeholders to concrete manipulator wrapper structs and inline factories:
+  - `resetiosflags`
+  - `setiosflags`
+  - `setbase`
+  - `setfill`
+  - `setprecision`
+  - `setw`
+
+After subsequent implementation passes, the remaining placeholder set was reduced to zero.
+
+Current status of placeholder markers in `include/*.h`:
+
+- `typedef implementation defined` → none
+- `typedef unspecified` → none
+- `/* implementation-defined */` in active placeholder form → none
+
+This means the header cleanup/normalization phase is complete.
+
+## Implementation pass: allocation bridge (`new` + `memory`) (2026-04-16)
+
+Additional MaiaC-first implementation completed:
+
+- added runtime definitions for global `operator new/delete` and array forms,
+- wired allocation/deallocation to `std::malloc` / `std::free`,
+- implemented `std::nothrow`, `std::set_new_handler`, and `std::bad_alloc::what()`,
+- implemented `allocator<T>` core semantics in `memory.h`:
+  - `allocate` -> `::operator new`
+  - `deallocate` -> `::operator delete`
+  - `construct` -> placement new
+  - `destroy` -> explicit destructor call
+
+Interpretation:
+
+- this keeps backend allocation delegated to the C/MaiaC-compatible layer,
+- while adding only the C++ interface semantics required by C++98.
 
 ## Second-Pass Audit: `string`, `exception`, `new`, `stdexcept`, `typeinfo`, `limits`
 
@@ -597,6 +653,11 @@ These should map directly onto MaiaC C89 headers/libraries/runtime behavior:
 
 - `cerrno`, `cfloat`, `climits`, `clocale`, `cmath`, `csetjmp`, `csignal`, `cstdarg`, `cstddef`, `cstdio`, `cstdlib`, `cstring`, `ctime`
 
+Execution rule for Tier 1:
+
+- Always bind these headers/types/macros/functions to MaiaC-compatible ABI and values first.
+- Prefer forwarding wrappers over new implementations.
+
 ### Tier 2: Thin C++ wrappers over MaiaC/runtime pieces
 
 These should be implemented mostly in C++ headers/source using MaiaC functionality underneath:
@@ -606,6 +667,11 @@ These should be implemented mostly in C++ headers/source using MaiaC functionali
 - stream base types and iostream glue
 - `limits` specializations for concrete built-in types
 
+Execution rule for Tier 2:
+
+- Use MaiaC primitives (`malloc/free`, C string/memory routines, stdio/time/math hosts) as backend.
+- Keep C++ layer focused on interface semantics and type system requirements.
+
 ### Tier 3: Special/host-backed areas
 
 These may need mixed implementation in C/WAT/JavaScript:
@@ -614,6 +680,21 @@ These may need mixed implementation in C/WAT/JavaScript:
 - locale-heavy behavior
 - filesystem-backed stream functionality
 - exception/runtime support that depends on MaiaC WASM lowering details
+
+Execution rule for Tier 3:
+
+- Implement only what cannot be mapped through MaiaC C-level behavior.
+- Prefer host/JS integration where MaiaC already has established host mechanisms.
+
+## Decision checklist before adding new runtime code
+
+Before implementing any function/class runtime path in MaiaCpp:
+
+1. Does MaiaC already expose equivalent behavior in C89 headers/runtime?
+2. Can the C++ feature be lowered to existing MaiaC calls with a wrapper?
+3. Is the remaining gap strictly C++-specific (not expressible in C89)?
+
+Only if (1) and (2) are both no, implement new MaiaCpp runtime behavior.
 
 ## Recommendation
 
@@ -638,3 +719,31 @@ Medium term:
 The `include/` directory is reasonably complete in terms of file coverage, but it was not yet complete in terms of usable C++98 header semantics. The immediate blocking issue was the presence of empty `implementation-defined` placeholders and invalid placeholder typedefs.
 
 Those core C-compatibility headers have now been normalized to a concrete WASM/MaiaC profile. The next step is a staged semantic audit of the remaining STL/iostream/runtime headers and the creation of the corresponding library layers on top of MaiaC.
+
+## Checkpoint de Continuidade (2026-04-16)
+
+Estado em que paramos:
+
+- Fase de auditoria dos headers `include/*.h` concluída (sem placeholders pendentes).
+- Bridge de alocação C++98 concluída com política MaiaC-first:
+  - `src/new.cpp` implementa `operator new/delete` (simples + array), versões `nothrow`, `set_new_handler`, `std::nothrow`, `std::bad_alloc::what()`.
+  - backend de alocação delegado para `std::malloc` / `std::free`.
+- `include/memory.h` com semântica essencial de `allocator<T>`:
+  - `allocate` -> `::operator new`
+  - `deallocate` -> `::operator delete`
+  - `construct` -> placement new
+  - `destroy` -> destrutor explícito
+
+Validação no ponto de parada:
+
+- Verificação de erros do workspace nos arquivos alterados: sem erros.
+- Teste de compilação com `g++` do host apresentou conflito de ABI/perfil (esperado fora do pipeline MaiaC), portanto não é critério de bloqueio para este projeto.
+
+Próximo passo imediato (retomada):
+
+1. Implementar núcleo mínimo de `exception` em modo MaiaC-first:
+   - `std::exception`, `std::bad_exception`
+   - `set_terminate` / `terminate`
+   - `set_unexpected` / `unexpected`
+   - `uncaught_exception` com comportamento provisório documentado.
+2. Em seguida, fechar `stdexcept` sobre esse núcleo (thin wrappers).

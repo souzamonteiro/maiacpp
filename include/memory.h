@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <iterator>
+#include <new.h>
 #include <utility>
 
 namespace std {
@@ -101,6 +102,67 @@ public:
     template<class Y> operator auto_ptr_ref<Y>() throw();
     template<class Y> operator auto_ptr<Y>() throw();
 };
+
+template <class T, class U>
+bool operator==(const allocator<T>&, const allocator<U>&) throw() {
+    return true;
+}
+
+template <class T, class U>
+bool operator!=(const allocator<T>&, const allocator<U>&) throw() {
+    return false;
+}
+
+template <class T>
+allocator<T>::allocator() throw() {}
+
+template <class T>
+allocator<T>::allocator(const allocator&) throw() {}
+
+template <class T>
+template <class U>
+allocator<T>::allocator(const allocator<U>&) throw() {}
+
+template <class T>
+allocator<T>::~allocator() throw() {}
+
+template <class T>
+typename allocator<T>::pointer allocator<T>::address(reference x) const {
+    return &x;
+}
+
+template <class T>
+typename allocator<T>::const_pointer allocator<T>::address(const_reference x) const {
+    return &x;
+}
+
+template <class T>
+typename allocator<T>::pointer allocator<T>::allocate(size_type n, allocator<void>::const_pointer) {
+    if (n == 0) {
+        return 0;
+    }
+    return static_cast<pointer>(::operator new(n * sizeof(T)));
+}
+
+template <class T>
+void allocator<T>::deallocate(pointer p, size_type) {
+    ::operator delete(p);
+}
+
+template <class T>
+typename allocator<T>::size_type allocator<T>::max_size() const throw() {
+    return static_cast<size_type>(-1) / sizeof(T);
+}
+
+template <class T>
+void allocator<T>::construct(pointer p, const T& val) {
+    ::new (static_cast<void*>(p)) T(val);
+}
+
+template <class T>
+void allocator<T>::destroy(pointer p) {
+    p->~T();
+}
 
 } // namespace std
 
