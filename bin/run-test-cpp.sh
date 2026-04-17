@@ -17,12 +17,14 @@ Targets:
 Options:
   --file FILE     Input C++ file (default: ./compiler/test.cpp)
   --target T      Target: console|node|browser|all (default: all)
+  --              Forward remaining args to node/browser wrappers
   -h, --help      Show this help
 EOF
 }
 
 INPUT_FILE="$REPO_ROOT/compiler/test.cpp"
 TARGET="all"
+FORWARD_ARGS=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -40,6 +42,11 @@ while [[ $# -gt 0 ]]; do
       usage
       exit 0
       ;;
+    --)
+      shift
+      FORWARD_ARGS+=("$@")
+      break
+      ;;
     *)
       echo "Error: unknown option $1" >&2
       usage
@@ -55,16 +62,16 @@ case "$TARGET" in
     bash "$SCRIPT_DIR/run-test-console.sh" "$INPUT_FILE"
     ;;
   node)
-    bash "$SCRIPT_DIR/run-test-node.sh" "$INPUT_FILE"
+    bash "$SCRIPT_DIR/run-test-node.sh" --file "$INPUT_FILE" "${FORWARD_ARGS[@]}"
     ;;
   browser)
-    bash "$SCRIPT_DIR/run-wasm-browser.sh" "$INPUT_FILE"
+    bash "$SCRIPT_DIR/run-wasm-browser.sh" --file "$INPUT_FILE" "${FORWARD_ARGS[@]}"
     ;;
   all)
     bash "$SCRIPT_DIR/run-test-console.sh" "$INPUT_FILE"
-    bash "$SCRIPT_DIR/run-test-node.sh" "$INPUT_FILE"
+    bash "$SCRIPT_DIR/run-test-node.sh" --file "$INPUT_FILE" "${FORWARD_ARGS[@]}"
     echo "[all] To run in browser now:"
-    echo "  bash $SCRIPT_DIR/run-wasm-browser.sh $INPUT_FILE"
+    echo "  bash $SCRIPT_DIR/run-wasm-browser.sh --file $INPUT_FILE"
     ;;
   *)
     echo "Error: invalid target '$TARGET'" >&2

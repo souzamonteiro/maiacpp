@@ -8,4 +8,4 @@ INPUT_FILE="$REPO_ROOT/compiler/example_class_plus_one.cpp"
 OUT_DIR="${1:-$REPO_ROOT/out/browser}"
 PORT="${2:-8080}"
 
-bash "$SCRIPT_DIR/run-wasm-browser.sh" "$INPUT_FILE" "$OUT_DIR" "$PORT"
+bash "$SCRIPT_DIR/run-wasm-browser.sh" --file "$INPUT_FILE" --out-dir "$OUT_DIR" --port "$PORT" "${@:3}"

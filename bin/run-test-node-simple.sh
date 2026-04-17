@@ -7,4 +7,4 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 INPUT_FILE="$REPO_ROOT/compiler/example_class_plus_one.cpp"
 OUT_DIR="${1:-$REPO_ROOT/out/node}"
 
-bash "$SCRIPT_DIR/run-test-node.sh" "$INPUT_FILE" "$OUT_DIR"
+bash "$SCRIPT_DIR/run-test-node.sh" --file "$INPUT_FILE" --out-dir "$OUT_DIR" "${@:2}"
