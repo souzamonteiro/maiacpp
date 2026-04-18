@@ -31,18 +31,31 @@ public:
 
     template <class U> struct rebind { typedef allocator<U> other; };
 
-    allocator() throw();
-    allocator(const allocator&) throw();
-    template <class U> allocator(const allocator<U>&) throw();
-    ~allocator() throw();
+    allocator() throw() {}
+    allocator(const allocator&) throw() {}
+    template <class U> allocator(const allocator<U>&) throw() {}
+    ~allocator() throw() {}
 
-    pointer address(reference x) const;
-    const_pointer address(const_reference x) const;
-    pointer allocate(size_type, allocator<void>::const_pointer hint = 0);
-    void deallocate(pointer p, size_type n);
-    size_type max_size() const throw();
-    void construct(pointer p, const T& val);
-    void destroy(pointer p);
+    pointer address(reference x) const { return &x; }
+    const_pointer address(const_reference x) const { return &x; }
+
+    pointer allocate(size_type n, allocator<void>::const_pointer = 0) {
+        pointer p = (pointer)::operator new(n * sizeof(T));
+        if (!p) throw std::bad_alloc();
+        return p;
+    }
+    void deallocate(pointer p, size_type) {
+        ::operator delete(p);
+    }
+    size_type max_size() const throw() {
+        return (size_type)(-1) / sizeof(T);
+    }
+    void construct(pointer p, const T& val) {
+        ::new (static_cast<void*>(p)) T(val);
+    }
+    void destroy(pointer p) {
+        p->~T();
+    }
 };
 
 template <> class allocator<void> {
@@ -64,20 +77,43 @@ public:
 };
 
 template <class T>
-pair<T*, ptrdiff_t> get_temporary_buffer(ptrdiff_t n);
+inline pair<T*, ptrdiff_t> get_temporary_buffer(ptrdiff_t n) {
+    if (n <= 0) return pair<T*, ptrdiff_t>(static_cast<T*>(0), ptrdiff_t(0));
+    T* p = static_cast<T*>(::operator new((size_t)n * sizeof(T), std::nothrow));
+    if (!p) return pair<T*, ptrdiff_t>(static_cast<T*>(0), ptrdiff_t(0));
+    return pair<T*, ptrdiff_t>(p, n);
+}
 
 template <class T>
-void return_temporary_buffer(T* p);
+inline void return_temporary_buffer(T* p) {
+    ::operator delete(p);
+}
 
 template <class InputIterator, class ForwardIterator>
-ForwardIterator uninitialized_copy(InputIterator first, InputIterator last,
-                                   ForwardIterator result);
+inline ForwardIterator uninitialized_copy(InputIterator first, InputIterator last,
+                                          ForwardIterator result) {
+    for (; first != last; ++first, ++result) {
+        ::new (static_cast<void*>(&*result))
+            typename iterator_traits<ForwardIterator>::value_type(*first);
+    }
+    return result;
+}
 
 template <class ForwardIterator, class T>
-void uninitialized_fill(ForwardIterator first, ForwardIterator last, const T& x);
+inline void uninitialized_fill(ForwardIterator first, ForwardIterator last, const T& x) {
+    for (; first != last; ++first) {
+        ::new (static_cast<void*>(&*first))
+            typename iterator_traits<ForwardIterator>::value_type(x);
+    }
+}
 
 template <class ForwardIterator, class Size, class T>
-void uninitialized_fill_n(ForwardIterator first, Size n, const T& x);
+inline void uninitialized_fill_n(ForwardIterator first, Size n, const T& x) {
+    for (; n > 0; ++first, --n) {
+        ::new (static_cast<void*>(&*first))
+            typename iterator_traits<ForwardIterator>::value_type(x);
+    }
+}
 
 template<class X> class auto_ptr {
     template <class Y> struct auto_ptr_ref {};

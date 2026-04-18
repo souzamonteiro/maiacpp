@@ -163,6 +163,11 @@ public:
                 size_type pos2, size_type n2) const;
     int compare(const charT* s) const;
     int compare(size_type pos1, size_type n1, const charT* s, size_type n2 = npos) const;
+
+private:
+    charT*    _data;  // NUL-terminated heap buffer
+    size_type _size;  // number of stored chars (not counting NUL)
+    size_type _cap;   // allocated capacity (excluding NUL slot)
 };
 
 typedef basic_string<char> string;

@@ -39,7 +39,9 @@ protected:
                              ios_base::openmode which = ios_base::in | ios_base::out);
 
 private:
-    ios_base::openmode mode;
+    ios_base::openmode _mode;
+    basic_string<charT,traits,Allocator> _buf;
+    size_type _gpos;  // current read position into _buf
 };
 
 template <class charT, class traits = char_traits<charT>,

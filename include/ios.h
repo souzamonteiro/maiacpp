@@ -83,6 +83,13 @@ public:
 
 protected:
     ios_base();
+
+private:
+    fmtflags  _flags;
+    streamsize _precision;
+    streamsize _width;
+    iostate   _state;
+    iostate   _exceptions;
 };
 
 template <class charT, class traits = char_traits<charT> >
@@ -124,6 +131,11 @@ public:
 protected:
     basic_ios();
     void init(basic_streambuf<charT,traits>* sb);
+
+private:
+    basic_streambuf<charT,traits>* _sb;
+    basic_ostream<charT,traits>*   _tie;
+    charT                          _fill;
 };
 
 ios_base& boolalpha(ios_base& str);
