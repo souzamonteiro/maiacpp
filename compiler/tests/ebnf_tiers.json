@@ -1423,9 +1423,9 @@
           "--webcpp-extra=--resolve-system-includes",
           "--webcpp-extra=--wat"
         ],
-        "expectExitCode": 1,
+        "expectExitCode": 0,
         "stdoutContains": [
-          "[fail] MaiaCpp->MaiaC pipeline failed"
+          "[ok] MaiaCpp pipeline-only WASM run matches expected return code"
         ]
       }
     ]

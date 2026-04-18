@@ -161,8 +161,8 @@ enumSpecifier ::= 'enum' Identifier? '{' enumeratorList '}'
 
 enumeratorList ::= enumeratorDefinition ( ',' enumeratorDefinition )*
 
-enumeratorDefinition ::= enumerator
-                       | enumerator '=' constantExpression
+enumeratorDefinition ::= enumerator '=' constantExpression
+                       | enumerator
 
 enumerator ::= Identifier
 
