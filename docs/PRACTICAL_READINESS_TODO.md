@@ -115,6 +115,7 @@ Acceptance:
 Progress notes:
 - Added Tier 2 strict regression lane case `tier2_fixture_subset_ast_strict` using a curated fixture subset and `--ast-strict`.
 - Added Tier 2 fallback-reduction lane case `tier2_fixture_subset_no_legacy_function_hints` with a curated fixture subset under `--no-legacy-function-hints`.
+- Added AST-derived namespace-path inference for global functions and promoted `011_namespace_global_function` into the no-legacy-function-hints passing subset.
 
 ### 6) Full statement lowering progress
 

@@ -332,6 +332,80 @@ function inferClassNamespaceMap(source) {
   return map;
 }
 
+function inferFunctionNamespaceMap(source) {
+  const map = new Map();
+  const ambiguous = new Set();
+  const text = String(source || '')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/.*$/gm, '');
+
+  const namespaceStack = [];
+  const braceKinds = [];
+  let statementStart = 0;
+
+  const forbiddenHeads = new Set(['if', 'for', 'while', 'switch', 'catch', 'namespace']);
+
+  for (let i = 0; i < text.length; i += 1) {
+    const remainder = text.slice(i);
+    const nsMatch = remainder.match(/^namespace\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{/);
+    if (nsMatch) {
+      namespaceStack.push(nsMatch[1]);
+      braceKinds.push('namespace');
+      i += nsMatch[0].length - 1;
+      statementStart = i + 1;
+      continue;
+    }
+
+    const ch = text[i];
+    if (ch === ';') {
+      statementStart = i + 1;
+      continue;
+    }
+
+    if (ch === '{') {
+      const snippet = text.slice(statementStart, i + 1).trim();
+      const header = snippet.replace(/\s+/g, ' ');
+      const fnMatch = header.match(/([A-Za-z_][A-Za-z0-9_]*)\s*\(([^()]*)\)\s*\{$/);
+      if (fnMatch) {
+        const fname = fnMatch[1];
+        const headPrefix = header.slice(0, Math.max(0, header.length - fnMatch[0].length)).trim();
+        const arity = parseParamList(fnMatch[2]).length;
+        const blocked = forbiddenHeads.has(fname)
+          || /\b(class|struct|union|enum|typedef|template)\b/.test(headPrefix)
+          || /\b(return|throw)\b/.test(headPrefix);
+
+        if (!blocked) {
+          const key = `${fname}/${arity}`;
+          const nsPath = [...namespaceStack];
+          const prev = map.get(key);
+          if (!prev) {
+            map.set(key, nsPath);
+          } else if (JSON.stringify(prev) !== JSON.stringify(nsPath)) {
+            ambiguous.add(key);
+          }
+        }
+      }
+
+      braceKinds.push('block');
+      statementStart = i + 1;
+      continue;
+    }
+
+    if (ch === '}') {
+      const popped = braceKinds.pop();
+      if (popped === 'namespace') {
+        namespaceStack.pop();
+      }
+      statementStart = i + 1;
+    }
+  }
+
+  for (const key of ambiguous) {
+    map.delete(key);
+  }
+  return map;
+}
+
 function normalizeTypeText(type) {
   const t = (type || '')
     .replace(/\b(public|private|protected)\b\s*:/g, '')
@@ -3187,7 +3261,19 @@ class Cpp98Compiler {
     if (!analysis) return;
 
     const nsMap = inferClassNamespaceMap(source);
+    const fnNsMap = inferFunctionNamespaceMap(source);
     const fallback = new SimpleAnalyzer(this.filePath).analyze();
+
+    if (Array.isArray(analysis.functions) && analysis.functions.length > 0) {
+      analysis.functions = analysis.functions.map((fn) => {
+        const currentNs = Array.isArray(fn.namespacePath) ? fn.namespacePath : [];
+        if (currentNs.length > 0) return fn;
+        const key = `${fn.name}/${(fn.params || []).length}`;
+        const inferredNs = fnNsMap.get(key);
+        if (!inferredNs || inferredNs.length === 0) return fn;
+        return { ...fn, namespacePath: [...inferredNs] };
+      });
+    }
 
     const functionLooseKey = (fn) => {
       const sig = (fn.params || []).map((p) => normalizeTypeText(p.type || '')).join(',');

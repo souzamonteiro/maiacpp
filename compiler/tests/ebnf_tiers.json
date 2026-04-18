@@ -520,11 +520,11 @@
           "compiler",
           "--parser-extra-arg=--no-legacy-function-hints",
           "--cases",
-          "013_global_call_lowering,017_overload_type_resolution,031_wat_simple_if_return,038_enum_semantic_use"
+          "011_namespace_global_function,013_global_call_lowering,017_overload_type_resolution,031_wat_simple_if_return,038_enum_semantic_use"
         ],
         "expectExitCode": 0,
         "stdoutContains": [
-          "All fixtures passed: 4"
+          "All fixtures passed: 5"
         ]
       },
       {
