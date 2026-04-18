@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 WEBCPP="$REPO_ROOT/bin/webcpp.sh"
+STATIC_SERVER_JS="$REPO_ROOT/tools/browser/static-server.js"
 
 usage() {
 	cat <<'EOF'
@@ -12,7 +13,7 @@ Usage: run-wasm-browser.sh [options]
 Options:
 	--file FILE          Input C++ file (default: ./compiler/test.cpp)
 	--out-dir DIR        Output/Dist directory (default: ./out/browser)
-	--port PORT          HTTP port for python server (default: 8080)
+	--port PORT          HTTP port for local server (default: 8080)
 	--mode MODE          legacy|dist (default: legacy)
 	--name NAME          Dist app name (used with --mode dist)
 	--webc-out-base BASE MaiaC webc output base override
@@ -85,8 +86,9 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ -f "$WEBCPP" ]] || { echo "Error: missing $WEBCPP" >&2; exit 1; }
+[[ -f "$STATIC_SERVER_JS" ]] || { echo "Error: missing $STATIC_SERVER_JS" >&2; exit 1; }
 [[ -f "$INPUT_FILE" ]] || { echo "Error: input file not found: $INPUT_FILE" >&2; exit 2; }
-command -v python3 >/dev/null 2>&1 || { echo "Error: python3 not found" >&2; exit 3; }
+command -v node >/dev/null 2>&1 || { echo "Error: node not found" >&2; exit 3; }
 
 INPUT_FILE="$(cd "$(dirname "$INPUT_FILE")" && pwd -P)/$(basename "$INPUT_FILE")"
 
@@ -138,5 +140,4 @@ esac
 echo "[browser] opening runner at: $RUNNER_URL"
 
 echo "[browser] press Ctrl+C to stop server"
-cd "$SERVE_DIR"
-python3 -m http.server "$PORT"
+node "$STATIC_SERVER_JS" --root "$SERVE_DIR" --port "$PORT"

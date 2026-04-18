@@ -144,7 +144,7 @@ When stable fallback is used, the C output includes:
 ### 7.1 Fixture Suite
 
 - Directory: compiler/tests/fixtures
-- Runner: compiler/tests/run_fixtures.py
+- Runner: compiler/tests/run_fixtures.js
 - Focus:
   - Parser success/failure behavior.
   - Codegen expectations in stdout markers.

@@ -947,7 +947,7 @@ Boundary policy after this pass:
 
 To avoid blocking progress while parser/pipeline STL coverage is still incomplete, the semantic comparison runner was extended with a pipeline-only mode:
 
-- `compiler/tests/compare_cpp_vs_pipeline.py`
+- `compiler/tests/compare_cpp_vs_pipeline.js`
   - new `--pipeline-only` mode (skips native C++ execution)
   - new `--expect-wasm-rc` for explicit return-code expectations in pipeline-only checks
   - new `--webcpp-extra` passthrough to forward flags to `bin/webcpp.sh` (e.g. include-resolution probes)
@@ -961,3 +961,37 @@ New tracking case added:
   - currently expected to fail in pipeline (`expectExitCode: 1`) and used as a regression tracker for closing the STL front-end/runtime gap
 
 This keeps the suite actionable: stable tiers remain green where required, while unresolved STL paths are tracked explicitly until promoted to passing conformance cases.
+
+### 2026-04-18: Continuation checkpoint (EBNF-first parser workflow)
+
+Session decision locked for continuity:
+
+1. Do not edit `compiler/cpp-parser.js` directly.
+2. Apply parser changes only in `grammar/Cpp.ebnf`.
+3. Regenerate with MaiaCC (`../maiacc/bin/tREx.sh --ebnf grammar/Cpp.ebnf compiler/cpp-parser.js`).
+
+What was completed in this pass:
+
+- EBNF updates applied and parser regenerated via MaiaCC.
+- Cast/type ambiguity and template/member specialization parsing behavior improved.
+- Focused source-compat adjustments were made in:
+  - `src/fstream.cpp` (removed inline parameter block-comments, added `(void)` for unused params)
+  - `src/iostream.cpp` (removed `explicit` from internal helper constructor)
+
+Current validated state:
+
+- Parser stage now succeeds for `src/cwchar.cpp`, `src/fstream.cpp`, and `src/iostream.cpp` in AST mode.
+- `tools/build-libs.js --only cwchar,fstream,iostream --force` still fails in MaiaC/webc compile stage.
+
+Latest observed webc failures (to continue next session):
+
+- `cwchar`: `Unexpected token at end: TOKEN_int`
+- `fstream`: `Unexpected token at end: TOKEN_void`
+- `iostream`: `Unexpected token at end: TOKEN_struct`
+
+Recommended next-session starting sequence:
+
+1. Re-run `node tools/build-libs.js --only cwchar,fstream,iostream --force`.
+2. Capture each generated intermediate C (`build-libs` temp output) for the three failing units.
+3. Fix C emission in `compiler/cpp-compiler.js` (not parser) for the exact constructs that trigger `TOKEN_int` / `TOKEN_void` / `TOKEN_struct` in webc.
+4. Re-run `npm run build:libs` and promote from targeted to full run once all three pass.

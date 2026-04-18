@@ -26,7 +26,7 @@ namespace std {
 class __MaiacppStdioBuf : public basic_streambuf<char> {
 public:
     // 1 = stdout, 2 = stderr, 3 = stdin (matches MaiaC stdio handle ids)
-    explicit __MaiacppStdioBuf(int fd) : _fd(fd) {}
+    __MaiacppStdioBuf(int fd) : _fd(fd) {}
 
 protected:
     // Output path: delegate to MaiaC fwrite

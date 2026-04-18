@@ -30,11 +30,14 @@ if [[ -n "$MAIAC_WEBC_JS" ]]; then
 	MAIAC_ROOT="$(cd "$(dirname "$MAIAC_WEBC_JS")/.." && pwd -P)"
 fi
 
+COPIED_LIB_NAMES=()
+
 copy_dist_wasm_libs() {
 	local dist_dir="$1"
 	local app_wasm_basename="$2"
 	local copied=0
 	local skipped=0
+	COPIED_LIB_NAMES=()
 
 	mkdir -p "$dist_dir"
 
@@ -58,6 +61,7 @@ copy_dist_wasm_libs() {
 				continue
 			fi
 			cp -f "$src" "$dist_dir/$base"
+			COPIED_LIB_NAMES+=("$base")
 			copied=$((copied + 1))
 		done
 	}
@@ -68,6 +72,26 @@ copy_dist_wasm_libs() {
 	copy_from_lib_dir "$REPO_ROOT/lib"
 
 	echo "[webcpp] dist libs copied: $copied (skipped: $skipped)"
+}
+
+patch_manifest_copied_libs() {
+	local dist_dir="$1"
+	local manifest="$dist_dir/manifest.json"
+	[[ -f "$manifest" ]] || return 0
+	[[ ${#COPIED_LIB_NAMES[@]} -gt 0 ]] || return 0
+	local names_json
+	names_json="$(printf '"%s",' "${COPIED_LIB_NAMES[@]}"; echo)"
+	names_json="[${names_json%,}"
+	names_json="${names_json%%$'\n'*}]"
+	node -e "
+		const fs = require('fs');
+		const p = process.argv[1];
+		const libs = JSON.parse(process.argv[2]);
+		const m = JSON.parse(fs.readFileSync(p, 'utf8'));
+		m.copiedLibraries = libs;
+		fs.writeFileSync(p, JSON.stringify(m, null, 2) + '\\n');
+	" "$manifest" "$names_json"
+	echo "[webcpp] manifest patched: copiedLibraries → ${#COPIED_LIB_NAMES[@]} lib(s)"
 }
 
 usage() {
@@ -395,6 +419,7 @@ if [[ -n "$C_OUT" || -n "$JS_OUT" || -n "$WAT_OUT" || -n "$WASM_OUT" || "$WEBC_W
 				DIST_APP_NAME="$(basename "$WEB_OUT_BASE")"
 			fi
 			copy_dist_wasm_libs "$DIST_DIR" "$DIST_APP_NAME.wasm"
+			patch_manifest_copied_libs "$DIST_DIR"
 		fi
 
 		GEN_WASM="$WEB_OUT_BASE.wasm"

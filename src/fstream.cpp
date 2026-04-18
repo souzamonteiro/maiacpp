@@ -164,7 +164,8 @@ basic_streambuf<char>::streamsize basic_filebuf<char>::xsputn(const char* s, str
 template<>
 basic_filebuf<char>::pos_type
 basic_filebuf<char>::seekoff(off_type off, ios_base::seekdir way,
-                              ios_base::openmode /*which*/) {
+                              ios_base::openmode which) {
+    (void)which;
     if (!_file) return pos_type(-1);
     int whence = (way == ios_base::beg) ? SEEK_SET
                : (way == ios_base::cur) ? SEEK_CUR
@@ -176,7 +177,8 @@ basic_filebuf<char>::seekoff(off_type off, ios_base::seekdir way,
 
 template<>
 basic_filebuf<char>::pos_type
-basic_filebuf<char>::seekpos(pos_type sp, ios_base::openmode /*which*/) {
+basic_filebuf<char>::seekpos(pos_type sp, ios_base::openmode which) {
+    (void)which;
     if (!_file) return pos_type(-1);
     if (::fseek(_file, (long)sp, SEEK_SET) != 0) return pos_type(-1);
     long pos = ::ftell(_file);
@@ -197,13 +199,16 @@ basic_streambuf<char>::streamsize basic_filebuf<char>::showmanyc() {
 }
 
 template<>
-basic_streambuf<char>* basic_filebuf<char>::setbuf(char* /*s*/, streamsize /*n*/) {
+basic_streambuf<char>* basic_filebuf<char>::setbuf(char* s, streamsize n) {
+    (void)s;
+    (void)n;
     // Buffering managed by MaiaC stdio layer; no-op here.
     return this;
 }
 
 template<>
-void basic_filebuf<char>::imbue(const locale& /*loc*/) {
+void basic_filebuf<char>::imbue(const locale& loc) {
+    (void)loc;
     // Locale imbue is a no-op in WASM profile.
 }
 

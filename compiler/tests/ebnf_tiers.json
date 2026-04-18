@@ -24,8 +24,8 @@
         "family": "runtime_semantic_equivalence",
         "matrixFamily": "executable behavior conformance suite against C++98 semantics",
         "command": [
-          "python3",
-          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
           "--file",
           "./compiler/test_cpp98_extended.cpp"
         ],
@@ -39,8 +39,8 @@
         "family": "runtime_semantic_equivalence_namespace",
         "matrixFamily": "executable behavior conformance suite against C++98 semantics",
         "command": [
-          "python3",
-          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
           "--file",
           "./compiler/tests/equivalence/401_namespace_overload.cpp"
         ],
@@ -54,8 +54,8 @@
         "family": "runtime_semantic_equivalence_object_memory",
         "matrixFamily": "executable behavior conformance suite against C++98 semantics",
         "command": [
-          "python3",
-          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
           "--file",
           "./compiler/tests/equivalence/402_object_memory.cpp"
         ],
@@ -69,8 +69,8 @@
         "family": "runtime_semantic_equivalence_browser_host",
         "matrixFamily": "runtime host integration (printf in Node/browser)",
         "command": [
-          "python3",
-          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
           "--file",
           "./compiler/tests/equivalence/401_namespace_overload.cpp",
           "--runtime",
@@ -86,8 +86,8 @@
         "family": "runtime_semantic_equivalence_browser_host",
         "matrixFamily": "runtime host integration (printf in Node/browser)",
         "command": [
-          "python3",
-          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
           "--file",
           "./compiler/tests/equivalence/402_object_memory.cpp",
           "--runtime",
@@ -103,8 +103,8 @@
         "family": "runtime_semantic_equivalence_browser_host",
         "matrixFamily": "runtime host integration (printf in Node/browser)",
         "command": [
-          "python3",
-          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
           "--file",
           "./compiler/tests/equivalence/414_linkage_specification.cpp",
           "--runtime",
@@ -120,8 +120,8 @@
         "family": "runtime_semantic_equivalence_browser_host",
         "matrixFamily": "runtime host integration (printf in Node/browser)",
         "command": [
-          "python3",
-          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
           "--file",
           "./compiler/tests/equivalence/415_asm_definition.cpp",
           "--runtime",
@@ -137,8 +137,8 @@
         "family": "runtime_semantic_equivalence_browser_host",
         "matrixFamily": "runtime host integration (printf in Node/browser)",
         "command": [
-          "python3",
-          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
           "--file",
           "./compiler/tests/equivalence/416_explicit_instantiation.cpp",
           "--runtime",
@@ -154,8 +154,8 @@
         "family": "runtime_semantic_equivalence_browser_host",
         "matrixFamily": "runtime host integration (printf in Node/browser)",
         "command": [
-          "python3",
-          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
           "--file",
           "./compiler/tests/equivalence/417_explicit_specialization.cpp",
           "--runtime",
@@ -171,8 +171,8 @@
         "family": "using_directive_semantic_equivalence",
         "matrixFamily": "usingDeclaration / usingDirective",
         "command": [
-          "python3",
-          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
           "--file",
           "./compiler/tests/equivalence/403_using_directive.cpp"
         ],
@@ -186,8 +186,8 @@
         "family": "namespace_alias_semantic_equivalence",
         "matrixFamily": "namespaceDefinition / namespaceAliasDefinition",
         "command": [
-          "python3",
-          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
           "--file",
           "./compiler/tests/equivalence/404_namespace_alias.cpp"
         ],
@@ -201,8 +201,8 @@
         "family": "pointer_cv_semantic_equivalence",
         "matrixFamily": "pointer / ptrOperator / cvQualifierSeq",
         "command": [
-          "python3",
-          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
           "--file",
           "./compiler/tests/equivalence/405_pointer_cv.cpp"
         ],
@@ -216,8 +216,8 @@
         "family": "elaborated_type_semantic_equivalence",
         "matrixFamily": "elaboratedTypeSpecifier",
         "command": [
-          "python3",
-          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
           "--file",
           "./compiler/tests/equivalence/406_elaborated_type.cpp"
         ],
@@ -231,8 +231,8 @@
         "family": "abstract_declarator_semantic_equivalence",
         "matrixFamily": "abstractDeclarator family",
         "command": [
-          "python3",
-          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
           "--file",
           "./compiler/tests/equivalence/407_abstract_declarator.cpp"
         ],
@@ -246,8 +246,8 @@
         "family": "control_flow_semantic_equivalence",
         "matrixFamily": "full statement lowering",
         "command": [
-          "python3",
-          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
           "--file",
           "./compiler/tests/equivalence/408_control_flow.cpp"
         ],
@@ -261,8 +261,8 @@
         "family": "enum_specifier_semantic_equivalence",
         "matrixFamily": "enumSpecifier / enumeratorList",
         "command": [
-          "python3",
-          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
           "--file",
           "./compiler/tests/equivalence/409_enum_specifier.cpp"
         ],
@@ -276,8 +276,8 @@
         "family": "declarations_semantic_equivalence",
         "matrixFamily": "declaration / declarationSpecifiers / initDeclaratorList",
         "command": [
-          "python3",
-          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
           "--file",
           "./compiler/tests/equivalence/410_declarations.cpp"
         ],
@@ -291,8 +291,8 @@
         "family": "conversion_operator_semantic_equivalence",
         "matrixFamily": "conversion/function operator IDs",
         "command": [
-          "python3",
-          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
           "--file",
           "./compiler/tests/equivalence/411_conversion_operator_id.cpp"
         ],
@@ -306,8 +306,8 @@
         "family": "try_throw_catch_semantic_equivalence",
         "matrixFamily": "tryBlock / handlerSeq / handler",
         "command": [
-          "python3",
-          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
           "--file",
           "./compiler/tests/equivalence/412_try_throw_catch.cpp"
         ],
@@ -321,8 +321,8 @@
         "family": "throw_expression_semantic_equivalence",
         "matrixFamily": "throwExpression",
         "command": [
-          "python3",
-          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
           "--file",
           "./compiler/tests/equivalence/413_throw_expression.cpp"
         ],
@@ -336,8 +336,8 @@
         "family": "linkage_specification_semantic_equivalence",
         "matrixFamily": "linkageSpecification",
         "command": [
-          "python3",
-          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
           "--file",
           "./compiler/tests/equivalence/414_linkage_specification.cpp"
         ],
@@ -351,8 +351,8 @@
         "family": "asm_definition_semantic_equivalence",
         "matrixFamily": "asmDefinition",
         "command": [
-          "python3",
-          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
           "--file",
           "./compiler/tests/equivalence/415_asm_definition.cpp"
         ],
@@ -366,8 +366,8 @@
         "family": "explicit_instantiation_semantic_equivalence",
         "matrixFamily": "explicitInstantiation",
         "command": [
-          "python3",
-          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
           "--file",
           "./compiler/tests/equivalence/416_explicit_instantiation.cpp"
         ],
@@ -381,8 +381,8 @@
         "family": "explicit_specialization_semantic_equivalence",
         "matrixFamily": "explicitSpecialization",
         "command": [
-          "python3",
-          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
           "--file",
           "./compiler/tests/equivalence/417_explicit_specialization.cpp"
         ],
@@ -396,8 +396,8 @@
         "family": "iostream_semantic_equivalence",
         "matrixFamily": "iostream ostream cout endl",
         "command": [
-          "python3",
-          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
           "--file",
           "./compiler/tests/equivalence/431_iostream_cout_endl_smoke.cpp"
         ],
@@ -469,8 +469,8 @@
         "family": "parser_codegen_regression",
         "matrixFamily": "parser/codegen fixture suite",
         "command": [
-          "python3",
-          "./compiler/tests/run_fixtures.py",
+          "node",
+          "./compiler/tests/run_fixtures.js",
           "--fixtures-dir",
           "./compiler/tests/fixtures",
           "--parser",
@@ -488,8 +488,8 @@
         "family": "ast_strict_regression_lane",
         "matrixFamily": "AST strict mode regression lane",
         "command": [
-          "python3",
-          "./compiler/tests/run_fixtures.py",
+          "node",
+          "./compiler/tests/run_fixtures.js",
           "--fixtures-dir",
           "./compiler/tests/fixtures",
           "--parser",
@@ -510,8 +510,8 @@
         "family": "legacy_function_hints_reduction_lane",
         "matrixFamily": "source-hint merge reduction lane",
         "command": [
-          "python3",
-          "./compiler/tests/run_fixtures.py",
+          "node",
+          "./compiler/tests/run_fixtures.js",
           "--fixtures-dir",
           "./compiler/tests/fixtures",
           "--parser",
@@ -520,11 +520,11 @@
           "compiler",
           "--parser-extra-arg=--no-legacy-function-hints",
           "--cases",
-          "011_namespace_global_function,013_global_call_lowering,017_overload_type_resolution,031_wat_simple_if_return,038_enum_semantic_use"
+          "011_namespace_global_function,012_global_simple_return_lowering,013_global_call_lowering,014_namespace_qualified_call_lowering,015_nested_namespace_qualified_call_lowering,016_partial_namespace_qualified_call_lowering,017_overload_type_resolution,018_namespace_overload_type_resolution,019_cast_overload_type_resolution,020_literal_suffix_overload_type_resolution,021_unary_arg_overload_resolution,022_static_cast_overload_resolution,023_implicit_int_to_long_overload_resolution,024_implicit_float_to_double_overload_resolution,025_scope_tie_break_namespace_priority,026_scope_tie_break_proximity,027_paramwise_cost_tie_break,028_paramwise_cost_tie_break_namespace,029_ambiguity_stable_fallback_diagnostic,030_ambiguity_summary_count,031_wat_simple_if_return,032_wat_if_compare_return,033_wat_if_param_compare_return,034_wat_ternary_compare_return,035_wat_deterministic_baseline_helpers,036_wat_structured_cast_newdelete_helpers,037_namespace_alias_qualified_call,038_enum_semantic_use,039_explicit_instantiation_semantic,040_explicit_specialization_semantic"
         ],
         "expectExitCode": 0,
         "stdoutContains": [
-          "All fixtures passed: 5"
+          "All fixtures passed: 30"
         ]
       },
       {
@@ -617,8 +617,8 @@
         "family": "selected_no_stub_guard",
         "matrixFamily": "full statement lowering",
         "command": [
-          "python3",
-          "./compiler/tests/assert_no_stub_returns.py",
+          "node",
+          "./compiler/tests/assert_no_stub_returns.js",
           "--file",
           "./compiler/test_cpp98_extended.cpp",
           "--functions",
@@ -634,8 +634,8 @@
         "family": "control_flow_no_stub_guard",
         "matrixFamily": "full statement lowering",
         "command": [
-          "python3",
-          "./compiler/tests/assert_no_stub_returns.py",
+          "node",
+          "./compiler/tests/assert_no_stub_returns.js",
           "--file",
           "./compiler/tests/tier3/313_control_flow.cpp",
           "--functions",
@@ -651,8 +651,8 @@
         "family": "equivalence_no_stub_guard",
         "matrixFamily": "executable behavior conformance suite against C++98 semantics",
         "command": [
-          "python3",
-          "./compiler/tests/assert_no_stub_returns.py",
+          "node",
+          "./compiler/tests/assert_no_stub_returns.js",
           "--file",
           "./compiler/tests/equivalence/401_namespace_overload.cpp",
           "--functions",
@@ -668,8 +668,8 @@
         "family": "equivalence_object_memory_no_stub_guard",
         "matrixFamily": "executable behavior conformance suite against C++98 semantics",
         "command": [
-          "python3",
-          "./compiler/tests/assert_no_stub_returns.py",
+          "node",
+          "./compiler/tests/assert_no_stub_returns.js",
           "--file",
           "./compiler/tests/equivalence/402_object_memory.cpp",
           "--functions",
@@ -685,8 +685,8 @@
         "family": "using_directive_no_stub_guard",
         "matrixFamily": "usingDeclaration / usingDirective",
         "command": [
-          "python3",
-          "./compiler/tests/assert_no_stub_returns.py",
+          "node",
+          "./compiler/tests/assert_no_stub_returns.js",
           "--file",
           "./compiler/tests/equivalence/403_using_directive.cpp",
           "--functions",
@@ -702,8 +702,8 @@
         "family": "namespace_alias_no_stub_guard",
         "matrixFamily": "namespaceDefinition / namespaceAliasDefinition",
         "command": [
-          "python3",
-          "./compiler/tests/assert_no_stub_returns.py",
+          "node",
+          "./compiler/tests/assert_no_stub_returns.js",
           "--file",
           "./compiler/tests/equivalence/404_namespace_alias.cpp",
           "--functions",
@@ -719,8 +719,8 @@
         "family": "pointer_cv_no_stub_guard",
         "matrixFamily": "pointer / ptrOperator / cvQualifierSeq",
         "command": [
-          "python3",
-          "./compiler/tests/assert_no_stub_returns.py",
+          "node",
+          "./compiler/tests/assert_no_stub_returns.js",
           "--file",
           "./compiler/tests/equivalence/405_pointer_cv.cpp",
           "--functions",
@@ -736,8 +736,8 @@
         "family": "elaborated_type_no_stub_guard",
         "matrixFamily": "elaboratedTypeSpecifier",
         "command": [
-          "python3",
-          "./compiler/tests/assert_no_stub_returns.py",
+          "node",
+          "./compiler/tests/assert_no_stub_returns.js",
           "--file",
           "./compiler/tests/equivalence/406_elaborated_type.cpp",
           "--functions",
@@ -753,8 +753,8 @@
         "family": "abstract_declarator_no_stub_guard",
         "matrixFamily": "abstractDeclarator family",
         "command": [
-          "python3",
-          "./compiler/tests/assert_no_stub_returns.py",
+          "node",
+          "./compiler/tests/assert_no_stub_returns.js",
           "--file",
           "./compiler/tests/equivalence/407_abstract_declarator.cpp",
           "--functions",
@@ -770,8 +770,8 @@
         "family": "enum_specifier_no_stub_guard",
         "matrixFamily": "enumSpecifier / enumeratorList",
         "command": [
-          "python3",
-          "./compiler/tests/assert_no_stub_returns.py",
+          "node",
+          "./compiler/tests/assert_no_stub_returns.js",
           "--file",
           "./compiler/tests/equivalence/409_enum_specifier.cpp",
           "--functions",
@@ -787,8 +787,8 @@
         "family": "declarations_no_stub_guard",
         "matrixFamily": "declaration / declarationSpecifiers / initDeclaratorList",
         "command": [
-          "python3",
-          "./compiler/tests/assert_no_stub_returns.py",
+          "node",
+          "./compiler/tests/assert_no_stub_returns.js",
           "--file",
           "./compiler/tests/equivalence/410_declarations.cpp",
           "--functions",
@@ -804,8 +804,8 @@
         "family": "conversion_operator_no_stub_guard",
         "matrixFamily": "conversion/function operator IDs",
         "command": [
-          "python3",
-          "./compiler/tests/assert_no_stub_returns.py",
+          "node",
+          "./compiler/tests/assert_no_stub_returns.js",
           "--file",
           "./compiler/tests/equivalence/411_conversion_operator_id.cpp",
           "--functions",
@@ -821,8 +821,8 @@
         "family": "try_throw_catch_no_stub_guard",
         "matrixFamily": "tryBlock / handlerSeq / handler",
         "command": [
-          "python3",
-          "./compiler/tests/assert_no_stub_returns.py",
+          "node",
+          "./compiler/tests/assert_no_stub_returns.js",
           "--file",
           "./compiler/tests/equivalence/412_try_throw_catch.cpp",
           "--functions",
@@ -838,8 +838,8 @@
         "family": "throw_expression_no_stub_guard",
         "matrixFamily": "throwExpression",
         "command": [
-          "python3",
-          "./compiler/tests/assert_no_stub_returns.py",
+          "node",
+          "./compiler/tests/assert_no_stub_returns.js",
           "--file",
           "./compiler/tests/equivalence/413_throw_expression.cpp",
           "--functions",
@@ -855,8 +855,8 @@
         "family": "linkage_specification_no_stub_guard",
         "matrixFamily": "linkageSpecification",
         "command": [
-          "python3",
-          "./compiler/tests/assert_no_stub_returns.py",
+          "node",
+          "./compiler/tests/assert_no_stub_returns.js",
           "--file",
           "./compiler/tests/equivalence/414_linkage_specification.cpp",
           "--functions",
@@ -872,8 +872,8 @@
         "family": "asm_definition_no_stub_guard",
         "matrixFamily": "asmDefinition",
         "command": [
-          "python3",
-          "./compiler/tests/assert_no_stub_returns.py",
+          "node",
+          "./compiler/tests/assert_no_stub_returns.js",
           "--file",
           "./compiler/tests/equivalence/415_asm_definition.cpp",
           "--functions",
@@ -889,8 +889,8 @@
         "family": "explicit_instantiation_no_stub_guard",
         "matrixFamily": "explicitInstantiation",
         "command": [
-          "python3",
-          "./compiler/tests/assert_no_stub_returns.py",
+          "node",
+          "./compiler/tests/assert_no_stub_returns.js",
           "--file",
           "./compiler/tests/equivalence/416_explicit_instantiation.cpp",
           "--functions",
@@ -906,8 +906,8 @@
         "family": "explicit_specialization_no_stub_guard",
         "matrixFamily": "explicitSpecialization",
         "command": [
-          "python3",
-          "./compiler/tests/assert_no_stub_returns.py",
+          "node",
+          "./compiler/tests/assert_no_stub_returns.js",
           "--file",
           "./compiler/tests/equivalence/417_explicit_specialization.cpp",
           "--functions",
@@ -1501,8 +1501,8 @@
         "family": "stl_vector_algorithm_pipeline_smoke",
         "matrixFamily": "executable behavior conformance suite against C++98 semantics",
         "command": [
-          "python3",
-          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
           "--file",
           "./compiler/tests/equivalence/430_stl_vector_algorithm_smoke.cpp",
           "--pipeline-only",

@@ -116,6 +116,7 @@ Progress notes:
 - Added Tier 2 strict regression lane case `tier2_fixture_subset_ast_strict` using a curated fixture subset and `--ast-strict`.
 - Added Tier 2 fallback-reduction lane case `tier2_fixture_subset_no_legacy_function_hints` with a curated fixture subset under `--no-legacy-function-hints`.
 - Added AST-derived namespace-path inference for global functions and promoted `011_namespace_global_function` into the no-legacy-function-hints passing subset.
+- Promoted namespace-qualified call fixtures `014`, `015`, and `016` into the no-legacy-function-hints passing subset by restoring source-derived call qualifiers while keeping AST namespace ownership.
 
 ### 6) Full statement lowering progress
 
@@ -145,7 +146,7 @@ Acceptance:
 - [x] Add one browser-oriented runtime case if deterministic output is feasible.
 
 Files to touch:
-- `compiler/tests/compare_cpp_vs_pipeline.py`
+- `compiler/tests/compare_cpp_vs_pipeline.js`
 - `compiler/tests/ebnf_tiers.json`
 - `compiler/tests/tier3/*` (or new folder for equivalence inputs)
 

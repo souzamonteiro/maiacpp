@@ -35,5 +35,5 @@ Exemplo:
 ## Execução
 
 - Completa (build + fixtures + smoke): `./test_grammar.sh`
-- Só fixtures (modo atual): `python3 tests/run_fixtures.py --parser cpp-compiler.js --mode compiler`
-- Só fixtures (legado XML): `python3 tests/run_fixtures.py --parser Cpp-main.js --mode xml-parser`
+- Só fixtures (modo atual): `node tests/run_fixtures.js --parser cpp-compiler.js --mode compiler`
+- Só fixtures (legado XML): `node tests/run_fixtures.js --parser Cpp-main.js --mode xml-parser`

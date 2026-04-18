@@ -334,7 +334,6 @@ function inferClassNamespaceMap(source) {
 
 function inferFunctionNamespaceMap(source) {
   const map = new Map();
-  const ambiguous = new Set();
   const text = String(source || '')
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/\/\/.*$/gm, '');
@@ -377,12 +376,15 @@ function inferFunctionNamespaceMap(source) {
         if (!blocked) {
           const key = `${fname}/${arity}`;
           const nsPath = [...namespaceStack];
-          const prev = map.get(key);
-          if (!prev) {
-            map.set(key, nsPath);
-          } else if (JSON.stringify(prev) !== JSON.stringify(nsPath)) {
-            ambiguous.add(key);
-          }
+          const close = findMatchingBrace(text, i);
+          const bodyText = close > i ? text.slice(i + 1, close) : '';
+          const entry = {
+            namespacePath: nsPath,
+            bodyKey: functionBodyKey(bodyText)
+          };
+          const list = map.get(key) || [];
+          list.push(entry);
+          map.set(key, list);
         }
       }
 
@@ -400,9 +402,6 @@ function inferFunctionNamespaceMap(source) {
     }
   }
 
-  for (const key of ambiguous) {
-    map.delete(key);
-  }
   return map;
 }
 
@@ -448,6 +447,10 @@ function cleanFunctionBodyText(bodyText) {
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/\/\/.*$/gm, '')
     .trim();
+}
+
+function functionBodyKey(bodyText) {
+  return cleanFunctionBodyText(bodyText).replace(/\s+/g, '');
 }
 
 function inferSimpleReturnExprFromBody(bodyText, params) {
@@ -1563,7 +1566,17 @@ class SemanticAnalyzer {
   }
 
   extractGlobalFunction(node) {
-    const declaration = this.findDirectChildNonterminal(node, 'declaration');
+    // For plain functions: externalDeclaration → declaration
+    // For templates: externalDeclaration → templateDeclaration → declaration
+    // For explicit specializations: externalDeclaration → explicitSpecialization → declaration
+    let declaration = this.findDirectChildNonterminal(node, 'declaration');
+    if (!declaration) {
+      const wrapper = this.findDirectChildNonterminal(node, 'templateDeclaration')
+        || this.findDirectChildNonterminal(node, 'explicitSpecialization');
+      if (wrapper) {
+        declaration = this.findDirectChildNonterminal(wrapper, 'declaration');
+      }
+    }
     if (!declaration) return null;
 
     const functionBody = this.findDirectChildNonterminal(declaration, 'functionBody');
@@ -3269,9 +3282,31 @@ class Cpp98Compiler {
         const currentNs = Array.isArray(fn.namespacePath) ? fn.namespacePath : [];
         if (currentNs.length > 0) return fn;
         const key = `${fn.name}/${(fn.params || []).length}`;
-        const inferredNs = fnNsMap.get(key);
-        if (!inferredNs || inferredNs.length === 0) return fn;
-        return { ...fn, namespacePath: [...inferredNs] };
+        const candidates = fnNsMap.get(key) || [];
+        if (candidates.length === 0) return fn;
+
+        let inferred = candidates.length === 1 ? candidates[0] : null;
+        if (!inferred && fn.bodyText) {
+          const bodyKey = functionBodyKey(fn.bodyText);
+          const bodyMatches = candidates.filter((candidate) => candidate.bodyKey === bodyKey);
+          if (bodyMatches.length === 1) {
+            inferred = bodyMatches[0];
+          }
+        }
+
+        // Overloads may share name/arity and body shape; if all source candidates
+        // point to the same namespace, keep that namespace even without a unique body match.
+        if (!inferred && candidates.length > 1) {
+          const nsKeys = new Set(candidates.map((candidate) => (candidate.namespacePath || []).join('::')));
+          if (nsKeys.size === 1) {
+            inferred = candidates[0];
+          }
+        }
+
+        if (!inferred || !Array.isArray(inferred.namespacePath) || inferred.namespacePath.length === 0) {
+          return fn;
+        }
+        return { ...fn, namespacePath: [...inferred.namespacePath] };
       });
     }
 
@@ -3279,6 +3314,58 @@ class Cpp98Compiler {
       const sig = (fn.params || []).map((p) => normalizeTypeText(p.type || '')).join(',');
       return `${fn.name}(${sig})`;
     };
+
+    const functionHintCandidate = (fnList, targetFn) => {
+      const candidates = Array.isArray(fnList) ? fnList : [];
+      if (candidates.length <= 1) return candidates[0] || null;
+      const targetBodyKey = functionBodyKey(targetFn && targetFn.bodyText);
+      if (!targetBodyKey) return null;
+      const bodyMatches = candidates.filter((candidate) => functionBodyKey(candidate && candidate.bodyText) === targetBodyKey);
+      return bodyMatches.length === 1 ? bodyMatches[0] : null;
+    };
+
+    if (Array.isArray(analysis.functions) && fallback.functions && fallback.functions.length > 0) {
+      const exprKey = (expr) => String(expr || '').replace(/\s+/g, '');
+      const fallbackByLooseKey = new Map();
+      for (const fn of fallback.functions) {
+        const key = functionLooseKey(fn);
+        const list = fallbackByLooseKey.get(key) || [];
+        list.push(fn);
+        fallbackByLooseKey.set(key, list);
+      }
+
+      analysis.functions = analysis.functions.map((fn) => {
+        const hinted = functionHintCandidate(fallbackByLooseKey.get(functionLooseKey(fn)), fn);
+        if (!hinted) return fn;
+
+        const currentCallNs = Array.isArray(fn.simpleReturnCall?.calleeNamespacePath)
+          ? fn.simpleReturnCall.calleeNamespacePath
+          : [];
+        const hintedCallNs = Array.isArray(hinted.simpleReturnCall?.calleeNamespacePath)
+          ? hinted.simpleReturnCall.calleeNamespacePath
+          : [];
+
+        return {
+          ...fn,
+          simpleReturnExpr: (() => {
+            if (hinted.simpleReturnExpr && fn.simpleReturnExpr
+              && exprKey(hinted.simpleReturnExpr) === exprKey(fn.simpleReturnExpr)) {
+              return hinted.simpleReturnExpr;
+            }
+            return fn.simpleReturnExpr || hinted.simpleReturnExpr || null;
+          })(),
+          simpleReturnCall: currentCallNs.length > 0
+            ? fn.simpleReturnCall
+            : (hinted.simpleReturnCall || fn.simpleReturnCall || null),
+          simpleIfReturn: fn.simpleIfReturn || hinted.simpleIfReturn || null,
+          deterministicNoParamI32Return: Number.isInteger(fn.deterministicNoParamI32Return)
+            ? fn.deterministicNoParamI32Return
+            : (Number.isInteger(hinted.deterministicNoParamI32Return)
+              ? hinted.deterministicNoParamI32Return
+              : null)
+        };
+      });
+    }
 
     if (this.options && this.options.legacyFunctionHints && fallback.functions && fallback.functions.length > 0) {
       const astFns = Array.isArray(analysis.functions) ? analysis.functions : [];

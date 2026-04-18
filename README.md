@@ -112,13 +112,13 @@ bash ./bin/run-test-cpp.sh --file ./compiler/test_cpp98_extended.cpp --target al
 Tiered C++98 suite + EBNF report (production):
 
 ```bash
-python3 ./compiler/tests/run_tiered_cpp98.py
+node ./compiler/tests/run_tiered_cpp98.js
 ```
 
 Semantic comparison of native C++ vs. generated C pipeline:
 
 ```bash
-python3 ./compiler/tests/compare_cpp_vs_pipeline.py --file ./compiler/test_cpp98_extended.cpp
+node ./compiler/tests/compare_cpp_vs_pipeline.js --file ./compiler/test_cpp98_extended.cpp
 ```
 
 This command:

@@ -32,13 +32,15 @@ memInitializerId ::= '::'? nestedNameSpecifier? className
                    | Identifier
 
 declaration ::= declarationSpecifiers initDeclaratorList? ';'
+              | declarator ctorInitializer? functionBody
+              | declarator functionTryBlock
               | declarationSpecifiers declarator ctorInitializer? functionBody
               | declarationSpecifiers declarator functionTryBlock
 
 declarationList ::= declaration+
 
-declarationSpecifiers ::= declarationNoTypeQualifier+
-                        | declarationQualifier* declarationTypeSpecifier declarationQualifier*
+declarationSpecifiers ::= declarationQualifier* declarationTypeSpecifier declarationQualifier*
+                        | declarationNoTypeQualifier+
 
 declarationNoTypeQualifier ::= functionSpecifier
 
@@ -99,8 +101,8 @@ typeName ::= className
            | enumName
            | typedefName
 
-className ::= Identifier
-            | templateId
+className ::= templateId
+            | Identifier
 
 enumName ::= Identifier
 
@@ -448,8 +450,8 @@ multiplicativeExpression ::= pmExpression ( ( '*' | '/' | '%' ) pmExpression )*
 
 pmExpression ::= castExpression ( ( '.*' | '->*' ) castExpression )*
 
-castExpression ::= unaryExpression
-                 | '(' typeId ')' castExpression
+castExpression ::= '(' typeId ')' castExpression
+                 | unaryExpression
 
 unaryExpression ::= postfixExpression
                   | '++' castExpression
@@ -623,8 +625,15 @@ ConstantKeyword ::= 'false' | 'true'
 IntegerConstant ::= '0' ( [xX] [0-9a-fA-F]+
                             | [bB] [01]+
                             | [0-7]+
-                            )?
-                    | [1-9] [0-9]*
+                            )? IntegerSuffix?
+                    | [1-9] [0-9]* IntegerSuffix?
+
+IntegerSuffix ::= UnsignedSuffix LongSuffix?
+                | LongSuffix UnsignedSuffix?
+
+UnsignedSuffix ::= [uU]
+
+LongSuffix ::= [lL] [lL]?
 
 DecimalConstant ::= [1-9] [0-9]*
 
