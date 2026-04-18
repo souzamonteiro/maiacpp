@@ -27,6 +27,8 @@ The core principle is:
 - Validated interactive stdin semantics (real input values) in Node host runtime through `webcpp --dist-run` with piped input.
 - Added Tier 1 regression `tier1_iostream_cin_dist_run_stdin` to keep this stdin path covered.
 - Added Tier 1 regression `tier1_iostream_cin_dist_run_stdin_inequality` with input `7 8` expecting non-zero return, validating inequality semantics in the dist/node runtime path.
+- Synced MaiaCpp submodule `maiac/` to include MaiaC scanf-family hardening (`scanf`/`fscanf`/`sscanf` import/runtime path).
+- Added C++ pipeline smoke `compiler/tests/equivalence/434_stdio_sscanf_chain_smoke.cpp` and Tier 1 regression `tier1_stdio_sscanf_dist_run_smoke` (`webcpp --dist-run`) to keep sscanf behavior covered end-to-end.
 
 ### Dist packaging requirement checkpoint
 
