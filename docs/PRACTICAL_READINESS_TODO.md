@@ -67,7 +67,7 @@ Acceptance:
 
 - [x] Implement parse acceptance for explicit instantiation syntax.
 - [x] Move `tier3_parse_explicit_instantiation_expected_fail` to expected-pass.
-- [ ] Add negative fixture only if semantic lowering is intentionally deferred.
+- [x] Add semantic fixture for explicit instantiation; negative fixture not needed because lowering path is active.
 
 Files to touch:
 - `grammar/Cpp.ebnf`
@@ -83,7 +83,7 @@ Acceptance:
 
 - [x] Implement parse acceptance for explicit specialization syntax.
 - [x] Move `tier3_parse_explicit_specialization_expected_fail` to expected-pass.
-- [ ] Add at least one parse-only or semantic fixture depending on lowering support.
+- [x] Add semantic fixture for explicit specialization.
 
 Files to touch:
 - `grammar/Cpp.ebnf`

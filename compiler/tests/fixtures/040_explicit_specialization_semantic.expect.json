@@ -1,0 +1,17 @@
+{
+  "shouldParse": true,
+  "mustContainCompiler": [
+    "Parser: ok",
+    "int id__N1T(int x)",
+    "int id__i(int x)",
+    "return (id__i(1) == 2) ? 0 : 1;"
+  ],
+  "mustNotContainCompiler": [
+    "return (int)0;"
+  ],
+  "mustContain": [
+    "<explicitSpecialization>",
+    "<functionDefinition>",
+    "<EOF/>"
+  ]
+}

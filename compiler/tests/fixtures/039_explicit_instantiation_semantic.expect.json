@@ -1,0 +1,16 @@
+{
+  "shouldParse": true,
+  "mustContainCompiler": [
+    "Parser: ok",
+    "int addT__N1TN1T(int a, int b)",
+    "return (addT__N1TN1T(1, 2) == 3) ? 0 : 1;"
+  ],
+  "mustNotContainCompiler": [
+    "return (int)0;"
+  ],
+  "mustContain": [
+    "<explicitInstantiation>",
+    "<functionDefinition>",
+    "<EOF/>"
+  ]
+}
