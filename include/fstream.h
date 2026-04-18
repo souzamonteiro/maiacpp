@@ -7,6 +7,7 @@
 #include <istream>
 #include <ostream>
 #include <streambuf>
+#include <cstdio>
 
 namespace std {
 
@@ -25,6 +26,9 @@ public:
     bool is_open() const;
     basic_filebuf<charT,traits>* open(const char* s, ios_base::openmode mode);
     basic_filebuf<charT,traits>* close();
+
+private:
+    FILE* _file;
 
 protected:
     virtual streamsize showmanyc();

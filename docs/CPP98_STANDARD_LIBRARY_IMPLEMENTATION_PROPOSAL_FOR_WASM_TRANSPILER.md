@@ -49,12 +49,14 @@ From this point on, implementation work must follow this order of preference:
 
 1. Reuse MaiaC as-is.
 2. Add thin C++ wrappers/adapters over MaiaC behavior.
-3. Implement only the delta that cannot be expressed in C89/MaiaC directly.
+3. Reuse host functions already exposed by MaiaC/webc (Node/browser) via wrappers.
+4. Implement only the remaining delta that cannot be expressed in C89/MaiaC or host wrappers.
 
 Practical rule:
 
 - If a feature already exists in MaiaC C headers/runtime, MaiaCpp must not reimplement it independently.
 - If a feature is representable in C and can be lowered to MaiaC, prefer that route.
+- If equivalent host functionality already exists in browser/node runtime bridges, prefer wrapper declarations over new C/C++/WAT implementations.
 - Only C++-specific semantics (templates, overload sets, RAII object model, exceptions/RTTI semantics, stream/class behaviors) should have MaiaCpp-specific runtime code.
 
 ## WASM / MaiaC Compatibility Profile
@@ -315,6 +317,85 @@ Interpretation:
 
 - this keeps backend allocation delegated to the C/MaiaC-compatible layer,
 - while adding only the C++ interface semantics required by C++98.
+
+## Implementation pass: exception/typeinfo/stdexcept runtime stubs (2026-04-18)
+
+Additional MaiaC-first implementation completed:
+
+- added `src/exception.cpp` with concrete base runtime behavior for:
+  - `std::exception` / `std::bad_exception` constructors, assignment, destructors, and `what()`,
+  - `set_terminate` / `terminate`,
+  - `set_unexpected` / `unexpected`,
+  - `uncaught_exception` (provisional behavior).
+- added `src/typeinfo.cpp` with concrete runtime definitions for:
+  - `std::type_info` core operators and naming stub,
+  - `std::bad_cast` and `std::bad_typeid` lifecycle + `what()`.
+- added `src/stdexcept.cpp` with constructor definitions for:
+  - `logic_error`, `domain_error`, `invalid_argument`, `length_error`, `out_of_range`,
+  - `runtime_error`, `range_error`, `overflow_error`, `underflow_error`.
+
+Interpretation:
+
+- this pass converts three previously declaration-only headers into linkable runtime surface,
+- behavior remains intentionally minimal/provisional while the full exception lowering model is completed,
+- no independent allocator/runtime stack was introduced; implementation remains aligned with MaiaC-first policy.
+
+## Implementation pass: host-wrapper bridge policy in runtime (2026-04-18)
+
+Additional policy-aligned implementation completed:
+
+- added internal bridge header `include/maiacpp_host_bridge.h` to centralize opt-in wrappers for host imports already modeled by MaiaC/webc,
+- connected `src/exception.cpp` runtime hooks to host-side console error wrappers (`std::unexpected` / `std::terminate` paths),
+- kept host wrappers opt-in through `MAIACPP_ENABLE_HOST_IMPORT_WRAPPERS` so native host builds can still compile without unresolved host imports.
+
+Interpretation:
+
+- this keeps MaiaCpp runtime thin and avoids reimplementing functionality already available in Node/browser hosts,
+- wrapper ownership remains in MaiaCpp surface while transport/runtime plumbing remains in MaiaC/webc,
+- linker behavior in MaiaWASM remains unchanged for this pass.
+
+## Implementation pass: iostream runtime + host-wrapper convention guide (2026-04-18)
+
+Work completed:
+
+- created `src/iostream.cpp` implementing the standard stream objects (`cin`, `cout`, `cerr`, `clog`, `wcin`, `wcout`, `wcerr`, `wclog`):
+  - introduced internal class `__MaiacppStdioBuf` — a concrete `basic_streambuf<char>` backed by MaiaC stdio file handles 1 (stdout), 2 (stderr), 3 (stdin),
+  - `xsputn` and `overflow` delegate to MaiaC `fwrite`/`putchar` (MaiaC/webc routes these to the JS host write function),
+  - `xsgetn` and `underflow` delegate to MaiaC `getchar`/`fread`,
+  - wide-stream objects (`wcout`, etc.) are stub-initialized with null buffer (wide I/O not supported in WASM profile),
+- extended `include/maiacpp_host_bridge.h` with additional host import wrappers:
+  - `__console__warn` → `std::__maiacpp::host_console_warn`,
+  - `__performance__now` → `std::__maiacpp::host_performance_now` (sub-ms timer not available in C89 `time.h`),
+  - added policy documentation header comment listing which C89 stdlib areas MaiaC already covers natively,
+- created `docs/HOST_WRAPPER_CONVENTION.md` as the authoritative conventions guide covering:
+  - 4-step implementation priority decision tree,
+  - `__namespace__funcName` naming convention and WAT import wiring,
+  - `MAIACPP_ENABLE_HOST_IMPORT_WRAPPERS` guard pattern and wrapper template,
+  - table of what MaiaC C89 stdlib handles vs. what needs host wrappers,
+  - current wrapper inventory with usage references.
+
+Interpretation:
+
+- iostream is now a complete runtime layer (not just declaration-only): cout/cerr/clog route to MaiaC stdio, which MaiaC/webc routes to the JS host `write` function; no WAT/C reimplementation was needed,
+- the host bridge stays thin: two new wrappers added, all other I/O remains via MaiaC C89 stdlib path,
+- fstream runtime completed in same pass (see below).
+
+## Implementation pass: fstream runtime (2026-04-18)
+
+Work completed:
+
+- created `src/fstream.cpp` with explicit `char` specialisations for all four fstream classes:
+  - `basic_filebuf<char>`: constructor/destructor, `is_open`, `open`, `close`; virtuals `underflow`/`uflow`/`xsgetn`/`pbackfail` (input) and `overflow`/`xsputn` (output) delegate to MaiaC `fgetc`/`fread`/`ungetc`/`fputc`/`fwrite`; `seekoff`/`seekpos` delegate to MaiaC `fseek`/`ftell`; `sync` delegates to MaiaC `fflush`,
+  - `basic_ifstream<char>` / `basic_ofstream<char>` / `basic_fstream<char>`: constructors (default + filename/mode), `rdbuf()`, `is_open()`, `open()`, `close()` — all wired to the contained `sb` filebuf member; `setstate`/`clear` used for failure propagation,
+  - `ios_base::openmode` → C `fopen` mode string mapping covers all 8 canonical C++98 mode combinations and the binary flag,
+  - wide-char stream classes (`wifstream`, `wofstream`, `wfstream`) are not specialised; they are typedef stubs only (wide I/O unsupported in WASM profile),
+- updated `include/fstream.h`: added `#include <cstdio>` and declared `FILE* _file` as a private member of `basic_filebuf` so specialisation bodies in `src/fstream.cpp` can access the file handle.
+
+Interpretation:
+
+- no WAT, C, or JS was written; the entire fstream layer delegates to MaiaC's `createStdioHosts` which is already fully implemented in `maiac/src/runtime/c89-js-hosts.js`,
+- MaiaWASM linker is unchanged,
+- the host-wrapper-first + MaiaC-first policy is now fully applied to the three major stream headers: iostream, fstream, and the host bridge.
 
 ## Second-Pass Audit: `string`, `exception`, `new`, `stdexcept`, `typeinfo`, `limits`
 
