@@ -77,6 +77,12 @@ def main():
     parser.add_argument("--file", default="./compiler/test_cpp98_extended.cpp")
     parser.add_argument("--out-dir", default="./out/reports/cpp-vs-c")
     parser.add_argument("--runtime", choices=["node", "browser-host"], default="node")
+    parser.add_argument("--pipeline-only", action="store_true",
+                        help="Skip native C++ compile/run and validate only MaiaCpp->MaiaC->WASM pipeline")
+    parser.add_argument("--expect-wasm-rc", type=int, default=0,
+                        help="Expected main() return code from WASM runner (pipeline-only mode)")
+    parser.add_argument("--webcpp-extra", action="append", default=[],
+                        help="Extra flag passed through to bin/webcpp.sh (repeat option for multiple flags)")
     parser.add_argument("--keep-temp", action="store_true")
     args = parser.parse_args()
 
@@ -88,10 +94,12 @@ def main():
         print(f"[fail] input not found: {input_cpp}")
         return 2
 
-    cxx = choose_cxx()
-    if not cxx:
-        print("[fail] no C++ compiler found (clang++/g++)")
-        return 2
+    cxx = None
+    if not args.pipeline_only:
+        cxx = choose_cxx()
+        if not cxx:
+            print("[fail] no C++ compiler found (clang++/g++)")
+            return 2
 
     cpp_compiler = repo_root / "compiler" / "cpp-compiler.js"
     webcpp = repo_root / "bin" / "webcpp.sh"
@@ -120,21 +128,27 @@ def main():
         print(gen_proc.stderr)
         return 1
 
+    webcpp_extra = list(args.webcpp_extra or [])
+
     with tempfile.TemporaryDirectory(prefix="maiacpp_compare_") as temp_dir:
         temp = Path(temp_dir)
         native_bin = temp / f"{stem}.native"
         wasm_file = temp / f"{stem}.wasm"
 
-        native_build = run_cmd([cxx, "-std=c++98", "-O0", str(input_cpp), "-o", str(native_bin)], repo_root)
-        if native_build.returncode != 0:
-            print("[fail] native C++ compilation failed")
-            print(native_build.stdout)
-            print(native_build.stderr)
-            return 1
+        if not args.pipeline_only:
+            native_build = run_cmd([cxx, "-std=c++98", "-O0", str(input_cpp), "-o", str(native_bin)], repo_root)
+            if native_build.returncode != 0:
+                print("[fail] native C++ compilation failed")
+                print(native_build.stdout)
+                print(native_build.stderr)
+                return 1
 
-        native_run = run_cmd([str(native_bin)], repo_root)
+            native_run = run_cmd([str(native_bin)], repo_root)
+        else:
+            native_run = None
 
-        wasm_build = run_cmd(["bash", str(webcpp), "--file", str(input_cpp), "--wasm-out", str(wasm_file)], repo_root)
+        wasm_cmd = ["bash", str(webcpp), "--file", str(input_cpp), "--wasm-out", str(wasm_file)] + webcpp_extra
+        wasm_build = run_cmd(wasm_cmd, repo_root)
         if wasm_build.returncode != 0:
             print("[fail] MaiaCpp->MaiaC pipeline failed")
             print(wasm_build.stdout)
@@ -149,7 +163,6 @@ def main():
             print(wasm_run.stderr)
             return 1
 
-        native_out = normalize_native_output(native_run.stdout)
         runner_out = wasm_build.stdout + ("\n" + wasm_run.stdout if wasm_run.stdout else "")
         if args.runtime == "node":
             wasm_out = normalize_node_program_output(runner_out)
@@ -158,38 +171,51 @@ def main():
             wasm_out = normalize_browser_program_output(runner_out)
             wasm_rc = parse_browser_main_rc(wasm_run.stdout)
 
-        native_rc = native_run.returncode
-
         ok = True
 
         if wasm_rc is None:
             print(f"[fail] could not parse [{args.runtime}] main() return code")
             ok = False
-        elif wasm_rc != native_rc:
-            print(f"[fail] return code mismatch: native={native_rc}, wasm={wasm_rc}")
-            ok = False
+        elif args.pipeline_only:
+            if wasm_rc != args.expect_wasm_rc:
+                print(f"[fail] return code mismatch (pipeline-only): expected={args.expect_wasm_rc}, wasm={wasm_rc}")
+                ok = False
+        else:
+            native_out = normalize_native_output(native_run.stdout)
+            native_rc = native_run.returncode
+            if wasm_rc != native_rc:
+                print(f"[fail] return code mismatch: native={native_rc}, wasm={wasm_rc}")
+                ok = False
 
-        if native_out != wasm_out:
-            print("[fail] stdout mismatch between native C++ and pipeline output")
-            diff = difflib.unified_diff(
-                native_out.splitlines(),
-                wasm_out.splitlines(),
-                fromfile="native-cpp",
-                tofile="maiacpp-pipeline",
-                lineterm="",
-            )
-            for ln in diff:
-                print(ln)
-            ok = False
+            if native_out != wasm_out:
+                print("[fail] stdout mismatch between native C++ and pipeline output")
+                diff = difflib.unified_diff(
+                    native_out.splitlines(),
+                    wasm_out.splitlines(),
+                    fromfile="native-cpp",
+                    tofile="maiacpp-pipeline",
+                    lineterm="",
+                )
+                for ln in diff:
+                    print(ln)
+                ok = False
 
         print("C++ vs Pipeline Comparison")
         print(f"- Input: {input_cpp.relative_to(repo_root)}")
         print(f"- Generated C: {generated_c.relative_to(repo_root)}")
-        print(f"- Native compiler: {cxx}")
+        print(f"- Native compiler: {cxx if cxx else 'skipped (pipeline-only)'}")
         print(f"- Runtime host: {args.runtime}")
+        if webcpp_extra:
+            print(f"- webcpp extra: {' '.join(webcpp_extra)}")
         if wasm_rc is not None:
-            print(f"- Return code: native={native_rc}, wasm={wasm_rc}")
-        print(f"- Stdout equal: {'yes' if native_out == wasm_out else 'no'}")
+            if args.pipeline_only:
+                print(f"- Return code: expected={args.expect_wasm_rc}, wasm={wasm_rc}")
+            else:
+                print(f"- Return code: native={native_rc}, wasm={wasm_rc}")
+        if args.pipeline_only:
+            print("- Stdout equal: n/a (pipeline-only)")
+        else:
+            print(f"- Stdout equal: {'yes' if native_out == wasm_out else 'no'}")
 
         if not args.keep_temp:
             pass
@@ -197,7 +223,10 @@ def main():
         if not ok:
             return 1
 
-    print("[ok] native C++ output matches MaiaCpp pipeline output")
+    if args.pipeline_only:
+        print("[ok] MaiaCpp pipeline-only WASM run matches expected return code")
+    else:
+        print("[ok] native C++ output matches MaiaCpp pipeline output")
     return 0
 
 

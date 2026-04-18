@@ -908,3 +908,22 @@ Boundary policy after this pass:
 1. Wide-char support is available as a pragmatic compatibility layer, not full locale-aware Unicode semantics.
 2. Behavior is deterministic and explicit, favoring transpiler/runtime stability over full standard fidelity.
 3. Full locale/wide-character semantics remain a later phase once MaiaC host/runtime support is expanded.
+
+### 2026-04-18: Pipeline-only STL gap tracking in tiered suite
+
+To avoid blocking progress while parser/pipeline STL coverage is still incomplete, the semantic comparison runner was extended with a pipeline-only mode:
+
+- `compiler/tests/compare_cpp_vs_pipeline.py`
+  - new `--pipeline-only` mode (skips native C++ execution)
+  - new `--expect-wasm-rc` for explicit return-code expectations in pipeline-only checks
+  - new `--webcpp-extra` passthrough to forward flags to `bin/webcpp.sh` (e.g. include-resolution probes)
+
+New tracking case added:
+
+- `compiler/tests/equivalence/430_stl_vector_algorithm_smoke.cpp`
+  - exercises `vector`, `algorithm`, `iterator`, and `functional` usage in one source
+- `compiler/tests/ebnf_tiers.json` tier3 entry:
+  - `tier3_stl_vector_algorithm_pipeline_smoke_gap`
+  - currently expected to fail in pipeline (`expectExitCode: 1`) and used as a regression tracker for closing the STL front-end/runtime gap
+
+This keeps the suite actionable: stable tiers remain green where required, while unresolved STL paths are tracked explicitly until promoted to passing conformance cases.

@@ -1379,6 +1379,24 @@
         "stdoutContains": [
           "Parser: ok"
         ]
+      },
+      {
+        "id": "tier3_stl_vector_algorithm_pipeline_smoke_gap",
+        "family": "stl_vector_algorithm_pipeline_smoke",
+        "matrixFamily": "executable behavior conformance suite against C++98 semantics",
+        "command": [
+          "python3",
+          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "--file",
+          "./compiler/tests/equivalence/430_stl_vector_algorithm_smoke.cpp",
+          "--pipeline-only",
+          "--webcpp-extra=--resolve-system-includes",
+          "--webcpp-extra=--wat"
+        ],
+        "expectExitCode": 1,
+        "stdoutContains": [
+          "[fail] MaiaCpp->MaiaC pipeline failed"
+        ]
       }
     ]
   }
