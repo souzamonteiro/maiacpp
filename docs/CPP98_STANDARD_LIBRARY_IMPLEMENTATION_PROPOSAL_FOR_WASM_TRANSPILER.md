@@ -26,6 +26,7 @@ The core principle is:
 - Added smoke coverage for chain extraction lowering: `compiler/tests/equivalence/432_iostream_cin_chain_smoke.cpp`.
 - Validated interactive stdin semantics (real input values) in Node host runtime through `webcpp --dist-run` with piped input.
 - Added Tier 1 regression `tier1_iostream_cin_dist_run_stdin` to keep this stdin path covered.
+- Added Tier 3 gap tracker `tier3_iostream_cin_dist_stdin_inequality_gap` with input `7 8` expecting non-zero return; current runtime path still returns 0 in this scenario and remains pending for full `cin`/`scanf` semantic parity.
 
 ### Dist packaging requirement checkpoint
 
