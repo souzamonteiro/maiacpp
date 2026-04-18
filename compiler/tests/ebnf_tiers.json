@@ -407,6 +407,20 @@
         ]
       },
       {
+        "id": "tier1_iostream_cin_dist_run_stdin",
+        "family": "iostream_runtime_input",
+        "matrixFamily": "runtime host integration (printf in Node/browser)",
+        "command": [
+          "bash",
+          "-lc",
+          "printf '7 7\\n' | bash ./bin/webcpp.sh --file ./compiler/tests/equivalence/432_iostream_cin_chain_smoke.cpp --dist-run --out-dir {tmpDir}/cin_dist --name cin-smoke"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[node-runner] program returned: 0"
+        ]
+      },
+      {
         "id": "tier1_include_resolution_stdio_system",
         "family": "include_resolution",
         "matrixFamily": "PreprocessingDirective family",

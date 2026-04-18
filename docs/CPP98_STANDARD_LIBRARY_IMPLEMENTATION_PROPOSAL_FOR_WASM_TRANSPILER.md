@@ -24,7 +24,8 @@ The core principle is:
 - Added minimal structured lowering support for `cout << "..." << endl` to preserve observable output behavior in the current transpiler profile.
 - Added initial structured lowering support for chained `cin >> var1 >> var2` into `scanf` format chains.
 - Added smoke coverage for chain extraction lowering: `compiler/tests/equivalence/432_iostream_cin_chain_smoke.cpp`.
-- Pending: validate interactive stdin semantics (real input values) in runtime hosts; current smoke validates lowering/pipeline stability.
+- Validated interactive stdin semantics (real input values) in Node host runtime through `webcpp --dist-run` with piped input.
+- Added Tier 1 regression `tier1_iostream_cin_dist_run_stdin` to keep this stdin path covered.
 
 ### Dist packaging requirement checkpoint
 
