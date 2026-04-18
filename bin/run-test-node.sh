@@ -89,7 +89,7 @@ WASM_OUT="$OUT_DIR/$STEM.wasm"
 case "$MODE" in
 	legacy)
 		[[ -f "$NODE_RUNNER" ]] || { echo "Error: missing $NODE_RUNNER" >&2; exit 1; }
-		bash "$WEBCPP" --file "$INPUT_FILE" --wasm-out "$WASM_OUT" "${FORWARD_ARGS[@]}"
+		bash "$WEBCPP" --file "$INPUT_FILE" --wasm-out "$WASM_OUT" ${FORWARD_ARGS+"${FORWARD_ARGS[@]}"}
 		node "$NODE_RUNNER" "$WASM_OUT"
 		echo "[node] wasm: $WASM_OUT"
 		;;
@@ -101,7 +101,9 @@ case "$MODE" in
 		if [[ -n "$WEBC_OUT_BASE" ]]; then
 			DIST_ARGS+=(--webc-out-base "$WEBC_OUT_BASE")
 		fi
-		DIST_ARGS+=("${FORWARD_ARGS[@]}")
+		if [[ ${#FORWARD_ARGS[@]} -gt 0 ]]; then
+			DIST_ARGS+=("${FORWARD_ARGS[@]}")
+		fi
 		bash "$WEBCPP" "${DIST_ARGS[@]}"
 		echo "[node] dist: $OUT_DIR"
 		;;

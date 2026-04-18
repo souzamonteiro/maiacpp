@@ -17,6 +17,36 @@ The core principle is:
 
 ## Current Snapshot (2026-04-16)
 
+### Iostream validation checkpoint
+
+- Validated an end-to-end iostream smoke case with `cout << "Hello" << endl;` in the MaiaCpp -> MaiaC -> WASM pipeline.
+- Added a dedicated equivalence regression: `compiler/tests/equivalence/431_iostream_cout_endl_smoke.cpp`.
+- Added minimal structured lowering support for `cout << "..." << endl` to preserve observable output behavior in the current transpiler profile.
+- Added initial structured lowering support for chained `cin >> var1 >> var2` into `scanf` format chains.
+- Added smoke coverage for chain extraction lowering: `compiler/tests/equivalence/432_iostream_cin_chain_smoke.cpp`.
+- Pending: validate interactive stdin semantics (real input values) in runtime hosts; current smoke validates lowering/pipeline stability.
+
+### Dist packaging requirement checkpoint
+
+- MaiaCpp will host project-specific WASM library artifacts under `maiacpp/lib`.
+- `bin/webcpp.sh --dist/--dist-run` must preserve MaiaC compatibility while delivering a single dist root that includes:
+  - application `<name>.wasm`;
+  - MaiaC runtime/library wasm artifacts (`maiac/lib`, as needed);
+  - MaiaCpp library wasm artifacts (`maiacpp/lib`).
+- Browser and Node loaders must keep resolving library wasm files from dist root (same compatibility model used by MaiaC `webc`).
+- Conflict precedence for same wasm filename in dist root: MaiaC artifact wins (copied first); MaiaCpp copy is skipped.
+
+### Include resolution checkpoint
+
+- MaiaCpp preprocessing now resolves `#include` files across:
+  - current source directory (for quoted includes);
+  - `maiacpp/include`;
+  - sibling `maiac/include`;
+  - vendored `maiac/include` inside `maiacpp/maiac`.
+- This keeps MaiaCpp compilation aligned with MaiaC header availability and avoids missing include failures when C-style headers come from MaiaC.
+- For parser/runtime stability, system includes (`<...>`) are resolved against include roots but are not recursively inlined into the preprocessed text.
+- Added regression smoke `compiler/tests/equivalence/433_system_include_stdio_resolve_smoke.cpp` and Tier 1 probe `tier1_include_resolution_stdio_system` to validate `<stdio.h>` resolution behavior.
+
 ### Header Inventory in `include/`
 
 The following C++98 headers are currently present:

@@ -10,12 +10,59 @@
 const fs = require('fs');
 const path = require('path');
 
+function dedupeExistingDirs(dirs) {
+  const seen = new Set();
+  const out = [];
+  for (const dir of dirs || []) {
+    if (!dir) continue;
+    const resolved = path.resolve(String(dir));
+    if (seen.has(resolved)) continue;
+    if (!fs.existsSync(resolved) || !fs.statSync(resolved).isDirectory()) continue;
+    seen.add(resolved);
+    out.push(resolved);
+  }
+  return out;
+}
+
 class CppPreprocessor {
-  constructor(basePath = '.') {
+  constructor(basePath = '.', options = {}) {
     this.basePath = basePath;
     this.defines = new Map();
     this.includes = new Map();
     this.conditions = [];
+    this.includeDirs = this.buildIncludeDirs(options.includeDirs || []);
+  }
+
+  buildIncludeDirs(extraDirs = []) {
+    const compilerDir = __dirname;
+    const repoRoot = path.resolve(compilerDir, '..');
+    const projectsRoot = path.resolve(repoRoot, '..');
+
+    // Precedence: source dir (handled in resolveIncludePath for quoted includes),
+    // then MaiaCpp include, then sibling MaiaC include, then vendored MaiaC include.
+    const defaults = [
+      path.resolve(repoRoot, 'include'),
+      path.resolve(projectsRoot, 'maiac', 'include'),
+      path.resolve(repoRoot, 'maiac', 'include')
+    ];
+
+    return dedupeExistingDirs([...extraDirs, ...defaults]);
+  }
+
+  resolveIncludePath(includePath, sourceDir, isSystemInclude) {
+    const candidates = [];
+    if (!isSystemInclude) {
+      candidates.push(path.resolve(sourceDir, includePath));
+    }
+    for (const dir of this.includeDirs) {
+      candidates.push(path.resolve(dir, includePath));
+    }
+    for (const candidate of candidates) {
+      if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+        return candidate;
+      }
+    }
+    return null;
   }
 
   preprocess(source, filePath = 'input.cpp') {
@@ -105,31 +152,26 @@ class CppPreprocessor {
 
       // Handle #include
       if (trimmed.startsWith('#include ')) {
-        const includeMatch = trimmed.match(/#include\s+[<"]([^>"]+)[>"]/);
+        const includeMatch = trimmed.match(/#include\s*([<"])([^>"]+)[>"]/);
         if (includeMatch) {
-          const includePath = includeMatch[1];
+          const includePath = includeMatch[2];
+          const isSystemInclude = includeMatch[1] === '<';
           
           try {
-            let fullPath;
-            
-            // Check if it's a system include
-            if (trimmed.includes('<')) {
-             // System include - skip (or provide stub)
-              result.push(`/* System include <${includePath}> omitted */`);
-            } else {
-              // Local include
-              fullPath = path.join(sourceDir, includePath);
-              if (fs.existsSync(fullPath)) {
-                if (!this.includes.has(fullPath)) {
-                  this.includes.set(fullPath, true);
-                  const includeSource = fs.readFileSync(fullPath, 'utf8');
-                  const processed = this.processLines(includeSource, fullPath, path.dirname(fullPath), depth + 1);
-                  result.push(processed);
-                }
-              } else {
-                // File not found - skip with comment
-                result.push(`/* Include file not found: ${includePath} */`);
+            const fullPath = this.resolveIncludePath(includePath, sourceDir, isSystemInclude);
+            if (fullPath) {
+              if (isSystemInclude) {
+                // Keep parser stability for system headers while still validating
+                // header lookup against MaiaCpp/MaiaC include roots.
+                result.push(`/* System include <${includePath}> resolved */`);
+              } else if (!this.includes.has(fullPath)) {
+                this.includes.set(fullPath, true);
+                const includeSource = fs.readFileSync(fullPath, 'utf8');
+                const processed = this.processLines(includeSource, fullPath, path.dirname(fullPath), depth + 1);
+                result.push(processed);
               }
+            } else {
+              result.push(`/* Include file not found: ${includePath} */`);
             }
           } catch (err) {
             result.push(`/* Error including ${includePath}: ${err.message} */`);

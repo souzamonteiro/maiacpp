@@ -3048,8 +3048,6 @@ class Parser {
       const _ruleMark = this.markEventState();
       try {
     this.parseenumerator();
-    this.consume('TOKEN__3D_');
-    this.parseconstantExpression();
         _matched = true;
       } catch (e) {
         this.position = _ruleStart;
@@ -3060,6 +3058,8 @@ class Parser {
       const _ruleMark = this.markEventState();
       try {
     this.parseenumerator();
+    this.consume('TOKEN__3D_');
+    this.parseconstantExpression();
         _matched = true;
       } catch (e) {
         this.position = _ruleStart;
@@ -4153,7 +4153,7 @@ class Parser {
     if (!_matched) {
       const _ruleMark = this.markEventState();
       try {
-    this.parseunqualifiedId();
+    this.parsequalifiedId();
         _matched = true;
       } catch (e) {
         this.position = _ruleStart;
@@ -4163,7 +4163,7 @@ class Parser {
     if (!_matched) {
       const _ruleMark = this.markEventState();
       try {
-    this.parsequalifiedId();
+    this.parseunqualifiedId();
         _matched = true;
       } catch (e) {
         this.position = _ruleStart;

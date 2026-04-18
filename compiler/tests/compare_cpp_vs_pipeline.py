@@ -48,6 +48,8 @@ def normalize_node_program_output(stdout_text):
             continue
         if ln.startswith("[node] main() => "):
             continue
+        if ln.startswith("[webc] "):
+            continue
         out.append(ln)
     return "\n".join(out).strip()
 
@@ -63,6 +65,8 @@ def normalize_browser_program_output(stdout_text):
         if ln.startswith("C gerado em: "):
             continue
         if ln.startswith("[browser-host] main() => "):
+            continue
+        if ln.startswith("[webc] "):
             continue
         out.append(ln)
     return "\n".join(out).strip()

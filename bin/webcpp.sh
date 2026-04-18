@@ -23,7 +23,52 @@ resolve_repo_tool() {
 	return 1
 }
 
-MAIAC_WEBC_JS="$(resolve_repo_tool "$REPO_ROOT/maiac/tools/webc.js" "$PROJECTS_ROOT/maiac/tools/webc.js" || true)"
+# Prefer the sibling MaiaC workspace when available; fall back to vendored copy.
+MAIAC_WEBC_JS="$(resolve_repo_tool "$PROJECTS_ROOT/maiac/tools/webc.js" "$REPO_ROOT/maiac/tools/webc.js" || true)"
+MAIAC_ROOT=""
+if [[ -n "$MAIAC_WEBC_JS" ]]; then
+	MAIAC_ROOT="$(cd "$(dirname "$MAIAC_WEBC_JS")/.." && pwd -P)"
+fi
+
+copy_dist_wasm_libs() {
+	local dist_dir="$1"
+	local app_wasm_basename="$2"
+	local copied=0
+	local skipped=0
+
+	mkdir -p "$dist_dir"
+
+	# Copy helper over one lib directory without overwriting existing dist assets.
+	copy_from_lib_dir() {
+		local lib_dir="$1"
+		local src
+		local base
+		if [[ ! -d "$lib_dir" ]]; then
+			return 0
+		fi
+		for src in "$lib_dir"/*.wasm; do
+			[[ -f "$src" ]] || continue
+			base="$(basename "$src")"
+			if [[ "$base" == "$app_wasm_basename" ]]; then
+				skipped=$((skipped + 1))
+				continue
+			fi
+			if [[ -f "$dist_dir/$base" ]]; then
+				skipped=$((skipped + 1))
+				continue
+			fi
+			cp -f "$src" "$dist_dir/$base"
+			copied=$((copied + 1))
+		done
+	}
+
+	if [[ -n "$MAIAC_ROOT" ]]; then
+		copy_from_lib_dir "$MAIAC_ROOT/lib"
+	fi
+	copy_from_lib_dir "$REPO_ROOT/lib"
+
+	echo "[webcpp] dist libs copied: $copied (skipped: $skipped)"
+}
 
 usage() {
 	cat <<'EOF'
@@ -47,6 +92,7 @@ Options:
 	--dist                 Create distributable folder via MaiaC webc.
 	--dist-run             Create dist and run node runner via MaiaC webc.
 	--name NAME            Dist app name (maps to MaiaC webc --name).
+	                        Dist now also aggregates .wasm libs from maiac/lib and maiacpp/lib.
 	--webc-out-base BASE   MaiaC webc output base (maps to -o BASE).
 	--run                  Run generated WASM after build via MaiaC webc.
 	--all                  Generate AST XML, AST JSON, C, WAT, and WASM.
@@ -338,6 +384,18 @@ if [[ -n "$C_OUT" || -n "$JS_OUT" || -n "$WAT_OUT" || -n "$WASM_OUT" || "$WEBC_W
 		fi
 
 		"${WEBC_CMD[@]}"
+
+		if [[ "$WEBC_DIST" -eq 1 || "$WEBC_DIST_RUN" -eq 1 ]]; then
+			DIST_DIR="$OUT_DIR"
+			if [[ -z "$DIST_DIR" ]]; then
+				DIST_DIR="$PWD/dist"
+			fi
+			DIST_APP_NAME="$WEBC_DIST_NAME"
+			if [[ -z "$DIST_APP_NAME" ]]; then
+				DIST_APP_NAME="$(basename "$WEB_OUT_BASE")"
+			fi
+			copy_dist_wasm_libs "$DIST_DIR" "$DIST_APP_NAME.wasm"
+		fi
 
 		GEN_WASM="$WEB_OUT_BASE.wasm"
 		GEN_WAT="$WEB_OUT_BASE.wat"

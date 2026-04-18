@@ -2212,6 +2212,13 @@ class CppToCTranspiler {
         if (!op.arg) this.em.line(`printf("${op.fmtRaw}");`);
         else if (op.arg.type === 'int') this.em.line(`printf("${op.fmtRaw}", ${op.arg.value | 0});`);
         else if (op.arg.type === 'var') this.em.line(`printf("${op.fmtRaw}", ${op.arg.name});`);
+      } else if (op.kind === 'scanf_chain') {
+        const vars = Array.isArray(op.vars) ? op.vars.filter(Boolean) : [];
+        if (vars.length > 0) {
+          const fmt = vars.map(() => '%d').join(' ');
+          const refs = vars.map((v) => `&${v}`).join(', ');
+          this.em.line(`scanf("${fmt}", ${refs});`);
+        }
       } else if (op.kind === 'inc') {
         this.em.line(`${op.varName}++;`);
       } else if (op.kind === 'dec') {
@@ -2410,6 +2417,27 @@ class CppToCTranspiler {
       return { consumed: m[0].length, op: { kind: 'printf', fmtRaw: m[1] || '', arg: parseArg(m[2] || '') } };
     };
 
+    const parseCoutString = (text) => {
+      const m = text.match(/^(?:std::)?cout\s*<<\s*"((?:\\.|[^"\\])*)"\s*(?:<<\s*(?:std::)?endl\s*)?;\s*/);
+      if (!m) return null;
+      const hasEndl = /<<\s*(?:std::)?endl\s*;\s*$/.test(m[0]);
+      const fmtRaw = hasEndl ? `${m[1] || ''}\\n` : (m[1] || '');
+      return { consumed: m[0].length, op: { kind: 'printf', fmtRaw, arg: null } };
+    };
+
+    const parseCinChain = (text) => {
+      const m = text.match(/^(?:std::)?cin\s*((?:>>\s*[A-Za-z_][A-Za-z0-9_]*\s*)+);\s*/);
+      if (!m) return null;
+      const vars = [];
+      const re = />>\s*([A-Za-z_][A-Za-z0-9_]*)\s*/g;
+      let hit;
+      while ((hit = re.exec(m[1])) !== null) {
+        vars.push(hit[1]);
+      }
+      if (vars.length === 0) return null;
+      return { consumed: m[0].length, op: { kind: 'scanf_chain', vars } };
+    };
+
     // Generic void function-call statement: name(rawArgs);
     // Handles string literals and one level of nested parens in the arg list.
     const parseVoidCall = (text) => {
@@ -2551,6 +2579,8 @@ class CppToCTranspiler {
       while (t.length > 0) {
         const p = parseFirstMatch(t, [
           parseAsmNoop,
+          parseCinChain,
+          parseCoutString,
           parsePrintf,
           parseInc,
           parseDec,
@@ -2592,6 +2622,8 @@ class CppToCTranspiler {
 
       const p = parseFirstMatch(rest, [
         parseAsmNoop,
+        parseCinChain,
+        parseCoutString,
         parsePrintf,
         parseInc,
         parseThrowInt,

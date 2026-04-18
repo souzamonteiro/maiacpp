@@ -232,8 +232,8 @@ nestedNameElement ::= classOrNamespaceName '::'
 classOrNamespaceName ::= className
                        | namespaceName
 
-idExpression ::= unqualifiedId
-               | qualifiedId
+idExpression ::= qualifiedId
+               | unqualifiedId
 
 unqualifiedId ::= Identifier
                 | operatorFunctionId

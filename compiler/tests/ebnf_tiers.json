@@ -10,6 +10,7 @@
         "command": [
           "bash",
           "./bin/run-test-node.sh",
+          "--file",
           "./compiler/test_cpp98_extended.cpp"
         ],
         "expectExitCode": 0,
@@ -388,6 +389,35 @@
         "expectExitCode": 0,
         "stdoutContains": [
           "[ok] native C++ output matches MaiaCpp pipeline output"
+        ]
+      },
+      {
+        "id": "tier1_semantic_compare_iostream_cout_endl_smoke",
+        "family": "iostream_semantic_equivalence",
+        "matrixFamily": "iostream ostream cout endl",
+        "command": [
+          "python3",
+          "./compiler/tests/compare_cpp_vs_pipeline.py",
+          "--file",
+          "./compiler/tests/equivalence/431_iostream_cout_endl_smoke.cpp"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] native C++ output matches MaiaCpp pipeline output"
+        ]
+      },
+      {
+        "id": "tier1_include_resolution_stdio_system",
+        "family": "include_resolution",
+        "matrixFamily": "PreprocessingDirective family",
+        "command": [
+          "node",
+          "-e",
+          "const fs=require('fs');const path=require('path');const {CppPreprocessor}=require('./compiler/cpp-preprocessor.js');const file=path.resolve('./compiler/tests/equivalence/433_system_include_stdio_resolve_smoke.cpp');const src=fs.readFileSync(file,'utf8');const pp=new CppPreprocessor(path.dirname(file));process.stdout.write(pp.preprocess(src,file));"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "/* System include <stdio.h> resolved */"
         ]
       }
     ],
