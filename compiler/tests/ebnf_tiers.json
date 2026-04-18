@@ -506,6 +506,28 @@
         ]
       },
       {
+        "id": "tier2_fixture_subset_no_legacy_function_hints",
+        "family": "legacy_function_hints_reduction_lane",
+        "matrixFamily": "source-hint merge reduction lane",
+        "command": [
+          "python3",
+          "./compiler/tests/run_fixtures.py",
+          "--fixtures-dir",
+          "./compiler/tests/fixtures",
+          "--parser",
+          "./compiler/cpp-compiler.js",
+          "--mode",
+          "compiler",
+          "--parser-extra-arg=--no-legacy-function-hints",
+          "--cases",
+          "013_global_call_lowering,017_overload_type_resolution,031_wat_simple_if_return,038_enum_semantic_use"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "All fixtures passed: 4"
+        ]
+      },
+      {
         "id": "tier2_symbol_mangling_probe",
         "family": "symbol_mangling",
         "matrixFamily": "symbol mangling",
