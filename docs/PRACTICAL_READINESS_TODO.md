@@ -9,7 +9,7 @@ Goal:
 
 ## Current Baseline
 
-- Matrix family tracking: 42/42 via tiered runner.
+- Matrix family tracking: 44/44 via tiered runner.
 - Tier suite: green (Tier 1, Tier 2, Tier 3).
 - Remaining expected-fail parser cases:
   - none (all parser checkpoint cases currently expected-pass in tier plan)
@@ -32,7 +32,7 @@ Recent progress:
 ### 1) Namespace alias parsing
 
 - [x] Implement namespace alias acceptance in parser path.
-- [x] Move case `tier3_parse_namespace_alias_expected_fail` to expected-pass.
+- [x] Move case `tier3_parse_namespace_alias` to expected-pass.
 - [x] Add one positive fixture in `compiler/tests/fixtures` with namespace alias + qualified call semantics (non-stub).
 
 Files to touch:
@@ -49,7 +49,7 @@ Acceptance:
 ### 2) Enum specifier parsing
 
 - [x] Fix enum parsing for translation unit acceptance.
-- [x] Move case `tier3_parse_enum_specifier_expected_fail` to expected-pass.
+- [x] Move case `tier3_parse_enum_specifier` to expected-pass.
 - [x] Add fixture with enum declaration + enum use in function body semantics (non-stub lowering).
 
 Files to touch:
@@ -66,7 +66,7 @@ Acceptance:
 ### 3) Explicit instantiation parsing
 
 - [x] Implement parse acceptance for explicit instantiation syntax.
-- [x] Move `tier3_parse_explicit_instantiation_expected_fail` to expected-pass.
+- [x] Move `tier3_parse_explicit_instantiation` to expected-pass.
 - [x] Add semantic fixture for explicit instantiation; negative fixture not needed because lowering path is active.
 
 Files to touch:
@@ -82,7 +82,7 @@ Acceptance:
 ### 4) Explicit specialization parsing
 
 - [x] Implement parse acceptance for explicit specialization syntax.
-- [x] Move `tier3_parse_explicit_specialization_expected_fail` to expected-pass.
+- [x] Move `tier3_parse_explicit_specialization` to expected-pass.
 - [x] Add semantic fixture for explicit specialization.
 
 Files to touch:
@@ -168,8 +168,8 @@ Acceptance:
 
 All must be true:
 
-- [ ] No expected-fail parser cases remain in `compiler/tests/ebnf_tiers.json` for in-scope C++98 grammar families.
-- [ ] Tier report remains green with tracked families 42/42.
-- [ ] Comparator passes on multiple representative C++98 programs.
+- [x] No expected-fail parser cases remain in `compiler/tests/ebnf_tiers.json` for in-scope C++98 grammar families.
+- [x] Tier report remains green with tracked families 44/44.
+- [x] Comparator passes on multiple representative C++98 programs.
 - [ ] `docs/CONFORMANCE_MATRIX.md` statuses are aligned with real behavior (not optimistic labels).
 - [ ] Release candidate passes `report:tiers` and semantic comparison in clean environment.

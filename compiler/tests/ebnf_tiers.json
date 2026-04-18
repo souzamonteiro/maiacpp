@@ -1005,7 +1005,7 @@
         ]
       },
       {
-        "id": "tier3_parse_namespace_alias_expected_fail",
+        "id": "tier3_parse_namespace_alias",
         "family": "namespace_alias_definition",
         "matrixFamily": "namespaceDefinition / namespaceAliasDefinition",
         "command": [
@@ -1021,7 +1021,7 @@
         ]
       },
       {
-        "id": "tier3_parse_enum_specifier_expected_fail",
+        "id": "tier3_parse_enum_specifier",
         "family": "enum_specifier_enumerator_list",
         "matrixFamily": "enumSpecifier / enumeratorList",
         "command": [
