@@ -83,6 +83,8 @@ class unary_negate : public unary_function<typename Predicate::argument_type, bo
 public:
     explicit unary_negate(const Predicate& pred);
     bool operator()(const typename Predicate::argument_type& x) const;
+private:
+    Predicate _pred;
 };
 
 template <class Predicate>
@@ -96,6 +98,8 @@ public:
     explicit binary_negate(const Predicate& pred);
     bool operator()(const typename Predicate::first_argument_type& x,
                     const typename Predicate::second_argument_type& y) const;
+private:
+    Predicate _pred;
 };
 
 template <class Predicate>
@@ -211,6 +215,39 @@ public:
 
 template<class S, class T> const_mem_fun_ref_t<S,T> mem_fun_ref(S (T::*f)() const);
 template<class S, class T, class A> const_mem_fun1_ref_t<S,T,A> mem_fun_ref(S (T::*f)(A) const);
+
+// ---- inline operator() bodies ----
+template<class T> inline T plus<T>::operator()(const T& x, const T& y) const { return x + y; }
+template<class T> inline T minus<T>::operator()(const T& x, const T& y) const { return x - y; }
+template<class T> inline T multiplies<T>::operator()(const T& x, const T& y) const { return x * y; }
+template<class T> inline T divides<T>::operator()(const T& x, const T& y) const { return x / y; }
+template<class T> inline T modulus<T>::operator()(const T& x, const T& y) const { return x % y; }
+template<class T> inline T negate<T>::operator()(const T& x) const { return -x; }
+template<class T> inline bool equal_to<T>::operator()(const T& x, const T& y) const { return x == y; }
+template<class T> inline bool not_equal_to<T>::operator()(const T& x, const T& y) const { return x != y; }
+template<class T> inline bool greater<T>::operator()(const T& x, const T& y) const { return x > y; }
+template<class T> inline bool less<T>::operator()(const T& x, const T& y) const { return x < y; }
+template<class T> inline bool greater_equal<T>::operator()(const T& x, const T& y) const { return x >= y; }
+template<class T> inline bool less_equal<T>::operator()(const T& x, const T& y) const { return x <= y; }
+template<class T> inline bool logical_and<T>::operator()(const T& x, const T& y) const { return x && y; }
+template<class T> inline bool logical_or<T>::operator()(const T& x, const T& y) const { return x || y; }
+template<class T> inline bool logical_not<T>::operator()(const T& x) const { return !x; }
+
+// ---- unary_negate / binary_negate ----
+template<class P> inline unary_negate<P>::unary_negate(const P& pred) : _pred(pred) {}
+template<class P> inline bool unary_negate<P>::operator()(const typename P::argument_type& x) const { return !_pred(x); }
+template<class P> inline unary_negate<P> not1(const P& pred) { return unary_negate<P>(pred); }
+template<class P> inline binary_negate<P>::binary_negate(const P& pred) : _pred(pred) {}
+template<class P> inline bool binary_negate<P>::operator()(const typename P::first_argument_type& x, const typename P::second_argument_type& y) const { return !_pred(x,y); }
+template<class P> inline binary_negate<P> not2(const P& pred) { return binary_negate<P>(pred); }
+
+// ---- binder1st / binder2nd ----
+template<class Op> inline binder1st<Op>::binder1st(const Op& x, const typename Op::first_argument_type& y) : op(x), value(y) {}
+template<class Op> inline typename Op::result_type binder1st<Op>::operator()(const typename Op::second_argument_type& x) const { return op(value, x); }
+template<class Op, class T> inline binder1st<Op> bind1st(const Op& op, const T& x) { return binder1st<Op>(op, typename Op::first_argument_type(x)); }
+template<class Op> inline binder2nd<Op>::binder2nd(const Op& x, const typename Op::second_argument_type& y) : op(x), value(y) {}
+template<class Op> inline typename Op::result_type binder2nd<Op>::operator()(const typename Op::first_argument_type& x) const { return op(x, value); }
+template<class Op, class T> inline binder2nd<Op> bind2nd(const Op& op, const T& x) { return binder2nd<Op>(op, typename Op::second_argument_type(x)); }
 
 } // namespace std
 

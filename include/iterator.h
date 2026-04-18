@@ -54,7 +54,39 @@ template <class InputIterator>
 typename iterator_traits<InputIterator>::difference_type
 distance(InputIterator first, InputIterator last);
 
-template <class Iterator> class reverse_iterator;
+template <class Iterator>
+class reverse_iterator {
+public:
+    typedef Iterator                                             iterator_type;
+    typedef typename iterator_traits<Iterator>::iterator_category iterator_category;
+    typedef typename iterator_traits<Iterator>::value_type        value_type;
+    typedef typename iterator_traits<Iterator>::difference_type   difference_type;
+    typedef typename iterator_traits<Iterator>::pointer          pointer;
+    typedef typename iterator_traits<Iterator>::reference        reference;
+
+    reverse_iterator() : current() {}
+    explicit reverse_iterator(iterator_type x) : current(x) {}
+    template <class U>
+    reverse_iterator(const reverse_iterator<U>& x) : current(x.base()) {}
+
+    iterator_type base() const { return current; }
+    reference operator*() const { Iterator tmp = current; --tmp; return *tmp; }
+    pointer operator->() const { return &(operator*()); }
+
+    reverse_iterator& operator++() { --current; return *this; }
+    reverse_iterator operator++(int) { reverse_iterator tmp(*this); --current; return tmp; }
+    reverse_iterator& operator--() { ++current; return *this; }
+    reverse_iterator operator--(int) { reverse_iterator tmp(*this); ++current; return tmp; }
+
+    reverse_iterator operator+(difference_type n) const { return reverse_iterator(current - n); }
+    reverse_iterator& operator+=(difference_type n) { current -= n; return *this; }
+    reverse_iterator operator-(difference_type n) const { return reverse_iterator(current + n); }
+    reverse_iterator& operator-=(difference_type n) { current += n; return *this; }
+    reference operator[](difference_type n) const { return *(*this + n); }
+
+private:
+    Iterator current;
+};
 
 template <class Iterator>
 bool operator==(const reverse_iterator<Iterator>& x,
@@ -128,6 +160,38 @@ bool operator!=(const istreambuf_iterator<charT,traits>& a,
 
 template <class charT, class traits = char_traits<charT> >
 class ostreambuf_iterator;
+
+// ---- iterator helpers ----
+template<class InputIterator, class Distance>
+inline void advance(InputIterator& i, Distance n) {
+    while (n > 0) { ++i; --n; }
+    while (n < 0) { --i; ++n; }
+}
+
+template<class InputIterator>
+inline typename iterator_traits<InputIterator>::difference_type
+distance(InputIterator first, InputIterator last) {
+    typename iterator_traits<InputIterator>::difference_type n = 0;
+    for (; first != last; ++first) ++n;
+    return n;
+}
+
+template<class Iterator>
+inline bool operator==(const reverse_iterator<Iterator>& x, const reverse_iterator<Iterator>& y) { return x.base() == y.base(); }
+template<class Iterator>
+inline bool operator<(const reverse_iterator<Iterator>& x, const reverse_iterator<Iterator>& y) { return y.base() < x.base(); }
+template<class Iterator>
+inline bool operator!=(const reverse_iterator<Iterator>& x, const reverse_iterator<Iterator>& y) { return !(x == y); }
+template<class Iterator>
+inline bool operator>(const reverse_iterator<Iterator>& x, const reverse_iterator<Iterator>& y) { return y < x; }
+template<class Iterator>
+inline bool operator>=(const reverse_iterator<Iterator>& x, const reverse_iterator<Iterator>& y) { return !(x < y); }
+template<class Iterator>
+inline bool operator<=(const reverse_iterator<Iterator>& x, const reverse_iterator<Iterator>& y) { return !(y < x); }
+template<class Iterator>
+inline typename reverse_iterator<Iterator>::difference_type operator-(const reverse_iterator<Iterator>& x, const reverse_iterator<Iterator>& y) { return y.base() - x.base(); }
+template<class Iterator>
+inline reverse_iterator<Iterator> operator+(typename reverse_iterator<Iterator>::difference_type n, const reverse_iterator<Iterator>& x) { return x + n; }
 
 } // namespace std
 

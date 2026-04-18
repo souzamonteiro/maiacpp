@@ -19,6 +19,7 @@ protected:
 
 public:
     explicit stack(const Container& = Container());
+    const container_type& __container() const { return c; }
     bool empty() const { return c.empty(); }
     size_type size() const { return c.size(); }
     value_type& top() { return c.back(); }
@@ -44,6 +45,31 @@ bool operator>=(const stack<T, Container>& x, const stack<T, Container>& y);
 
 template <class T, class Container>
 bool operator<=(const stack<T, Container>& x, const stack<T, Container>& y);
+
+template <class T, class Container>
+inline stack<T,Container>::stack(const Container& x) : c(x) {}
+
+template <class T, class Container>
+inline bool operator==(const stack<T,Container>& x, const stack<T,Container>& y) {
+    return x.__container() == y.__container();
+}
+
+template <class T, class Container>
+inline bool operator<(const stack<T,Container>& x, const stack<T,Container>& y) {
+    return x.__container() < y.__container();
+}
+
+template <class T, class Container>
+inline bool operator!=(const stack<T,Container>& x, const stack<T,Container>& y) { return !(x == y); }
+
+template <class T, class Container>
+inline bool operator>(const stack<T,Container>& x, const stack<T,Container>& y) { return y < x; }
+
+template <class T, class Container>
+inline bool operator>=(const stack<T,Container>& x, const stack<T,Container>& y) { return !(x < y); }
+
+template <class T, class Container>
+inline bool operator<=(const stack<T,Container>& x, const stack<T,Container>& y) { return !(y < x); }
 
 } // namespace std
 
