@@ -828,3 +828,48 @@ Próximo passo imediato (retomada):
    - `set_unexpected` / `unexpected`
    - `uncaught_exception` com comportamento provisório documentado.
 2. Em seguida, fechar `stdexcept` sobre esse núcleo (thin wrappers).
+
+## Implementation Pass Log
+
+### 2026-04-18: Container runtime profile completed
+
+Implemented the first usable STL container/runtime layer directly in the MaiaCpp headers with a WASM-oriented pragmatic profile:
+
+- `vector` now has contiguous storage with inline allocation/growth semantics.
+- `deque` uses a contiguous-storage profile with front headroom and inline growth.
+- `list` now has a real doubly-linked node model and bidirectional iterators.
+- `map` and `set` use a sorted-array backend instead of a tree, which keeps the implementation small and deterministic for the current MaiaC/WASM target profile.
+- `multimap` and `multiset` follow the same sorted-array model with duplicate-key support.
+- `queue`, `stack`, and `priority_queue` are now usable as container adaptors over the implemented sequence containers.
+
+Supporting utility/runtime work completed in the same pass:
+
+- `functional` now provides inline bodies for the core arithmetic/comparison/logical function objects and binder helpers.
+- `utility` now provides inline `pair` and `rel_ops` helpers.
+- `iterator` now provides `reverse_iterator`, `advance`, and `distance` inline bodies.
+
+This pass intentionally favors correctness, portability through MaiaC lowering, and small implementation surface over strict data-structure fidelity to a native-host STL.
+
+### 2026-04-18: Generic algorithm and numeric layer completed
+
+Implemented a header-only generic algorithm layer in `include/algorithm.h` and a header-only numeric layer in `include/numeric.h`.
+
+Completed areas include:
+
+- non-modifying algorithms: `for_each`, `find`, `find_if`, `find_end`, `find_first_of`, `adjacent_find`, `count`, `count_if`, `mismatch`, `equal`, `search`, `search_n`
+- mutating algorithms: `copy`, `copy_backward`, `swap`, `swap_ranges`, `iter_swap`, `transform`, `replace*`, `fill*`, `generate*`, `remove*`, `unique*`, `reverse*`, `rotate*`, `random_shuffle`, `partition`, `stable_partition`
+- ordering/search/set algorithms: `sort`, `stable_sort`, `partial_sort`, `partial_sort_copy`, `nth_element`, `lower_bound`, `upper_bound`, `equal_range`, `binary_search`, `merge`, `inplace_merge`, `includes`, `set_union`, `set_intersection`, `set_difference`, `set_symmetric_difference`
+- heap and permutation algorithms: `push_heap`, `pop_heap`, `make_heap`, `sort_heap`, `min`, `max`, `min_element`, `max_element`, `lexicographical_compare`, `next_permutation`, `prev_permutation`
+- numeric algorithms: `accumulate`, `inner_product`, `partial_sum`, `adjacent_difference`
+
+Implementation notes for this pass:
+
+- the algorithms are intentionally simple, header-only, and template-local so they lower cleanly through MaiaCpp into MaiaC without additional runtime objects
+- several random-access algorithms use straightforward insertion-sort or full-sort strategies rather than more complex host-STL-grade implementations
+- this is acceptable for the current target because the primary goal is semantic availability and predictable lowering, not peak native throughput
+
+Next recommended layer after this pass:
+
+1. complete remaining iterator adapters and function-object wrappers still declared but not yet defined
+2. revisit `locale` and wide-character policy boundaries
+3. add focused transpiler/runtime tests that exercise containers plus algorithms together
