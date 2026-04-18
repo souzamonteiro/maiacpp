@@ -132,6 +132,57 @@ template <class Container> class insert_iterator;
 template <class Container, class Iterator>
 insert_iterator<Container> inserter(Container& x, Iterator i);
 
+template <class Container>
+class back_insert_iterator
+    : public iterator<output_iterator_tag, void, void, void, void> {
+protected:
+    Container* container;
+public:
+    explicit back_insert_iterator(Container& x) : container(&x) {}
+    back_insert_iterator<Container>& operator=(const typename Container::value_type& value) {
+        container->push_back(value);
+        return *this;
+    }
+    back_insert_iterator<Container>& operator*() { return *this; }
+    back_insert_iterator<Container>& operator++() { return *this; }
+    back_insert_iterator<Container> operator++(int) { return *this; }
+};
+
+template <class Container>
+class front_insert_iterator
+    : public iterator<output_iterator_tag, void, void, void, void> {
+protected:
+    Container* container;
+public:
+    explicit front_insert_iterator(Container& x) : container(&x) {}
+    front_insert_iterator<Container>& operator=(const typename Container::value_type& value) {
+        container->push_front(value);
+        return *this;
+    }
+    front_insert_iterator<Container>& operator*() { return *this; }
+    front_insert_iterator<Container>& operator++() { return *this; }
+    front_insert_iterator<Container> operator++(int) { return *this; }
+};
+
+template <class Container>
+class insert_iterator
+    : public iterator<output_iterator_tag, void, void, void, void> {
+protected:
+    Container* container;
+    typename Container::iterator iter;
+public:
+    template<class It>
+    insert_iterator(Container& x, It i) : container(&x), iter(i) {}
+    insert_iterator<Container>& operator=(const typename Container::value_type& value) {
+        iter = container->insert(iter, value);
+        ++iter;
+        return *this;
+    }
+    insert_iterator<Container>& operator*() { return *this; }
+    insert_iterator<Container>& operator++() { return *this; }
+    insert_iterator<Container>& operator++(int) { return *this; }
+};
+
 template <class T, class charT = char, class traits = char_traits<charT>,
           class Distance = ptrdiff_t>
 class istream_iterator;
@@ -192,6 +243,17 @@ template<class Iterator>
 inline typename reverse_iterator<Iterator>::difference_type operator-(const reverse_iterator<Iterator>& x, const reverse_iterator<Iterator>& y) { return y.base() - x.base(); }
 template<class Iterator>
 inline reverse_iterator<Iterator> operator+(typename reverse_iterator<Iterator>::difference_type n, const reverse_iterator<Iterator>& x) { return x + n; }
+
+template<class Container>
+inline back_insert_iterator<Container> back_inserter(Container& x) { return back_insert_iterator<Container>(x); }
+
+template<class Container>
+inline front_insert_iterator<Container> front_inserter(Container& x) { return front_insert_iterator<Container>(x); }
+
+template<class Container, class Iterator>
+inline insert_iterator<Container> inserter(Container& x, Iterator i) {
+    return insert_iterator<Container>(x, i);
+}
 
 } // namespace std
 

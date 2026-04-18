@@ -873,3 +873,18 @@ Next recommended layer after this pass:
 1. complete remaining iterator adapters and function-object wrappers still declared but not yet defined
 2. revisit `locale` and wide-character policy boundaries
 3. add focused transpiler/runtime tests that exercise containers plus algorithms together
+
+### 2026-04-18: Iterator adapter and functional wrapper closure
+
+Completed the next declaration-closure pass for C++98 utility layers:
+
+- `include/functional.h`
+  - implemented `pointer_to_unary_function` and `pointer_to_binary_function` with `ptr_fun` helpers
+  - implemented the full `mem_fun` / `mem_fun_ref` family (non-const and const variants, with and without one argument)
+  - added internal member-pointer/function-pointer storage required by these wrappers
+
+- `include/iterator.h`
+  - implemented `back_insert_iterator`, `front_insert_iterator`, and `insert_iterator`
+  - implemented `back_inserter`, `front_inserter`, and `inserter` helper factories
+
+This pass closes a practical set of STL declaration gaps needed by algorithm-heavy user code and by adaptor-style usage patterns in transpiled programs.
