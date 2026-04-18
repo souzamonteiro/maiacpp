@@ -24,9 +24,11 @@ def count_tag(xml_text: str, tag: str) -> int:
     return xml_text.count(f"<{tag}")
 
 
-def run_fixture(parser: Path, input_file: Path, spec: dict, mode: str):
+def run_fixture(parser: Path, input_file: Path, spec: dict, mode: str, parser_extra_args=None):
     should_parse = bool(spec.get("shouldParse", True))
     cmd = ["node", str(parser), str(input_file)]
+    if parser_extra_args:
+        cmd.extend([str(a) for a in parser_extra_args])
     proc = subprocess.run(cmd, capture_output=True, text=True)
 
     errors = []
@@ -111,6 +113,17 @@ def main():
         default="compiler",
         help="Validation mode: compiler output markers or legacy XML parser output",
     )
+    parser.add_argument(
+        "--parser-extra-arg",
+        action="append",
+        default=[],
+        help="Extra argument passed through to cpp-compiler.js (repeatable).",
+    )
+    parser.add_argument(
+        "--cases",
+        default="",
+        help="Comma-separated fixture stems to run (default: all).",
+    )
     args = parser.parse_args()
 
     root = Path.cwd()
@@ -122,6 +135,14 @@ def main():
         return 2
 
     specs = load_fixture_specs(fixtures_dir)
+    requested_cases = [s.strip() for s in str(args.cases or "").split(",") if s.strip()]
+    if requested_cases:
+        req = set(requested_cases)
+        specs = [item for item in specs if item[0] in req]
+        missing = [case for case in requested_cases if case not in {item[0] for item in specs}]
+        if missing:
+            print(f"[fail] requested fixture(s) not found: {', '.join(missing)}")
+            return 2
     if not specs:
         print(f"[fail] no fixtures found in {fixtures_dir}")
         return 2
@@ -129,7 +150,7 @@ def main():
     failures = 0
 
     for case_stem, input_file, spec in specs:
-        errors = run_fixture(parser_path, input_file, spec, args.mode)
+        errors = run_fixture(parser_path, input_file, spec, args.mode, parser_extra_args=args.parser_extra_arg)
         if errors:
             failures += 1
             print(f"[fail] {case_stem}")

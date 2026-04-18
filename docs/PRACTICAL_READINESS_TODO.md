@@ -101,7 +101,7 @@ Acceptance:
 
 - [ ] Keep default stable, but reduce reliance on source-hint merge for function semantics.
 - [ ] Increase AST-derived lowering coverage for global/member function bodies.
-- [ ] Keep `--ast-strict` as regression lane and grow pass surface.
+- [x] Keep `--ast-strict` as regression lane and grow pass surface.
 
 Files to touch:
 - `compiler/cpp-compiler.js`
@@ -111,6 +111,9 @@ Files to touch:
 Acceptance:
 - More fixtures pass under strict mode without legacy hints.
 - No regression in default fixture suite.
+
+Progress notes:
+- Added Tier 2 strict regression lane case `tier2_fixture_subset_ast_strict` using a curated fixture subset and `--ast-strict`.
 
 ### 6) Full statement lowering progress
 
