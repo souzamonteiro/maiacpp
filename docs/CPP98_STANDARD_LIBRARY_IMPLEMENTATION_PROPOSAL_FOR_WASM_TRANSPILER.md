@@ -888,3 +888,23 @@ Completed the next declaration-closure pass for C++98 utility layers:
   - implemented `back_inserter`, `front_inserter`, and `inserter` helper factories
 
 This pass closes a practical set of STL declaration gaps needed by algorithm-heavy user code and by adaptor-style usage patterns in transpiled programs.
+
+### 2026-04-18: Provisional wide-char runtime boundary (single-byte profile)
+
+Implemented an explicit provisional runtime layer for wide-character headers with a constrained single-byte policy compatible with current MaiaC assumptions:
+
+- added `src/cwchar.cpp`
+  - basic wide-string and wide-memory operations (`wcs*`, `wmem*`) now have concrete implementations
+  - stdio-facing wide wrappers (`fgetwc`, `fputwc`, `wprintf`, etc.) are mapped to narrow stdio behavior where feasible
+  - multibyte conversion functions are implemented under a one-byte conversion model
+  - non-supported parsing-heavy operations keep deterministic fallback behavior instead of undefined placeholders
+
+- added `src/cwctype.cpp`
+  - `isw*` classification and `tow*` transforms now map to ASCII/narrow classification in a deterministic way
+  - `wctype`/`wctrans` descriptors now have concrete minimal mappings
+
+Boundary policy after this pass:
+
+1. Wide-char support is available as a pragmatic compatibility layer, not full locale-aware Unicode semantics.
+2. Behavior is deterministic and explicit, favoring transpiler/runtime stability over full standard fidelity.
+3. Full locale/wide-character semantics remain a later phase once MaiaC host/runtime support is expanded.
