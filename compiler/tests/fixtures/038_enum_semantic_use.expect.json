@@ -1,0 +1,17 @@
+{
+  "shouldParse": true,
+  "mustContainCompiler": [
+    "Parser: ok",
+    "int main(void)",
+    "int v = 7;",
+    "return (v == 7) ? 0 : 1;"
+  ],
+  "mustNotContainCompiler": [
+    "return (int)0;"
+  ],
+  "mustContain": [
+    "<enumSpecifier>",
+    "<functionDefinition>",
+    "<EOF/>"
+  ]
+}

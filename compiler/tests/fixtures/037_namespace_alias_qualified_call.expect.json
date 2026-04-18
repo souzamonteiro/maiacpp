@@ -1,0 +1,16 @@
+{
+  "shouldParse": true,
+  "mustContainCompiler": [
+    "Parser: ok",
+    "int MathCore_add__ii(int x, int y)",
+    "return (MathCore_add__ii(2, 3) == 5) ? 0 : 1;"
+  ],
+  "mustNotContainCompiler": [
+    "return (int)0;"
+  ],
+  "mustContain": [
+    "<namespaceAliasDefinition>",
+    "<functionDefinition>",
+    "<EOF/>"
+  ]
+}

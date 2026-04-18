@@ -33,7 +33,7 @@ Recent progress:
 
 - [x] Implement namespace alias acceptance in parser path.
 - [x] Move case `tier3_parse_namespace_alias_expected_fail` to expected-pass.
-- [ ] Add one positive fixture in `compiler/tests/fixtures` with namespace alias + qualified call semantics (non-stub).
+- [x] Add one positive fixture in `compiler/tests/fixtures` with namespace alias + qualified call semantics (non-stub).
 
 Files to touch:
 - `grammar/Cpp.ebnf`
@@ -50,7 +50,7 @@ Acceptance:
 
 - [x] Fix enum parsing for translation unit acceptance.
 - [x] Move case `tier3_parse_enum_specifier_expected_fail` to expected-pass.
-- [ ] Add fixture with enum declaration + enum use in function body semantics (non-stub lowering).
+- [x] Add fixture with enum declaration + enum use in function body semantics (non-stub lowering).
 
 Files to touch:
 - `grammar/Cpp.ebnf`
