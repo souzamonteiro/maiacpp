@@ -45,6 +45,13 @@ C++98 source (.cpp)
   - Build parse-tree model.
   - Support XML/JSON/tree debug outputs.
 
+Parser maintenance rule:
+
+- The source of truth is `grammar/Cpp.ebnf`.
+- `compiler/cpp-parser.js` must only change via MaiaCC regeneration, never by manual editing.
+- Regeneration command:
+  `./maiacc/bin/tREx.sh --ebnf --to-xml ./grammar/Cpp.xml ./grammar/Cpp.ebnf ./compiler/cpp-parser.js`
+
 ### 3.3 Semantic and Source-Hint Layer
 
 - Main logic in compiler/cpp-compiler.js.
@@ -159,7 +166,7 @@ When stable fallback is used, the C output includes:
 
 ### 7.3 Baseline Program
 
-- File: compiler/test.cpp
+- File: compiler/examples/test.cpp
 - Purpose:
   - Mandatory baseline target.
   - Runtime-friendly sample for parser/codegen evolution.

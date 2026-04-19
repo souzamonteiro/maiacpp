@@ -4,7 +4,7 @@ Main plan:
 - See docs/AST_100_IMPLEMENTATION_TODO.md
 
 Current conformance target input:
-- compiler/test_ebnf_full.cpp
+- compiler/examples/test_ebnf_full.cpp
 
 Current observed gap from target:
 - Parser fails on full target file with:

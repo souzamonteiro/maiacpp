@@ -15,14 +15,14 @@ Targets:
   all       Run console + node, then prepare browser command
 
 Options:
-  --file FILE     Input C++ file (default: ./compiler/test.cpp)
+  --file FILE     Input C++ file (default: ./compiler/examples/test.cpp)
   --target T      Target: console|node|browser|all (default: all)
   --              Forward remaining args to node/browser wrappers
   -h, --help      Show this help
 EOF
 }
 
-INPUT_FILE="$REPO_ROOT/compiler/test.cpp"
+INPUT_FILE="$REPO_ROOT/compiler/examples/test.cpp"
 TARGET="all"
 FORWARD_ARGS=()
 

@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 
-INPUT_FILE="$REPO_ROOT/compiler/example_class_plus_one.cpp"
+INPUT_FILE="$REPO_ROOT/compiler/examples/example_class_plus_one.cpp"
 OUT_DIR="${1:-$REPO_ROOT/out/node}"
 
 bash "$SCRIPT_DIR/run-test-node.sh" --file "$INPUT_FILE" --out-dir "$OUT_DIR" "${@:2}"

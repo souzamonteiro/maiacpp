@@ -11,7 +11,7 @@ usage() {
 Usage: run-wasm-browser.sh [options]
 
 Options:
-	--file FILE          Input C++ file (default: ./compiler/test.cpp)
+	--file FILE          Input C++ file (default: ./compiler/examples/test.cpp)
 	--out-dir DIR        Output/Dist directory (default: ./out/browser)
 	--port PORT          HTTP port for local server (default: 8080)
 	--mode MODE          legacy|dist (default: legacy)
@@ -28,7 +28,7 @@ Dist mode:
 EOF
 }
 
-INPUT_FILE="$REPO_ROOT/compiler/test.cpp"
+INPUT_FILE="$REPO_ROOT/compiler/examples/test.cpp"
 OUT_DIR="$REPO_ROOT/out/browser"
 PORT="8080"
 MODE="legacy"

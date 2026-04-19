@@ -142,6 +142,8 @@ memberSpecificationItem ::= memberDeclaration
                           | accessSpecifier ':'
 
 memberDeclaration ::= declarator ctorInitializer? functionBody ';'?
+                    | functionSpecifier+ declarator ctorInitializer? functionBody ';'?
+                    | declarationSpecifiers declarator ctorInitializer? functionBody ';'?
                     | declaration
                     | declarationSpecifiers? memberDeclaratorList? ';'
                     | '::'? nestedNameSpecifier 'template'? unqualifiedId ';'
@@ -250,10 +252,10 @@ qualifiedId ::= '::'? nestedNameSpecifier 'template'? unqualifiedId
 
 operatorFunctionId ::= 'operator' operatorToken
 
-operatorToken ::= 'new'
-                | 'delete'
-                | 'new' '[' ']'
+operatorToken ::= 'new' '[' ']'
                 | 'delete' '[' ']'
+                | 'new'
+                | 'delete'
                 | '[' ']'
                 | '(' ')'
                 | '+' | '-' | '*' | '/' | '%' | '^' | '&' | '|' | '~'

@@ -15,6 +15,26 @@ The core principle is:
   - WAT, when stack/runtime/ABI control is required,
   - JavaScript, when the functionality is host-facing and MaiaC already uses JS imports.
 
+## Parser/Grammar Workflow (mandatory)
+
+Parser changes must be made grammar-first.
+
+- Edit `grammar/Cpp.ebnf`.
+- Regenerate `compiler/cpp-parser.js` with MaiaCC.
+- Do not hand-edit `compiler/cpp-parser.js` directly.
+
+Regeneration command:
+
+```sh
+./maiacc/bin/tREx.sh --ebnf --to-xml ./grammar/Cpp.xml ./grammar/Cpp.ebnf ./compiler/cpp-parser.js
+```
+
+Reason:
+
+- `compiler/cpp-parser.js` is a generated artifact.
+- Parser behavior depends on ordered-choice semantics in `Cpp.ebnf`, so grammar intent must remain the source of truth.
+- Keeping the workflow grammar-first avoids drift between the checked-in grammar and the generated parser.
+
 ## Current Snapshot (2026-04-16)
 
 ### Iostream validation checkpoint

@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 
-INPUT_FILE="${1:-$REPO_ROOT/compiler/test.cpp}"
+INPUT_FILE="${1:-$REPO_ROOT/compiler/examples/test.cpp}"
 OUT_DIR="${2:-$REPO_ROOT/out/console}"
 
 [[ -f "$INPUT_FILE" ]] || { echo "Error: input file not found: $INPUT_FILE" >&2; exit 2; }

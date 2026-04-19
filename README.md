@@ -8,7 +8,7 @@ Maia C++ Compiler.
 Use `bin/webcpp.sh` to generate AST and compilation artifacts:
 
 ```bash
-./bin/webcpp.sh --file ./compiler/test.cpp --all --out-dir ./out
+./bin/webcpp.sh --file ./compiler/examples/test.cpp --all --out-dir ./out
 ```
 
 Basic usage:
@@ -47,18 +47,18 @@ Examples:
 
 ```bash
 # C + WASM + WAT + JS in explicit paths
-./bin/webcpp.sh ./compiler/test.cpp \
+./bin/webcpp.sh ./compiler/examples/test.cpp \
 	--c-out ./out/test.c \
 	--wasm-out ./out/test.wasm \
 	--wat-out ./out/test.wat \
 	--js-out ./out/test.js
 
 # Generate distribution package (browser + Node runner)
-./bin/webcpp.sh ./compiler/test.cpp \
+./bin/webcpp.sh ./compiler/examples/test.cpp \
 	--dist --out-dir ./dist --name testapp
 
 # Generate dist and run node runner immediately
-./bin/webcpp.sh ./compiler/test.cpp \
+./bin/webcpp.sh ./compiler/examples/test.cpp \
 	--dist-run --out-dir ./dist --name testapp
 ```
 
@@ -78,26 +78,26 @@ Quick command mapping after the wrapper updates:
 
 ```bash
 # Old
-bash ./bin/run-test-node.sh ./compiler/test.cpp
+bash ./bin/run-test-node.sh ./compiler/examples/test.cpp
 # New (equivalent legacy behavior)
-bash ./bin/run-test-node.sh --file ./compiler/test.cpp --mode legacy
+bash ./bin/run-test-node.sh --file ./compiler/examples/test.cpp --mode legacy
 
 # Old
-bash ./bin/run-wasm-browser.sh ./compiler/test.cpp
+bash ./bin/run-wasm-browser.sh ./compiler/examples/test.cpp
 # New (equivalent legacy behavior)
-bash ./bin/run-wasm-browser.sh --file ./compiler/test.cpp --mode legacy
+bash ./bin/run-wasm-browser.sh --file ./compiler/examples/test.cpp --mode legacy
 
 # New dist-oriented Node flow
-bash ./bin/run-test-node.sh --file ./compiler/test.cpp --mode dist --out-dir ./out/node-dist --name testapp
+bash ./bin/run-test-node.sh --file ./compiler/examples/test.cpp --mode dist --out-dir ./out/node-dist --name testapp
 
 # New dist-oriented Browser flow
-bash ./bin/run-wasm-browser.sh --file ./compiler/test.cpp --mode dist --out-dir ./out/browser-dist --name testapp
+bash ./bin/run-wasm-browser.sh --file ./compiler/examples/test.cpp --mode dist --out-dir ./out/browser-dist --name testapp
 
 # Passing extra MaiaC/webc flags through wrappers
-bash ./bin/run-test-node.sh --file ./compiler/test.cpp --mode dist -- --resolve-system-includes --wat
+bash ./bin/run-test-node.sh --file ./compiler/examples/test.cpp --mode dist -- --resolve-system-includes --wat
 ```
 
-Unified stream (default: `compiler/test.cpp`):
+Unified stream (default: `compiler/examples/test.cpp`):
 
 ```bash
 bash ./bin/run-test-cpp.sh --target all
@@ -128,6 +128,17 @@ This command:
 - compares stdout and return code
 - saves the generated C in `out/reports/cpp-vs-c/<file>.generated.c`
 
+Dedicated MaiaCpp stress source (parse/transpile focus):
+
+```bash
+npm run check:stress:maiacpp
+```
+
+This validates `compiler/test_maiacpp_stress.cpp` through parser + C generation and writes:
+
+- `out/reports/test_maiacpp_stress.ast.json`
+- `out/reports/test_maiacpp_stress.generated.c`
+
 Machine-readable output:
 
 - `out/reports/ebnf-tiered-report.json`
@@ -146,19 +157,26 @@ Individual Targets:
 
 ```bash
 # Native Console (clang++/g++)
-bash ./bin/run-test-console.sh ./compiler/test.cpp
+bash ./bin/run-test-console.sh ./compiler/examples/test.cpp
 
 # Node + WASM (legacy mode)
-bash ./bin/run-test-node.sh --file ./compiler/test.cpp --mode legacy
+bash ./bin/run-test-node.sh --file ./compiler/examples/test.cpp --mode legacy
 
 # Node dist pipeline (webc --dist-run)
-bash ./bin/run-test-node.sh --file ./compiler/test.cpp --mode dist --out-dir ./out/node-dist --name testapp
+bash ./bin/run-test-node.sh --file ./compiler/examples/test.cpp --mode dist --out-dir ./out/node-dist --name testapp
 
 # Browser + WASM (legacy mode; starts local server)
-bash ./bin/run-wasm-browser.sh --file ./compiler/test.cpp --mode legacy
+bash ./bin/run-wasm-browser.sh --file ./compiler/examples/test.cpp --mode legacy
 
 # Browser dist runner (starts local server in dist folder)
-bash ./bin/run-wasm-browser.sh --file ./compiler/test.cpp --mode dist --out-dir ./out/browser-dist --name testapp
+bash ./bin/run-wasm-browser.sh --file ./compiler/examples/test.cpp --mode dist --out-dir ./out/browser-dist --name testapp
+
+# Dist package validation (extended baseline)
+npm run check:dist:node
+npm run check:dist:browser-host
+
+# Full heavy validation (manual, on-demand; not commit-hooked)
+npm run ready:full
 ```
 
 Runner in browser:
@@ -169,14 +187,14 @@ Runner in browser:
 
 ## Minimal example with class (new)
 
-File: `compiler/example_class_plus_one.cpp`
+File: `compiler/examples/example_class_plus_one.cpp`
 
 ```bash
 # Node + WASM
-bash ./bin/run-test-node.sh ./compiler/example_class_plus_one.cpp
+bash ./bin/run-test-node.sh ./compiler/examples/example_class_plus_one.cpp
 
 # Browser + WASM (port 8080)
-bash ./bin/run-wasm-browser.sh ./compiler/example_class_plus_one.cpp ./out/browser 8080
+bash ./bin/run-wasm-browser.sh ./compiler/examples/example_class_plus_one.cpp ./out/browser 8080
 
 # Dedicated shortcuts for the simple example
 bash ./bin/run-test-node-simple.sh

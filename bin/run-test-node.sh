@@ -11,7 +11,7 @@ usage() {
 Usage: run-test-node.sh [options]
 
 Options:
-	--file FILE          Input C++ file (default: ./compiler/test.cpp)
+	--file FILE          Input C++ file (default: ./compiler/examples/test.cpp)
 	--out-dir DIR        Output/Dist directory (default: ./out/node)
 	--mode MODE          legacy|dist (default: legacy)
 	--name NAME          Dist app name (used with --mode dist)
@@ -27,7 +27,7 @@ Dist mode:
 EOF
 }
 
-INPUT_FILE="$REPO_ROOT/compiler/test.cpp"
+INPUT_FILE="$REPO_ROOT/compiler/examples/test.cpp"
 OUT_DIR="$REPO_ROOT/out/node"
 MODE="legacy"
 DIST_NAME=""

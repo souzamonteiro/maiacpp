@@ -120,7 +120,11 @@ function typeCode(type) {
   if (type.kind === 'pointer') return `p${typeCode(type.base)}`;
   if (type.kind === 'reference') return `r${typeCode(type.base)}`;
   if (type.kind === 'array') return `a${type.size}${typeCode(type.base)}`;
-  if (type.kind === 'class') return `N${type.name.length}${type.name}`;
+  if (type.kind === 'class') {
+    // Strip template params and scope operators so the fragment is a valid C identifier.
+    const safeCls = sanitizeMangleFragment(type.name);
+    return `N${safeCls.length}${safeCls}`;
+  }
   return 'x';
 }
 
@@ -128,6 +132,45 @@ function sanitizeMangleFragment(name) {
   return String(name || '')
     .replace(/operator\s*\[\s*\]/g, 'operator_subscript')
     .replace(/operator\s*\(\s*\)/g, 'operator_call')
+    .replace(/delete\s*\[\s*\]/g, 'deletearray')
+    .replace(/new\s*\[\s*\]/g, 'newarray')
+    // Named replacements for multi-char operators (must come before single-char)
+    .replace(/operator\s*==/g, 'operator_eq')
+    .replace(/operator\s*!=/g, 'operator_ne')
+    .replace(/operator\s*<</g, 'operator_lshift')
+    .replace(/operator\s*>>/g, 'operator_rshift')
+    .replace(/operator\s*<=/g, 'operator_le')
+    .replace(/operator\s*>=/g, 'operator_ge')
+    .replace(/operator\s*&&/g, 'operator_and')
+    .replace(/operator\s*\|\|/g, 'operator_or')
+    .replace(/operator\s*\+\+/g, 'operator_inc')
+    .replace(/operator\s*--/g, 'operator_dec')
+    .replace(/operator\s*->/g, 'operator_arrow')
+    .replace(/operator\s*\+=/g, 'operator_addassign')
+    .replace(/operator\s*-=/g, 'operator_subassign')
+    .replace(/operator\s*\*=/g, 'operator_mulassign')
+    .replace(/operator\s*\/=/g, 'operator_divassign')
+    .replace(/operator\s*%=/g, 'operator_modassign')
+    .replace(/operator\s*\^=/g, 'operator_xorassign')
+    .replace(/operator\s*&=/g, 'operator_andassign')
+    .replace(/operator\s*\|=/g, 'operator_orassign')
+    .replace(/operator\s*<<=/g, 'operator_lshiftassign')
+    .replace(/operator\s*>>=/g, 'operator_rshiftassign')
+    // Single-char operators
+    .replace(/operator\s*\+/g, 'operator_add')
+    .replace(/operator\s*-/g, 'operator_sub')
+    .replace(/operator\s*\*/g, 'operator_mul')
+    .replace(/operator\s*\//g, 'operator_div')
+    .replace(/operator\s*%/g, 'operator_mod')
+    .replace(/operator\s*\^/g, 'operator_xor')
+    .replace(/operator\s*&/g, 'operator_bitand')
+    .replace(/operator\s*\|/g, 'operator_bitor')
+    .replace(/operator\s*~/g, 'operator_bitnot')
+    .replace(/operator\s*!/g, 'operator_not')
+    .replace(/operator\s*</g, 'operator_lt')
+    .replace(/operator\s*>/g, 'operator_gt')
+    .replace(/operator\s*=/g, 'operator_assign')
+    .replace(/operator\s*,/g, 'operator_comma')
     .replace(/~/g, 'destructor_')
     .replace(/[^A-Za-z0-9_]/g, '_')
     .replace(/_+/g, '_')
@@ -420,6 +463,15 @@ function normalizeTypeText(type) {
   return t;
 }
 
+// C89 reserved keywords — must not be used as parameter names in emitted C.
+const C89_KEYWORDS = new Set([
+  'auto','break','case','char','const','continue','default','do',
+  'double','else','enum','extern','float','for','goto','if',
+  'int','long','register','return','short','signed','sizeof',
+  'static','struct','switch','typedef','union','unsigned','void',
+  'volatile','while'
+]);
+
 function parseParamList(paramListText) {
   const text = (paramListText || '').trim();
   if (!text || text === 'void') return [];
@@ -432,9 +484,10 @@ function parseParamList(paramListText) {
       params.push({ type: normalizeTypeText(p), name: `p${i + 1}` });
       continue;
     }
+    const candidateName = match[2].trim();
     params.push({
       type: normalizeTypeText(match[1].trim()),
-      name: match[2].trim()
+      name: C89_KEYWORDS.has(candidateName) ? `p${i + 1}` : candidateName
     });
   }
   return params;
@@ -1621,7 +1674,12 @@ class SemanticAnalyzer {
     return params.map((param, index) => {
       const specifiers = this.findFirstNonterminal(param, 'declarationSpecifiers');
       const declarator = this.findFirstNonterminal(param, 'declarator');
-      const type = normalizeTypeText(this.text(specifiers));
+      const baseType = normalizeTypeText(this.text(specifiers));
+      // Count pointer stars in the declarator text (before the identifier).
+      // The declarator may look like "* name" or "** name" — each '*' adds one pointer level.
+      const declText = this.text(declarator).trim();
+      const ptrStars = (declText.match(/^\*+/) || [''])[0];
+      const type = ptrStars ? `${baseType}${ptrStars}` : baseType;
       const name = this.extractDeclaratorName(declarator) || `p${index + 1}`;
       return { type, name };
     });
@@ -1917,7 +1975,24 @@ class CppToCTranspiler {
     this.em.line('extern void*  __malloc(unsigned long size);');
     this.em.line('extern void   __free(void* ptr);');
     this.em.line();
+    this.emitStdioPrelude(this.options.source || '');
     this.emitHostImportDecls(this.options.source || '');
+  }
+
+  /**
+   * Emit minimal stdio/FILE declarations when the generated C uses stdio globals.
+   * This makes the generated C self-contained without requiring --resolve-system-includes.
+   */
+  emitStdioPrelude(sourceText) {
+    const src = String(sourceText || '');
+    if (!/\b(stdout|stdin|stderr|FILE)\b/.test(src)) return;
+    this.em.line('/* Minimal stdio declarations (MaiaC-compatible) */');
+    this.em.line('struct _FILE;');
+    this.em.line('typedef struct _FILE FILE;');
+    this.em.line('extern FILE *stdin;');
+    this.em.line('extern FILE *stdout;');
+    this.em.line('extern FILE *stderr;');
+    this.em.line();
   }
 
   /**
@@ -1952,6 +2027,9 @@ class CppToCTranspiler {
       const funcName = m[2];
       const params = (m[3] || '').trim();
       if (seen.has(funcName) || PRELUDE.has(funcName)) continue;
+      // Skip storage-class prefixed matches — those are variable declarations,
+      // not function declarations (e.g. "static T __name(args);").
+      if (/\b(static|inline|auto|register)\b/.test(retType)) continue;
       seen.add(funcName);
       lines.push(`extern ${retType} ${funcName}(${params || 'void'});`);
     }
@@ -2010,16 +2088,19 @@ class CppToCTranspiler {
     const ptrMatch = normalized.match(/(\*+)$/);
     const ptrSuffix = ptrMatch ? ptrMatch[1] : '';
     const base = ptrSuffix ? normalized.slice(0, -ptrSuffix.length).trim() : normalized;
-    if (!base) return ptrSuffix ? `void${ptrSuffix}` : 'int';
+    if (!base) return 'void*';  // unknown empty base → opaque pointer
 
     const builtinWords = new Set(['signed', 'unsigned', 'short', 'long', 'int', 'char', 'float', 'double', 'void']);
     const baseWords = base.split(/\s+/).filter(Boolean);
     const isBuiltinPhrase = baseWords.length > 0 && baseWords.every((word) => builtinWords.has(word));
+    // MaiaC C89 parser does not support multi-level pointers (**).
+    // Always cap pointer depth at one level ('*') in the emitted C.
+    const safePtrSuffix = ptrSuffix.length > 0 ? '*' : '';
     if (isBuiltinPhrase || this.knownTypeNames.has(base)) {
-      return normalized;
+      return `${base}${safePtrSuffix}`;
     }
 
-    if (ptrSuffix) return `void${ptrSuffix}`;
+    if (safePtrSuffix) return `void*`;
     return 'int';
   }
 
@@ -2036,7 +2117,10 @@ class CppToCTranspiler {
       this.em.level += 1;
       let hasPayload = false;
       for (const base of cls.bases) {
-        this.em.line(`${base.name} __base;`);
+        // Strip template parameters (e.g. basic_streambuf<char> → basic_streambuf)
+        // so the base field is a valid C struct member type.
+        const baseTypeName = (base.name || 'int').replace(/<[^>]*>/g, '').trim() || 'int';
+        this.em.line(`${baseTypeName} __base;`);
         hasPayload = true;
       }
       for (const member of cls.members) {
@@ -2872,6 +2956,22 @@ class CppToCTranspiler {
     if (!call || !call.callee) return { expr: '(int)0', diagnostic: null };
     const argTypes = (call.args || []).map((arg) => this.inferCallArgType(arg, fn));
 
+    // Sanitize C++-specific arg patterns to valid C89:
+    // 1. ScopeClass::member → 0 (scoped enum constants are not valid C)
+    // 2. (UnknownType)expr → strip cast to unknown type
+    const sanitizeArgForC = (arg) => {
+      const a = String(arg || '').trim();
+      if (/[A-Za-z_][A-Za-z0-9_]*\s*::\s*[A-Za-z_][A-Za-z0-9_]*/.test(a)) return '0';
+      const castM = a.match(/^\(\s*([A-Za-z_][A-Za-z0-9_]*(?:\s*\*)*)\s*\)\s*(.+)$/);
+      if (castM) {
+        const castBase = castM[1].replace(/\s*\*+$/, '').trim();
+        const C89_BUILTIN = new Set(['char','short','int','long','float','double','void','signed','unsigned','size_t','ptrdiff_t']);
+        if (!C89_BUILTIN.has(castBase)) return castM[2].trim();
+      }
+      return a;
+    };
+    const safeArgs = (call.args || []).map(sanitizeArgForC);
+
     const qualifiedNs = Array.isArray(call.calleeNamespacePath) ? call.calleeNamespacePath : [];
     const resolution = this.resolveGlobalFunctionDetailed(
       call.callee,
@@ -2885,7 +2985,7 @@ class CppToCTranspiler {
     const match = resolution ? resolution.match : null;
     if (!match) {
       const fallbackCallee = qualifiedNs.length ? `${qualifiedNs.join('::')}::${call.callee}` : call.callee;
-      return { expr: `${fallbackCallee}(${(call.args || []).join(', ')})`, diagnostic: null };
+      return { expr: `${fallbackCallee}(${safeArgs.join(', ')})`, diagnostic: null };
     }
 
     const sigTypes = (match.params || []).map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
@@ -2900,7 +3000,7 @@ class CppToCTranspiler {
     const diagnostic = ambiguity
       ? `Overload ambiguity resolved by stable key: ${ambiguity.selected}`
       : null;
-    return { expr: `${calleeMangled}(${(call.args || []).join(', ')})`, diagnostic, ambiguity };
+    return { expr: `${calleeMangled}(${safeArgs.join(', ')})`, diagnostic, ambiguity };
   }
 
   inferCallArgType(arg, currentFn) {

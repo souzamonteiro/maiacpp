@@ -108,6 +108,10 @@ int multiply(int a, int b) {
     return a * b;
 }
 
+int sub(int a, int b) {
+    return a - b;
+}
+
 class BBase {
 public:
     virtual ~BBase() {}
@@ -162,6 +166,35 @@ int run_arithmetic_function_tests() {
     int s = add(7, 3);
     int m = multiply(7, 3);
     return (s == 10 && m == 21) ? 1 : 0;
+}
+
+int run_pointer_array_tests() {
+    int x = 4;
+    int y = 6;
+    int* px = &x;
+    int* py = &y;
+    int sum_ptr = *px + *py;
+
+    int* dyn = new int[2];
+    dyn[0] = 11;
+    dyn[1] = 13;
+    int sum_dyn = dyn[0] + dyn[1];
+    delete[] dyn;
+
+    return (sum_ptr == 10 && sum_dyn == 24) ? 1 : 0;
+}
+
+typedef int (*BinaryOp)(int, int);
+
+int run_function_pointer_dispatch_tests() {
+    BinaryOp op = add;
+    int a = op(5, 4);
+    op = multiply;
+    int b = op(5, 4);
+    op = sub;
+    int c = op(5, 4);
+
+    return (a == 9 && b == 20 && c == 1) ? 1 : 0;
 }
 
 int run_cast_tests() {

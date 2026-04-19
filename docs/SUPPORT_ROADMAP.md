@@ -6,7 +6,7 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
 
 - Grammar (`grammar/Cpp.ebnf`) is broad and includes many C++98 constructs.
 - Parser/codegen support is still partial in combined real-world files.
-- Comprehensive baseline for day-to-day validation is `compiler/test.cpp`.
+- Comprehensive baseline for day-to-day validation is `compiler/examples/test.cpp`.
 
 ## Proven Working Baseline (Parser: ok)
 
@@ -199,7 +199,7 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
 
 ## Phase 16 Progress (Current)
 
-- Added practical execution workflow for `compiler/test.cpp` across targets (MaiaC-like DX):
+- Added practical execution workflow for `compiler/examples/test.cpp` across targets (MaiaC-like DX):
    - console native execution script (`clang++`/`g++`)
    - Node WASM execution script with host runtime imports
    - browser WASM runner page + local server script.
@@ -288,7 +288,7 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - removed unsupported system-header/varargs prelude usage from generated C
    - preserved source function-pointer typedefs required by lowered C
    - ensured placeholder structs are never empty in emitted C
-   - reused deterministic helper lowering and structured `main` emission in the C backend so `compiler/test.cpp` remains executable through MaiaC.
+   - reused deterministic helper lowering and structured `main` emission in the C backend so `compiler/examples/test.cpp` remains executable through MaiaC.
 
 ## Phase 25 Progress (Current)
 
@@ -302,5 +302,5 @@ This roadmap tracks the gap between grammar breadth and effective compiler suppo
    - Keep runtime-specific semantics isolated in `compiler/runtime.wat`.
 
 5. Regression strategy:
-   - Keep `compiler/test.cpp` as mandatory minimum compile target (`Parser: ok`).
+   - Keep `compiler/examples/test.cpp` as mandatory minimum compile target (`Parser: ok`).
    - Add progressive integration fixtures for each priority above.

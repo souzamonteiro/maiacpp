@@ -2743,6 +2743,70 @@ class Parser {
     if (!_matched) {
       const _ruleMark = this.markEventState();
       try {
+    let count = 0;
+    while (true) {
+      const savePos = this.position;
+      const saveMark = this.markEventState();
+      try {
+        this.parsefunctionSpecifier();
+        if (this.position === savePos) break;
+        count++;
+      } catch(e) {
+        this.position = savePos;
+        this.restoreEventState(saveMark);
+        break;
+      }
+    }
+    if (count === 0) {
+      throw new Error('Expected at least one functionSpecifier');
+    }
+    this.parsedeclarator();
+    // Optional: try parsing ctorInitializer
+    {
+      const savePos = this.position;
+      const saveMark = this.markEventState();
+      try {
+        this.parsectorInitializer();
+      } catch(e) {
+        this.position = savePos;
+        this.restoreEventState(saveMark);
+      }
+    }
+    this.parsefunctionBody();
+    if (this.match('TOKEN__3B_')) { /* optional matched */ }
+        _matched = true;
+      } catch (e) {
+        this.position = _ruleStart;
+        this.restoreEventState(_ruleMark);
+      }
+    }
+    if (!_matched) {
+      const _ruleMark = this.markEventState();
+      try {
+    this.parsedeclarationSpecifiers();
+    this.parsedeclarator();
+    // Optional: try parsing ctorInitializer
+    {
+      const savePos = this.position;
+      const saveMark = this.markEventState();
+      try {
+        this.parsectorInitializer();
+      } catch(e) {
+        this.position = savePos;
+        this.restoreEventState(saveMark);
+      }
+    }
+    this.parsefunctionBody();
+    if (this.match('TOKEN__3B_')) { /* optional matched */ }
+        _matched = true;
+      } catch (e) {
+        this.position = _ruleStart;
+        this.restoreEventState(_ruleMark);
+      }
+    }
+    if (!_matched) {
+      const _ruleMark = this.markEventState();
+      try {
     this.parsedeclaration();
         _matched = true;
       } catch (e) {
@@ -2817,7 +2881,7 @@ class Parser {
       }
     }
     if (!_matched) {
-      throw new Error(`Expected one of: 6 alternatives`);
+      throw new Error(`Expected one of: 8 alternatives`);
     }
 
       __ok = true;
@@ -4397,6 +4461,8 @@ class Parser {
       const _ruleMark = this.markEventState();
       try {
     this.consume('TOKEN_new');
+    this.consume('TOKEN__5B_');
+    this.consume('TOKEN__5D_');
         _matched = true;
       } catch (e) {
         this.position = _ruleStart;
@@ -4407,6 +4473,8 @@ class Parser {
       const _ruleMark = this.markEventState();
       try {
     this.consume('TOKEN_delete');
+    this.consume('TOKEN__5B_');
+    this.consume('TOKEN__5D_');
         _matched = true;
       } catch (e) {
         this.position = _ruleStart;
@@ -4417,8 +4485,6 @@ class Parser {
       const _ruleMark = this.markEventState();
       try {
     this.consume('TOKEN_new');
-    this.consume('TOKEN__5B_');
-    this.consume('TOKEN__5D_');
         _matched = true;
       } catch (e) {
         this.position = _ruleStart;
@@ -4429,8 +4495,6 @@ class Parser {
       const _ruleMark = this.markEventState();
       try {
     this.consume('TOKEN_delete');
-    this.consume('TOKEN__5B_');
-    this.consume('TOKEN__5D_');
         _matched = true;
       } catch (e) {
         this.position = _ruleStart;
