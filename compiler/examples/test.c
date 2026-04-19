@@ -1,5 +1,3 @@
-Parsing: /Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/test.cpp
-Parser: ok (namespace normalized)
 /* Generated from C++98 source */
 /* Target: C89 */
 
@@ -136,6 +134,8 @@ int run_template_tests(void);
 int run_function_pointer_tests(void);
 int run_cast_tests(void);
 int run_new_delete_tests(void);
+int run_cout_stress_tests(void);
+int run_for_cout_test(void);
 int main(void);
 
 int add__ii(int a, int b) {
@@ -171,11 +171,17 @@ int run_function_pointer_tests(void) {
 }
 
 int run_cast_tests(void) {
-  DDerived __obj;
-  DDerived_init__i(&__obj, 15);
+  DDerived* __derived = (DDerived*)__malloc((unsigned long)sizeof(DDerived));
+  if (__derived == 0) return 0;
+  DDerived_init__i(__derived, 15);
+  BBase* b = (BBase*)__derived;
+  DDerived* d = (DDerived*)b;
   int n = (int)(3.2);
-  if (DDerived_value(&__obj) != 15) return 0;
-  if (n != 3) return 0;
+  if (d == 0) { DDerived_destroy(__derived); __free(b); return 0; }
+  if (DDerived_value(d) != 15) { DDerived_destroy(__derived); __free(b); return 0; }
+  if (n != 3) { DDerived_destroy(__derived); __free(b); return 0; }
+  DDerived_destroy(__derived);
+  __free(b);
   return 1;
 }
 
@@ -185,81 +191,388 @@ int run_new_delete_tests(void) {
   *a = 1;
   if (*a != 1) { __free(a); return 0; }
   __free(a);
-  P* p = (P*)__malloc((unsigned long)sizeof(P));
-  if (p == 0) return 0;
+  char buffer[sizeof(P)];
+  P* p = (P*)(void*)buffer;
   P_init__i(p, 10);
   int v = P_get(p);
   P_destroy(p);
-  __free(p);
   return (v == 10) ? 1 : 0;
+}
+
+int run_cout_stress_tests(void) {
+  int cout_acc = 0;
+  int i = 1;
+
+  cout_acc = cout_acc + i;
+  printf("[cout-test] i=");
+  printf("%d", i);
+  printf(" acc=");
+  printf("%d", cout_acc);
+  printf(" int=");
+  printf("%d", 42);
+  printf(" double=");
+  printf("%g", 3.25);
+  printf(" char=");
+  printf("%c", 'Q');
+  printf("\n");
+  i++;
+  cout_acc = cout_acc + i;
+  printf("[cout-test] i=");
+  printf("%d", i);
+  printf(" acc=");
+  printf("%d", cout_acc);
+  printf(" int=");
+  printf("%d", 42);
+  printf(" double=");
+  printf("%g", 3.25);
+  printf(" char=");
+  printf("%c", 'Q');
+  printf("\n");
+  i++;
+  cout_acc = cout_acc + i;
+  printf("[cout-test] i=");
+  printf("%d", i);
+  printf(" acc=");
+  printf("%d", cout_acc);
+  printf(" int=");
+  printf("%d", 42);
+  printf(" double=");
+  printf("%g", 3.25);
+  printf(" char=");
+  printf("%c", 'Q');
+  printf("\n");
+  return (cout_acc == 6) ? 1 : 0;
+}
+
+int run_for_cout_test(void) {
+  int sum = 0;
+  double ratio = 1.5;
+  int i = 1;
+
+  for (i = 1; i < 4; ++i) {
+    sum = sum + i;
+    printf("[for-cout] i=");
+    printf("%d", i);
+    printf(" sum=");
+    printf("%d", sum);
+    printf(" ratio=");
+    printf("%g", ratio);
+    printf("\n");
+  }
+  return (sum == 6) ? 1 : 0;
 }
 
 int main(void) {
   int failures = 0;
+  int a = 10;
+  int b = 20;
+  int result = 0;
+  int relation = 0;
+  int logic = 0;
+  int bit = 0;
+  int cout_acc = 0;
+  int i = 0;
+  int loop_sum = 0;
+  int down = 5;
+  int up = 0;
+  int* ptr = &a;
 
-  printf("=== MaiaCpp Comprehensive Baseline ===");
+  printf("=== MaiaCpp Comprehensive Runtime Baseline ===\n");
+  printf("--- Arithmetic Operators ---\n");
+  result = a + b;
+  printf("add(a,b)=");
+  printf("%d", result);
   printf("\n");
+  result = b - a;
+  printf("b-a=");
+  printf("%d", result);
+  printf("\n");
+  result = a * 3;
+  printf("a*3=");
+  printf("%d", result);
+  printf("\n");
+  result = b / 2;
+  printf("b/2=");
+  printf("%d", result);
+  printf("\n");
+  result = b % 3;
+  printf("b%3=");
+  printf("%d", result);
+  printf("\n");
+  printf("--- Assignment Operators ---\n");
+  result = a;
+  printf("result=");
+  printf("%d", result);
+  printf("\n");
+  result = result + b;
+  printf("result+=b => ");
+  printf("%d", result);
+  printf("\n");
+  result = result - 10;
+  printf("result-=10 => ");
+  printf("%d", result);
+  printf("\n");
+  result = result * 2;
+  printf("result*=2 => ");
+  printf("%d", result);
+  printf("\n");
+  result = result / 5;
+  printf("result/=5 => ");
+  printf("%d", result);
+  printf("\n");
+  result = result % 4;
+  printf("result%=4 => ");
+  printf("%d", result);
+  printf("\n");
+  printf("--- Relational Operators ---\n");
+  relation = a == b;
+  printf("a==b => ");
+  printf("%d", relation);
+  printf("\n");
+  relation = a != b;
+  printf("a!=b => ");
+  printf("%d", relation);
+  printf("\n");
+  relation = a < b;
+  printf("a<b => ");
+  printf("%d", relation);
+  printf("\n");
+  relation = a > b;
+  printf("a>b => ");
+  printf("%d", relation);
+  printf("\n");
+  relation = a <= b;
+  printf("a<=b => ");
+  printf("%d", relation);
+  printf("\n");
+  relation = a >= b;
+  printf("a>=b => ");
+  printf("%d", relation);
+  printf("\n");
+  printf("--- Logical Operators ---\n");
+  logic = a && b;
+  printf("a&&b => ");
+  printf("%d", logic);
+  printf("\n");
+  logic = a || 0;
+  printf("a||0 => ");
+  printf("%d", logic);
+  printf("\n");
+  printf("--- Bitwise Operators ---\n");
+  bit = a & b;
+  printf("a&b => ");
+  printf("%d", bit);
+  printf("\n");
+  bit = a | b;
+  printf("a|b => ");
+  printf("%d", bit);
+  printf("\n");
+  bit = a ^ b;
+  printf("a^b => ");
+  printf("%d", bit);
+  printf("\n");
+  bit = a << 2;
+  printf("a<<2 => ");
+  printf("%d", bit);
+  printf("\n");
+  bit = b >> 1;
+  printf("b>>1 => ");
+  printf("%d", bit);
+  printf("\n");
+  printf("--- Pointer Operators ---\n");
+  *ptr = 100;
+  printf("*ptr=100 => a=");
+  printf("%d", a);
+  printf("\n");
+  printf("--- Control Flow ---\n");
+  for (i = 0; i < 8; ++i) {
+    if (i == 5) {
+      continue;
+    }
+    loop_sum = loop_sum + i;
+    printf("[for] i=");
+    printf("%d", i);
+    printf(" loop_sum=");
+    printf("%d", loop_sum);
+    printf("\n");
+  }
+  printf("loop_sum=%d\n", loop_sum);
+  while (down > 0) {
+    down--;
+  }
+  printf("while-down=%d\n", down);
+  do {
+    up++;
+  } while (up < 5);
+  printf("do-while-up=%d\n", up);
+  printf("--- cout stress preflight ---\n");
+  cout_acc = cout_acc + i;
+  printf("[cout] i=");
+  printf("%d", i);
+  printf(" acc=");
+  printf("%d", cout_acc);
+  printf(" int=");
+  printf("%d", 42);
+  printf(" double=");
+  printf("%g", 3.25);
+  printf(" char=");
+  printf("%c", 'Q');
+  printf("\n");
+  i++;
+  cout_acc = cout_acc + i;
+  printf("[cout] i=");
+  printf("%d", i);
+  printf(" acc=");
+  printf("%d", cout_acc);
+  printf(" int=");
+  printf("%d", 42);
+  printf(" double=");
+  printf("%g", 3.25);
+  printf(" char=");
+  printf("%c", 'Q');
+  printf("\n");
+  i++;
+  cout_acc = cout_acc + i;
+  printf("[cout] i=");
+  printf("%d", i);
+  printf(" acc=");
+  printf("%d", cout_acc);
+  printf(" int=");
+  printf("%d", 42);
+  printf(" double=");
+  printf("%g", 3.25);
+  printf(" char=");
+  printf("%c", 'Q');
+  printf("\n");
+  i++;
+  cout_acc = cout_acc + i;
+  printf("[cout] i=");
+  printf("%d", i);
+  printf(" acc=");
+  printf("%d", cout_acc);
+  printf(" int=");
+  printf("%d", 42);
+  printf(" double=");
+  printf("%g", 3.25);
+  printf(" char=");
+  printf("%c", 'Q');
+  printf("\n");
+  i++;
+  cout_acc = cout_acc + i;
+  printf("[cout] i=");
+  printf("%d", i);
+  printf(" acc=");
+  printf("%d", cout_acc);
+  printf(" int=");
+  printf("%d", 42);
+  printf(" double=");
+  printf("%g", 3.25);
+  printf(" char=");
+  printf("%c", 'Q');
+  printf("\n");
+  i++;
+  cout_acc = cout_acc + i;
+  printf("[cout] i=");
+  printf("%d", i);
+  printf(" acc=");
+  printf("%d", cout_acc);
+  printf(" int=");
+  printf("%d", 42);
+  printf(" double=");
+  printf("%g", 3.25);
+  printf(" char=");
+  printf("%c", 'Q');
+  printf("\n");
+  i++;
+  cout_acc = cout_acc + i;
+  printf("[cout] i=");
+  printf("%d", i);
+  printf(" acc=");
+  printf("%d", cout_acc);
+  printf(" int=");
+  printf("%d", 42);
+  printf(" double=");
+  printf("%g", 3.25);
+  printf(" char=");
+  printf("%c", 'Q');
+  printf("\n");
+  i++;
+  cout_acc = cout_acc + i;
+  printf("[cout] i=");
+  printf("%d", i);
+  printf(" acc=");
+  printf("%d", cout_acc);
+  printf(" int=");
+  printf("%d", 42);
+  printf(" double=");
+  printf("%g", 3.25);
+  printf(" char=");
+  printf("%c", 'Q');
+  printf("\n");
+  printf("cout_acc=%d expected=92\n", cout_acc);
   printf("1. class/ctor/const: ");
   if (run_class_tests()) {
-    printf("OK");
-    printf("\n");
+    printf("OK\n");
   } else {
-    printf("FAIL");
-    printf("\n");
+    printf("FAIL\n");
     failures++;
   }
   printf("2. template/operator[]: ");
   if (run_template_tests()) {
-    printf("OK");
-    printf("\n");
+    printf("OK\n");
   } else {
-    printf("FAIL");
-    printf("\n");
+    printf("FAIL\n");
     failures++;
   }
-  printf("3. function pointer: ");
+  printf("3. function pointer dispatch: ");
   if (run_function_pointer_tests()) {
-    printf("OK");
-    printf("\n");
+    printf("OK\n");
   } else {
-    printf("FAIL");
-    printf("\n");
+    printf("FAIL\n");
     failures++;
   }
   printf("4. casts (dynamic/static): ");
   if (run_cast_tests()) {
-    printf("OK");
-    printf("\n");
+    printf("OK\n");
   } else {
-    printf("FAIL");
-    printf("\n");
+    printf("FAIL\n");
     failures++;
   }
   printf("5. new/delete/placement-new: ");
   if (run_new_delete_tests()) {
-    printf("OK");
-    printf("\n");
+    printf("OK\n");
   } else {
-    printf("FAIL");
-    printf("\n");
+    printf("FAIL\n");
+    failures++;
+  }
+  printf("6. cout stress (chain/loop/literals): ");
+  if (run_cout_stress_tests()) {
+    printf("OK\n");
+  } else {
+    printf("FAIL\n");
+    failures++;
+  }
+  printf("7. for-loop with cout and double local: ");
+  if (run_for_cout_test()) {
+    printf("OK\n");
+  } else {
+    printf("FAIL\n");
     failures++;
   }
   if (failures == 0) {
-    printf("ALL TESTS PASSED");
-    printf("\n");
+    printf("ALL TESTS PASSED\n");
     return 0;
   }
   printf("TESTS FAILED: %d\n", failures);
-  printf("TESTS FAILED: ");
-  printf("%d", failures);
-  printf("\n");
   return 1;
 }
 
-/* Lowering diagnostics: 5 event(s) (structured-indexed-object-cmp-return=1, structured-local-return=1, structured-method-cmp-return=1, structured-resource-runtime=2) */
+/* Lowering diagnostics: 7 event(s) (structured-indexed-object-cmp-return=1, structured-io-runtime=2, structured-local-return=1, structured-method-cmp-return=1, structured-resource-runtime=2) */
 /* - run_class_tests: structured-method-cmp-return (method) */
 /* - run_template_tests: structured-indexed-object-cmp-return (2 assignment(s)) */
 /* - run_function_pointer_tests: structured-local-return (2 local(s)) */
 /* - run_cast_tests: structured-resource-runtime (cast-static-runtime) */
 /* - run_new_delete_tests: structured-resource-runtime (new-delete-runtime) */
+/* - run_cout_stress_tests: structured-io-runtime (structured-io-runtime) */
+/* - run_for_cout_test: structured-io-runtime (structured-io-runtime) */
 

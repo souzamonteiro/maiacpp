@@ -1,6 +1,6 @@
 {
   "name": "maiacpp",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "MaiaCpp (WebCpp): C++98 to C transpiler integrated with MaiaC.",
   "license": "Apache-2.0",
   "main": "compiler/cpp-compiler.js",

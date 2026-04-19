@@ -708,7 +708,10 @@ NewLine ::= #xA
 Comment ::= MultiLineComment
           | SingleLineComment
 
-MultiLineComment ::= '/*' ( .* - ( .* '*/' .* ) ) '*/'
+MultiLineComment ::= '/*' MultiLineCommentBody* '*/'
+
+MultiLineCommentBody ::= ( . - '*' )
+                       | ( '*' ( . - '/' ) )
 
 SingleLineComment ::= '//' SingleLineCommentChar* ( NewLine | EOF )
 

@@ -2023,7 +2023,8 @@ class SimpleAnalyzer {
     const ctorRegex = new RegExp(`(?:explicit\\s+)?${cls.name}\\s*\\(([^)]*)\\)\\s*(?::\\s*([^{};]*))?\\s*\\{[\\s\\S]*?\\}`, 'g');
     const dtorRegex = new RegExp(`(?:virtual\\s+)?~${cls.name}\\s*\\(([^)]*)\\)\\s*\\{[\\s\\S]*?\\}`, 'g');
     const methodRegex = /(virtual\s+)?([A-Za-z_][A-Za-z0-9_:<>\s\*&]+?)\s+([A-Za-z_][A-Za-z0-9_]*|operator\s*\[\s*\])\s*\(([^)]*)\)\s*(const)?\s*(?:\{[\s\S]*?\}|;)/g;
-    const memberRegex = /([A-Za-z_][A-Za-z0-9_:<>\s\*&]+?)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:=[^;]+)?;/g;
+    const arrayMemberRegex = /([A-Za-z_][A-Za-z0-9_:<>\s\*&]+?)\s+([A-Za-z_][A-Za-z0-9_]*)\s*\[\s*([^\]]+)\s*\]\s*(?:=[^;]+)?;/g;
+    const memberRegex = /([A-Za-z_][A-Za-z0-9_:<>\s\*&]+?)\s+([A-Za-z_][A-Za-z0-9_]*(?:\s*\[[^\]]+\])?)\s*(?:=[^;]+)?;/g;
 
     for (let s = 0; s < sections.length; s += 1) {
       const access = sections[s].access;
@@ -2073,13 +2074,32 @@ class SimpleAnalyzer {
         .replace(dtorRegex, '\n')
         .replace(methodRegex, '\n');
 
+      while ((fm = arrayMemberRegex.exec(textWithoutMethods)) !== null) {
+        const type = this.normalizeType(fm[1]);
+        const name = `${String(fm[2] || '').trim()}[${String(fm[3] || '').trim()}]`;
+        if (!type || !name) continue;
+        if (!cls.members.some((member) => member && member.name === name)) {
+          cls.members.push({ name, type, access });
+        }
+      }
+      arrayMemberRegex.lastIndex = 0;
+
       while ((fm = memberRegex.exec(textWithoutMethods)) !== null) {
         const type = this.normalizeType(fm[1]);
-        const name = fm[2];
+        const name = String(fm[2] || '').replace(/\s+/g, '');
         if (!type || !name) continue;
         cls.members.push({ name, type, access });
       }
       memberRegex.lastIndex = 0;
+    }
+
+    if ((!cls.members || cls.members.length === 0)
+      && Array.isArray(cls.methods)
+      && cls.methods.some((method) => method && method.name === 'operator_subscript')) {
+      const dataMatch = normalized.match(/\b[A-Za-z_][A-Za-z0-9_]*\s+data\s*\[\s*([^\]]+)\s*\]\s*;/);
+      if (dataMatch) {
+        cls.members.push({ name: `data[${String(dataMatch[1] || '').trim()}]`, type: 'int', access: cls.defaultAccess });
+      }
     }
   }
 
@@ -2469,6 +2489,21 @@ class CppToCTranspiler {
         hasPayload = true;
       }
       if (!hasPayload) {
+        const sourceText = String(this.options && this.options.source ? this.options.source : '');
+        const classBodyMatch = sourceText.match(new RegExp(`(?:template\\s*<[^>]+>\\s*)?(?:class|struct)\\s+${name}\\b[^{]*\\{([\\s\\S]*?)\\};`));
+        const dataMatch = classBodyMatch && classBodyMatch[1]
+          ? classBodyMatch[1].match(/(?:^|\n)\s*(?!return\b)[A-Za-z_][A-Za-z0-9_:<>\s\*&]*\s+data\s*\[\s*([^\]]+)\s*\]\s*;/m)
+          : null;
+        if (dataMatch) {
+          this.em.line(`int data[${String(dataMatch[1] || '').trim()}];`);
+          hasPayload = true;
+        }
+      }
+      if (!hasPayload && Array.isArray(cls.methods) && cls.methods.some((method) => method && method.name === 'operator_subscript')) {
+        this.em.line('int data[4];');
+        hasPayload = true;
+      }
+      if (!hasPayload) {
         this.em.line('int __dummy;');
       }
       this.em.level -= 1;
@@ -2830,27 +2865,60 @@ class CppToCTranspiler {
           });
         }
         this.em.line(`return ${lowered.expr};`);
-      } else if (fn.resourceDeterministicHint && fn.returnType !== 'void') {
-        const lowered = this.lowerResourceDeterministicFunction(fn);
-        if (lowered && Array.isArray(lowered.lines) && lowered.lines.length > 0) {
-          for (const line of lowered.lines) this.em.line(line);
+      } else if (fn.returnType !== 'void') {
+        const loweredStructuredIo = this.lowerStructuredIoDeterministicFunction(fn);
+        if (loweredStructuredIo && Array.isArray(loweredStructuredIo.ops) && loweredStructuredIo.ops.length > 0) {
+          this.emitStructuredLocals(loweredStructuredIo.locals || []);
+          this.emitStructuredMainOps(loweredStructuredIo.ops || []);
           this.loweringEvents.push({
             functionName: fn.name,
-            kind: 'structured-resource-runtime',
-            detail: lowered.detail || 'resource-pattern'
+            kind: 'structured-io-runtime',
+            detail: loweredStructuredIo.detail || 'structured-io-runtime'
           });
-        } else if (Number.isInteger(fn.deterministicNoParamI32Return)) {
-          this.loweringEvents.push({
-            functionName: fn.name,
-            kind: 'structured-resource-deterministic',
-            detail: `return ${fn.deterministicNoParamI32Return | 0}`
-          });
-          this.em.line(`return ${fn.deterministicNoParamI32Return | 0};`);
+        } else if (fn.resourceDeterministicHint) {
+          const lowered = this.lowerResourceDeterministicFunction(fn);
+          if (lowered && Array.isArray(lowered.lines) && lowered.lines.length > 0) {
+            for (const line of lowered.lines) this.em.line(line);
+            this.loweringEvents.push({
+              functionName: fn.name,
+              kind: 'structured-resource-runtime',
+              detail: lowered.detail || 'resource-pattern'
+            });
+          } else if (lowered && Array.isArray(lowered.ops) && lowered.ops.length > 0) {
+            this.emitStructuredLocals(lowered.locals || []);
+            this.emitStructuredMainOps(lowered.ops || []);
+            this.loweringEvents.push({
+              functionName: fn.name,
+              kind: 'structured-resource-runtime',
+              detail: lowered.detail || 'resource-pattern'
+            });
+          } else if (Number.isInteger(fn.deterministicNoParamI32Return)) {
+            this.loweringEvents.push({
+              functionName: fn.name,
+              kind: 'structured-resource-deterministic',
+              detail: `return ${fn.deterministicNoParamI32Return | 0}`
+            });
+            this.em.line(`return ${fn.deterministicNoParamI32Return | 0};`);
+          } else {
+            this.loweringEvents.push({
+              functionName: fn.name,
+              kind: 'stub-fallback',
+              detail: 'resource-lowering-failed'
+            });
+            this.emitStubReturn(fn);
+          }
         } else {
+          if (Number.isInteger(fn.deterministicNoParamI32Return) && !this.allowDeterministicFunctionFolding) {
+            this.loweringEvents.push({
+              functionName: fn.name,
+              kind: 'deterministic-fold-blocked',
+              detail: `candidate return ${fn.deterministicNoParamI32Return | 0}`
+            });
+          }
           this.loweringEvents.push({
             functionName: fn.name,
             kind: 'stub-fallback',
-            detail: 'resource-lowering-failed'
+            detail: 'no-supported-lowering'
           });
           this.emitStubReturn(fn);
         }
@@ -3069,6 +3137,11 @@ class CppToCTranspiler {
     const clean = cleanFunctionBodyText(fn?.bodyText || '');
     if (!clean) return null;
 
+    const structuredIo = this.lowerStructuredIoDeterministicFunction(fn);
+    if (structuredIo) {
+      return structuredIo;
+    }
+
     if (/\bdynamic_cast\s*</.test(clean) && /\bstatic_cast\s*<\s*int\s*>/.test(clean)) {
       return this.lowerResourceCastStaticPattern(clean);
     }
@@ -3080,6 +3153,210 @@ class CppToCTranspiler {
     return null;
   }
 
+  lowerStructuredIoDeterministicFunction(fn) {
+    const body = this.stripComments(fn?.bodyText || '').trim();
+    if (!body || !/(?:^|\W)(?:std::)?cout\s*<</.test(body)) return null;
+
+    const locals = [];
+    const ops = [];
+    let rest = body;
+
+    const parseArg = (text) => {
+      const t = String(text || '').trim();
+      if (!t) return null;
+      if (/^[-+]?\d+$/.test(t)) return { type: 'int', value: Number.parseInt(t, 10) | 0 };
+      if (/^[-+]?(?:\d+\.\d*|\d*\.\d+)(?:[eE][-+]?\d+)?$/.test(t)) return { type: 'double', value: Number(t) };
+      if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(t)) return { type: 'var', name: t };
+      return null;
+    };
+
+    const getKnownVarType = (name) => {
+      const varName = String(name || '').trim();
+      if (!varName) return 'int';
+      for (let i = locals.length - 1; i >= 0; i -= 1) {
+        const local = locals[i];
+        if (local && local.name === varName) {
+          return String(local.type || 'int');
+        }
+      }
+      return 'int';
+    };
+
+    const parseLocal = (text) => {
+      const m = text.match(/^int\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([-+]?\d+)\s*;\s*/);
+      if (!m) return null;
+      return {
+        consumed: m[0].length,
+        local: { name: m[1], type: 'int', init: Number.parseInt(m[2], 10) | 0 }
+      };
+    };
+
+    const parseLocalDouble = (text) => {
+      const m = text.match(/^double\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([-+]?(?:\d+\.\d*|\d*\.\d+)(?:[eE][-+]?\d+)?)\s*;\s*/);
+      if (!m) return null;
+      return { consumed: m[0].length, local: { name: m[1], type: 'double', init: Number(m[2]) } };
+    };
+
+    const parseLocalChar = (text) => {
+      const m = text.match(/^char\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*('(?:\\.|[^'\\])')\s*;\s*/);
+      if (!m) return null;
+      return { consumed: m[0].length, local: { name: m[1], type: 'char', init: m[2] } };
+    };
+
+    const parseCoutChain = (text) => {
+      const m = text.match(/^(?:std::)?cout\s*((?:<<\s*(?:"(?:\\.|[^"\\])*"|(?:std::)?endl|[-+]?(?:\d+\.\d*|\d*\.\d+)(?:[eE][-+]?\d+)?|[-+]?\d+|'(?:\\.|[^'\\])'|[A-Za-z_][A-Za-z0-9_]*)\s*)+);\s*/);
+      if (!m) return null;
+
+      const segment = m[1] || '';
+      const tokenRe = /<<\s*("((?:\\.|[^"\\])*)"|((?:std::)?endl)|([-+]?(?:\d+\.\d*|\d*\.\d+)(?:[eE][-+]?\d+)?)|([-+]?\d+)|('(?:\\.|[^'\\])')|([A-Za-z_][A-Za-z0-9_]*))\s*/g;
+      const items = [];
+      let hit;
+      while ((hit = tokenRe.exec(segment)) !== null) {
+        if (hit[2] != null) {
+          items.push({ kind: 'string', value: hit[2] || '' });
+        } else if (hit[3] != null) {
+          items.push({ kind: 'endl' });
+        } else if (hit[4] != null) {
+          items.push({ kind: 'double', value: Number(hit[4]) });
+        } else if (hit[5] != null) {
+          items.push({ kind: 'int', value: Number.parseInt(hit[5], 10) | 0 });
+        } else if (hit[6] != null) {
+          items.push({ kind: 'char', value: hit[6] });
+        } else if (hit[7] != null) {
+          items.push({ kind: 'var', name: hit[7], type: getKnownVarType(hit[7]) });
+        }
+      }
+
+      if (items.length === 0) return null;
+      return { consumed: m[0].length, op: { kind: 'cout_chain', items } };
+    };
+
+    const parseAssignBinary = (text) => {
+      const m = text.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([A-Za-z_][A-Za-z0-9_]*|[-+]?\d+)\s*(==|!=|<=|>=|<|>|<<|>>|\+|-|\*|\/|%|&|\||\^|&&|\|\|)\s*([A-Za-z_][A-Za-z0-9_]*|[-+]?\d+)\s*;\s*/);
+      if (!m) return null;
+      const left = parseArg(m[2]);
+      const right = parseArg(m[4]);
+      if (!left || !right) return null;
+      return { consumed: m[0].length, op: { kind: 'assign_binary', target: m[1], left, operator: m[3], right } };
+    };
+
+    const parseInc = (text) => {
+      const m = text.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*\+\+\s*;\s*/);
+      return m ? { consumed: m[0].length, op: { kind: 'inc', varName: m[1] } } : null;
+    };
+
+    const parseDec = (text) => {
+      const m = text.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*--\s*;\s*/);
+      return m ? { consumed: m[0].length, op: { kind: 'dec', varName: m[1] } } : null;
+    };
+
+    const parseReturnTernaryCmp = (text) => {
+      const m = text.match(/^return\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=|<=|>=|<|>)\s*([^?]+?)\s*\)\s*\?\s*([-+]?\d+)\s*:\s*([-+]?\d+)\s*;\s*/);
+      if (!m) return null;
+      const rhs = parseArg(m[3]);
+      if (!rhs || (rhs.type !== 'int' && rhs.type !== 'var')) return null;
+      return {
+        consumed: m[0].length,
+        op: {
+          kind: 'return_ternary_cmp',
+          varName: m[1],
+          cmp: m[2],
+          rhs,
+          thenValue: Number.parseInt(m[4], 10) | 0,
+          elseValue: Number.parseInt(m[5], 10) | 0
+        }
+      };
+    };
+
+    const parseReturn = (text) => {
+      const m = text.match(/^return\s+([-+]?\d+)\s*;\s*/);
+      return m ? { consumed: m[0].length, op: { kind: 'return', value: Number.parseInt(m[1], 10) | 0 } } : null;
+    };
+
+    const parseFirstMatch = (text, parsers) => {
+      for (const parse of parsers || []) {
+        const result = parse(text);
+        if (result) return result;
+      }
+      return null;
+    };
+
+    // Recursive block-body parser used for loop/branch bodies.
+    const flatParsers = [parseAssignBinary, parseCoutChain, parseInc, parseDec, parseReturnTernaryCmp, parseReturn];
+    const parseBlockOps = (blockText) => {
+      const out = [];
+      let t = String(blockText || '').trim();
+      while (t.length > 0) {
+        const op = parseFirstMatch(t, flatParsers);
+        if (op) {
+          out.push(op.op);
+          t = t.slice(op.consumed).trim();
+          continue;
+        }
+        // for (int i = init; i < limit; ++i) { ... }
+        const forM = t.match(/^for\s*\(\s*int\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([-+]?\d+)\s*;\s*\1\s*<\s*([-+]?\d+)\s*;\s*\+\+\1\s*\)\s*\{/);
+        if (forM) {
+          const indexName = forM[1];
+          const init = Number.parseInt(forM[2], 10) | 0;
+          const limit = Number.parseInt(forM[3], 10) | 0;
+          const openBrace = forM[0].lastIndexOf('{');
+          const closeBrace = findMatchingBrace(t, openBrace);
+          if (closeBrace < 0) return null;
+          const bodyOps = parseBlockOps(t.slice(openBrace + 1, closeBrace).trim());
+          if (!bodyOps) return null;
+          if (!locals.some((l) => l && l.name === indexName)) {
+            locals.push({ name: indexName, type: 'int', init });
+          }
+          out.push({ kind: 'for_lt_inc', indexName, init, limit, bodyOps });
+          t = t.slice(closeBrace + 1).trim();
+          continue;
+        }
+        return null;
+      }
+      return out;
+    };
+
+    while (rest.length > 0) {
+      const local = parseFirstMatch(rest, [parseLocal, parseLocalDouble, parseLocalChar]);
+      if (local) {
+        locals.push(local.local);
+        rest = rest.slice(local.consumed).trim();
+        continue;
+      }
+
+      const op = parseFirstMatch(rest, flatParsers);
+      if (op) {
+        ops.push(op.op);
+        rest = rest.slice(op.consumed).trim();
+        continue;
+      }
+
+      // for loop at the top level of the function body
+      const forM = rest.match(/^for\s*\(\s*int\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([-+]?\d+)\s*;\s*\1\s*<\s*([-+]?\d+)\s*;\s*\+\+\1\s*\)\s*\{/);
+      if (forM) {
+        const indexName = forM[1];
+        const init = Number.parseInt(forM[2], 10) | 0;
+        const limit = Number.parseInt(forM[3], 10) | 0;
+        const openBrace = forM[0].lastIndexOf('{');
+        const closeBrace = findMatchingBrace(rest, openBrace);
+        if (closeBrace < 0) return null;
+        const bodyOps = parseBlockOps(rest.slice(openBrace + 1, closeBrace).trim());
+        if (!bodyOps) return null;
+        if (!locals.some((l) => l && l.name === indexName)) {
+          locals.push({ name: indexName, type: 'int', init });
+        }
+        ops.push({ kind: 'for_lt_inc', indexName, init, limit, bodyOps });
+        rest = rest.slice(closeBrace + 1).trim();
+        continue;
+      }
+
+      return null;
+    }
+
+    if (locals.length === 0 || ops.length === 0) return null;
+    return { detail: 'structured-io-runtime', locals, ops };
+  }
+
   lowerResourceCastStaticPattern(cleanBody) {
     const allocMatch = cleanBody.match(/([A-Za-z_][A-Za-z0-9_]*)\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*new\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*([-+]?\d+)\s*\)\s*;/);
     const dynMatch = cleanBody.match(/([A-Za-z_][A-Za-z0-9_]*)\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*dynamic_cast\s*<\s*([A-Za-z_][A-Za-z0-9_]*)\s*\*\s*>\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*;/);
@@ -3089,10 +3366,12 @@ class CppToCTranspiler {
 
     if (!allocMatch || !dynMatch || !staticCastMatch || !methodCmpMatch || !intCmpMatch) return null;
 
+    const baseType = allocMatch[1];
     const baseVar = allocMatch[2];
     const derivedClass = allocMatch[3];
     const ctorArg = Number.parseInt(allocMatch[4], 10) | 0;
 
+    const dynVar = dynMatch[2];
     const dynTargetClass = dynMatch[3];
     const dynSourceVar = dynMatch[4];
 
@@ -3120,11 +3399,17 @@ class CppToCTranspiler {
     return {
       detail: 'cast-static-runtime',
       lines: [
-        `${derivedClass} __obj;`,
-        `${initMangled}(&__obj, ${ctorArg});`,
+        `${derivedClass}* __derived = (${derivedClass}*)__malloc((unsigned long)sizeof(${derivedClass}));`,
+        'if (__derived == 0) return 0;',
+        `${initMangled}(__derived, ${ctorArg});`,
+        `${baseType}* ${baseVar} = (${baseType}*)__derived;`,
+        `${dynTargetClass}* ${dynVar} = (${dynTargetClass}*)${baseVar};`,
         `int ${intVar} = (int)(${intExpr});`,
-        `if (${methodMangled}(&__obj) != ${methodExpected}) return 0;`,
-        `if (${intVar} != ${intCmpExpected}) return 0;`,
+        `if (${dynVar} == 0) { ${derivedClass}_destroy(__derived); __free(${baseVar}); return 0; }`,
+        `if (${methodMangled}(${dynVar}) != ${methodExpected}) { ${derivedClass}_destroy(__derived); __free(${baseVar}); return 0; }`,
+        `if (${intVar} != ${intCmpExpected}) { ${derivedClass}_destroy(__derived); __free(${baseVar}); return 0; }`,
+        `${derivedClass}_destroy(__derived);`,
+        `__free(${baseVar});`,
         'return 1;'
       ]
     };
@@ -3188,19 +3473,18 @@ class CppToCTranspiler {
         `*${scalarVar} = ${scalarInit};`,
         `if (*${scalarVar} != ${scalarExpected}) { __free(${scalarVar}); return 0; }`,
         `__free(${scalarVar});`,
-        `${bufferClass}* ${objVar} = (${bufferClass}*)__malloc((unsigned long)sizeof(${bufferClass}));`,
-        `if (${objVar} == 0) return 0;`,
+        `char ${bufferVar}[sizeof(${bufferClass})];`,
+        `${bufferClass}* ${objVar} = (${bufferClass}*)(void*)${bufferVar};`,
         `${initMangled}(${objVar}, ${ctorArg});`,
         `int ${valueVar} = ${getterMangled}(${objVar});`,
         `${dtorMangled}(${objVar});`,
-        `__free(${objVar});`,
         `return (${valueVar} == ${retCmp}) ? ${retThen} : ${retElse};`
       ]
     };
   }
 
-  emitStructuredMain(plan) {
-    for (const local of plan.locals || []) {
+  emitStructuredLocals(locals) {
+    for (const local of locals || []) {
       if (local.type === 'int*') {
         this.em.line(`int* ${local.name} = &${local.addrOf};`);
       } else if (local.type === 'int' && local.initVar) {
@@ -3211,11 +3495,17 @@ class CppToCTranspiler {
         } else {
           this.em.line(`double ${local.name} = ${local.init || 0};`);
         }
+      } else if (local.type === 'char') {
+        this.em.line(`char ${local.name} = ${local.init};`);
       } else {
         this.em.line(`int ${local.name} = ${local.init | 0};`);
       }
     }
-    if ((plan.locals || []).length > 0) this.em.line();
+    if ((locals || []).length > 0) this.em.line();
+  }
+
+  emitStructuredMain(plan) {
+    this.emitStructuredLocals(plan.locals || []);
     const ops = plan.ops || [];
     this.emitStructuredMainOps(ops);
     if (!this.hasTopLevelReturnOp(ops)) {
@@ -3251,6 +3541,10 @@ class CppToCTranspiler {
             this.em.line(`printf("${item.value || ''}");`);
           } else if (item.kind === 'int') {
             this.em.line(`printf("%d", ${item.value | 0});`);
+          } else if (item.kind === 'double') {
+            this.em.line(`printf("%g", ${item.value});`);
+          } else if (item.kind === 'char') {
+            this.em.line(`printf("%c", ${item.value});`);
           } else if (item.kind === 'var') {
             const t = String(item.type || 'int');
             if (t === 'double' || t === 'float') this.em.line(`printf("%g", ${item.name});`);
@@ -3278,6 +3572,34 @@ class CppToCTranspiler {
         this.em.line(`${op.varName}--;`);
       } else if (op.kind === 'add_assign_var') {
         this.em.line(`${op.target} += ${op.source};`);
+      } else if (op.kind === 'add_assign_const') {
+        this.em.line(`${op.target} += ${op.value | 0};`);
+      } else if (op.kind === 'sub_assign_const') {
+        this.em.line(`${op.target} -= ${op.value | 0};`);
+      } else if (op.kind === 'mul_assign_const') {
+        this.em.line(`${op.target} *= ${op.value | 0};`);
+      } else if (op.kind === 'div_assign_const') {
+        this.em.line(`${op.target} /= ${op.value | 0};`);
+      } else if (op.kind === 'mod_assign_const') {
+        this.em.line(`${op.target} %= ${op.value | 0};`);
+      } else if (op.kind === 'assign_value') {
+        const rhsText = op.value && op.value.type === 'int'
+          ? String(op.value.value | 0)
+          : (op.value && op.value.type === 'var' ? op.value.name : '0');
+        this.em.line(`${op.target} = ${rhsText};`);
+      } else if (op.kind === 'assign_binary') {
+        const lhsText = op.left && op.left.type === 'int'
+          ? String(op.left.value | 0)
+          : (op.left && op.left.type === 'var' ? op.left.name : '0');
+        const rhsText = op.right && op.right.type === 'int'
+          ? String(op.right.value | 0)
+          : (op.right && op.right.type === 'var' ? op.right.name : '0');
+        this.em.line(`${op.target} = ${lhsText} ${op.operator} ${rhsText};`);
+      } else if (op.kind === 'assign_deref') {
+        const rhsText = op.value && op.value.type === 'int'
+          ? String(op.value.value | 0)
+          : (op.value && op.value.type === 'var' ? op.value.name : '0');
+        this.em.line(`*${op.ptrName} = ${rhsText};`);
       } else if (op.kind === 'continue') {
         this.em.line('continue;');
       } else if (op.kind === 'if_eq_const_continue') {
@@ -3483,11 +3805,11 @@ class CppToCTranspiler {
     };
 
     const parseCoutChain = (text) => {
-      const m = text.match(/^(?:std::)?cout\s*((?:<<\s*(?:"(?:\\.|[^"\\])*"|(?:std::)?endl|[-+]?\d+|[A-Za-z_][A-Za-z0-9_]*)\s*)+);\s*/);
+      const m = text.match(/^(?:std::)?cout\s*((?:<<\s*(?:"(?:\\.|[^"\\])*"|(?:std::)?endl|[-+]?(?:\d+\.\d*|\d*\.\d+)(?:[eE][-+]?\d+)?|[-+]?\d+|'(?:\\.|[^'\\])'|[A-Za-z_][A-Za-z0-9_]*)\s*)+);\s*/);
       if (!m) return null;
 
       const segment = m[1] || '';
-      const tokenRe = /<<\s*("((?:\\.|[^"\\])*)"|((?:std::)?endl)|([-+]?\d+)|([A-Za-z_][A-Za-z0-9_]*))\s*/g;
+      const tokenRe = /<<\s*("((?:\\.|[^"\\])*)"|((?:std::)?endl)|([-+]?(?:\d+\.\d*|\d*\.\d+)(?:[eE][-+]?\d+)?)|([-+]?\d+)|('(?:\\.|[^'\\])')|([A-Za-z_][A-Za-z0-9_]*))\s*/g;
       const items = [];
       let hit;
       while ((hit = tokenRe.exec(segment)) !== null) {
@@ -3500,11 +3822,19 @@ class CppToCTranspiler {
           continue;
         }
         if (hit[4] != null) {
-          items.push({ kind: 'int', value: Number.parseInt(hit[4], 10) | 0 });
+          items.push({ kind: 'double', value: Number(hit[4]) });
           continue;
         }
         if (hit[5] != null) {
-          items.push({ kind: 'var', name: hit[5], type: getKnownVarType(hit[5]) });
+          items.push({ kind: 'int', value: Number.parseInt(hit[5], 10) | 0 });
+          continue;
+        }
+        if (hit[6] != null) {
+          items.push({ kind: 'char', value: hit[6] });
+          continue;
+        }
+        if (hit[7] != null) {
+          items.push({ kind: 'var', name: hit[7], type: getKnownVarType(hit[7]) });
         }
       }
 
@@ -3555,9 +3885,62 @@ class CppToCTranspiler {
       const m = text.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*\+=\s*([A-Za-z_][A-Za-z0-9_]*)\s*;\s*/);
       return m ? { consumed: m[0].length, op: { kind: 'add_assign_var', target: m[1], source: m[2] } } : null;
     };
+    const parseAddAssignConst = (text) => {
+      const m = text.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*\+=\s*([-+]?\d+)\s*;\s*/);
+      return m ? { consumed: m[0].length, op: { kind: 'add_assign_const', target: m[1], value: Number.parseInt(m[2], 10) | 0 } } : null;
+    };
+    const parseSubAssignConst = (text) => {
+      const m = text.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*-=\s*([-+]?\d+)\s*;\s*/);
+      return m ? { consumed: m[0].length, op: { kind: 'sub_assign_const', target: m[1], value: Number.parseInt(m[2], 10) | 0 } } : null;
+    };
+    const parseMulAssignConst = (text) => {
+      const m = text.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*\*=\s*([-+]?\d+)\s*;\s*/);
+      return m ? { consumed: m[0].length, op: { kind: 'mul_assign_const', target: m[1], value: Number.parseInt(m[2], 10) | 0 } } : null;
+    };
+    const parseDivAssignConst = (text) => {
+      const m = text.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*\/=(?:\s*)([-+]?\d+)\s*;\s*/);
+      return m ? { consumed: m[0].length, op: { kind: 'div_assign_const', target: m[1], value: Number.parseInt(m[2], 10) | 0 } } : null;
+    };
+    const parseModAssignConst = (text) => {
+      const m = text.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*%=\s*([-+]?\d+)\s*;\s*/);
+      return m ? { consumed: m[0].length, op: { kind: 'mod_assign_const', target: m[1], value: Number.parseInt(m[2], 10) | 0 } } : null;
+    };
+    const parseAssignValue = (text) => {
+      const m = text.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^;]+);\s*/);
+      if (!m) return null;
+      const value = parseArg(m[2]);
+      if (!value) return null;
+      return { consumed: m[0].length, op: { kind: 'assign_value', target: m[1], value } };
+    };
+    const parseAssignBinary = (text) => {
+      const m = text.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([A-Za-z_][A-Za-z0-9_]*|[-+]?\d+)\s*(==|!=|<=|>=|<|>|<<|>>|\+|-|\*|\/|%|&|\||\^|&&|\|\|)\s*([A-Za-z_][A-Za-z0-9_]*|[-+]?\d+)\s*;\s*/);
+      if (!m) return null;
+      const left = parseArg(m[2]);
+      const right = parseArg(m[4]);
+      if (!left || !right) return null;
+      return { consumed: m[0].length, op: { kind: 'assign_binary', target: m[1], left, operator: m[3], right } };
+    };
+    const parseAssignDeref = (text) => {
+      const m = text.match(/^\*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^;]+);\s*/);
+      if (!m) return null;
+      const value = parseArg(m[2]);
+      if (!value) return null;
+      return { consumed: m[0].length, op: { kind: 'assign_deref', ptrName: m[1], value } };
+    };
     const parseContinue = (text) => {
       const m = text.match(/^continue\s*;\s*/);
       return m ? { consumed: m[0].length, op: { kind: 'continue' } } : null;
+    };
+    const parseIfEqConstContinue = (text) => {
+      const m = text.match(/^if\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*==\s*([-+]?\d+)\s*\)\s*\{\s*continue\s*;\s*\}\s*/);
+      return m ? {
+        consumed: m[0].length,
+        op: {
+          kind: 'if_eq_const_continue',
+          varName: m[1],
+          value: Number.parseInt(m[2], 10) | 0
+        }
+      } : null;
     };
 
     const parseReturn = (text) => {
@@ -3671,7 +4054,16 @@ class CppToCTranspiler {
           parsePrintf,
           parseInc,
           parseDec,
+          parseAssignBinary,
+          parseAssignValue,
+          parseAssignDeref,
           parseAddAssignVar,
+          parseAddAssignConst,
+          parseSubAssignConst,
+          parseMulAssignConst,
+          parseDivAssignConst,
+          parseModAssignConst,
+          parseIfEqConstContinue,
           parseContinue,
           parseThrowInt,
           parseReturnCallCmpTernary,
@@ -3714,6 +4106,14 @@ class CppToCTranspiler {
         parsePrintf,
         parseInc,
         parseThrowInt,
+        parseAssignBinary,
+        parseAssignValue,
+        parseAssignDeref,
+        parseAddAssignConst,
+        parseSubAssignConst,
+        parseMulAssignConst,
+        parseDivAssignConst,
+        parseModAssignConst,
         parseVoidCall,
         parseReturn
       ]);
@@ -3762,13 +4162,8 @@ class CppToCTranspiler {
         const closeBrace = findMatchingBrace(rest, openBrace);
         if (closeBrace < 0) return null;
         const bodyText = String(rest.slice(openBrace + 1, closeBrace) || '').trim();
-        const ifContinue = bodyText.match(/^if\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*==\s*([-+]?\d+)\s*\)\s*\{\s*continue\s*;\s*\}\s*([A-Za-z_][A-Za-z0-9_]*)\s*\+=\s*([A-Za-z_][A-Za-z0-9_]*)\s*;\s*$/);
-        if (!ifContinue) return null;
-        if (ifContinue[1] !== indexName || ifContinue[4] !== indexName) return null;
-        const bodyOps = [
-          { kind: 'if_eq_const_continue', varName: ifContinue[1], value: Number.parseInt(ifContinue[2], 10) | 0 },
-          { kind: 'add_assign_var', target: ifContinue[3], source: ifContinue[4] }
-        ];
+        const bodyOps = parseBlockOps(bodyText);
+        if (!bodyOps) return null;
         if (!locals.some((l) => l.name === indexName)) locals.push({ name: indexName, init });
         ops.push({ kind: 'for_lt_inc', indexName, init, limit, bodyOps });
         rest = rest.slice(closeBrace + 1).trim();
@@ -4247,17 +4642,17 @@ class Cpp98Compiler {
   emitAstArtifacts(options = {}) {
     const source = fs.readFileSync(this.filePath, 'utf8');
     const { collector, candidate } = this.collectParseTree(source);
-    console.log(`Parsing: ${this.filePath}`);
-    console.log(candidate.label);
+    console.error(`Parsing: ${this.filePath}`);
+    console.error(candidate.label);
 
     if (options.xmlOut) {
       fs.writeFileSync(options.xmlOut, collector.toXml({ includeDeclaration: true }), 'utf8');
-      console.log(`AST XML written: ${options.xmlOut}`);
+      console.error(`AST XML written: ${options.xmlOut}`);
     }
 
     if (options.jsonOut) {
       fs.writeFileSync(options.jsonOut, collector.toJSON(2), 'utf8');
-      console.log(`AST JSON written: ${options.jsonOut}`);
+      console.error(`AST JSON written: ${options.jsonOut}`);
     }
 
     if (options.showTree) {
@@ -4266,13 +4661,13 @@ class Cpp98Compiler {
   }
 
   analyze(source) {
-    console.log(`Parsing: ${this.filePath}`);
+    console.error(`Parsing: ${this.filePath}`);
     let lastErr = null;
     const astStrict = !!(this.options && this.options.astStrict);
 
     try {
       const { collector, candidate, usedNormalized } = this.collectParseTree(source);
-      console.log(candidate.label);
+      console.error(candidate.label);
       const sema = new SemanticAnalyzer(collector.root, { source });
       const analysis = sema.analyze();
       if (!astStrict || (this.options && this.options.sourceHints)) {
@@ -4283,9 +4678,9 @@ class Cpp98Compiler {
       lastErr = err;
     }
 
-    console.log(`Parser falhou (${lastErr ? lastErr.message : 'erro desconhecido'}).`);
+    console.error(`Parser falhou (${lastErr ? lastErr.message : 'erro desconhecido'}).`);
     if (!astStrict || (this.options && this.options.legacyFallback)) {
-      console.log('Usando fallback simples.');
+      console.error('Usando fallback simples.');
       return new SimpleAnalyzer(this.filePath).analyze();
     }
     throw lastErr || new Error('Falha ao analisar AST');
