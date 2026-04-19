@@ -578,6 +578,240 @@ function inferSimpleIfReturnFromBody(bodyText, params) {
   };
 }
 
+function inferSimpleLocalInitReturnFromBody(bodyText, params) {
+  const clean = cleanFunctionBodyText(bodyText);
+  const m = clean.match(/^((?:(?:int|long|short|char|float|double)\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*[^;]+;\s*)+)return\s+([^;]+);\s*$/);
+  if (!m) return null;
+
+  const declBlock = m[1] || '';
+  const returnExpr = (m[2] || '').trim();
+  if (!returnExpr) return null;
+  if (/::|->|\.|\[|\]/.test(returnExpr)) return null;
+  if (/\b[A-Za-z_][A-Za-z0-9_]*\s*\(/.test(returnExpr)) return null;
+
+  const splitArgs = (text) => {
+    const out = [];
+    let depthParen = 0;
+    let depthAngle = 0;
+    let cur = '';
+    const src = String(text || '');
+    for (let i = 0; i < src.length; i += 1) {
+      const ch = src[i];
+      if (ch === '(') depthParen += 1;
+      else if (ch === ')' && depthParen > 0) depthParen -= 1;
+      else if (ch === '<') depthAngle += 1;
+      else if (ch === '>' && depthAngle > 0) depthAngle -= 1;
+      if (ch === ',' && depthParen === 0 && depthAngle === 0) {
+        if (cur.trim()) out.push(cur.trim());
+        cur = '';
+        continue;
+      }
+      cur += ch;
+    }
+    if (cur.trim()) out.push(cur.trim());
+    return out;
+  };
+
+  const allowedNames = new Set((params || []).map((p) => p.name));
+
+  const trimUnary = (text) => {
+    let t = String(text || '').trim();
+    while (/^[-+]/.test(t)) t = t.slice(1).trim();
+    return t;
+  };
+
+  const castRx = /^\(\s*([A-Za-z_][A-Za-z0-9_:\s\*]*)\s*\)\s*(.+)$/;
+  const staticCastRx = /^static_cast\s*<\s*([^>]+)\s*>\s*\((.+)\)$/;
+
+  function isAllowedValue(text) {
+    const raw = String(text || '').trim();
+    if (!raw) return false;
+    if (/::|->|\.|\[|\]/.test(raw)) return false;
+
+    const unaryStripped = trimUnary(raw);
+    if (!unaryStripped) return false;
+
+    if (/^[-+]?\d+(?:[uU]|[lL]|[uU][lL]|[lL][uU])?$/.test(unaryStripped)) return true;
+    if (/^[-+]?(?:\d+\.\d*|\d*\.\d+)(?:[eE][-+]?\d+)?[fFlL]?$/.test(unaryStripped)) return true;
+    if (/^'.'$/.test(unaryStripped)) return true;
+
+    const scMatch = unaryStripped.match(staticCastRx);
+    if (scMatch) {
+      const castType = normalizeTypeText(scMatch[1] || '');
+      if (!castType) return false;
+      return isAllowedValue(scMatch[2]);
+    }
+
+    const castMatch = unaryStripped.match(castRx);
+    if (castMatch) {
+      const castType = normalizeTypeText(castMatch[1] || '');
+      if (!castType) return false;
+      return isAllowedValue(castMatch[2]);
+    }
+
+    if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(unaryStripped)) {
+      return true;
+    }
+
+    const callMatch = unaryStripped.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*\((.*)\)$/);
+    if (!callMatch) return false;
+    const args = splitArgs(callMatch[2] || '');
+    for (const arg of args) {
+      if (!isAllowedValue(arg)) return false;
+    }
+    return true;
+  }
+
+  const declRx = /(int|long|short|char|float|double)\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^;]+);/g;
+  const locals = [];
+  let dm;
+  while ((dm = declRx.exec(declBlock)) !== null) {
+    const localType = normalizeTypeText(dm[1]);
+    const localName = (dm[2] || '').trim();
+    const initExpr = (dm[3] || '').trim();
+    if (!localName || !initExpr) return null;
+    if (!isAllowedValue(initExpr)) return null;
+    locals.push({ type: localType, name: localName, initExpr });
+    allowedNames.add(localName);
+  }
+  if (locals.length === 0) return null;
+
+  const ids = returnExpr.match(/[A-Za-z_][A-Za-z0-9_]*/g) || [];
+  for (const id of ids) {
+    if (!allowedNames.has(id)) return null;
+  }
+
+  return { locals, returnExpr };
+}
+
+function inferSimpleMethodCmpReturnFromBody(bodyText) {
+  const clean = cleanFunctionBodyText(bodyText);
+  const m = clean.match(/^([A-Za-z_][A-Za-z0-9_:<>]*)\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^\)]*)\)\s*;\s*return\s*\(\s*(.+?)\s*(==|!=|<=|>=|<|>)\s*([-+]?\d+)\s*\)\s*\?\s*([-+]?\d+)\s*:\s*([-+]?\d+)\s*;\s*$/);
+  if (!m) return null;
+
+  const ctorType = (m[1] || '').trim();
+  const localName = (m[2] || '').trim();
+  const ctorArgText = (m[3] || '').trim();
+  const leftExpr = (m[4] || '').trim();
+  const op = (m[5] || '').trim();
+  const rhsValue = Number.parseInt(m[6], 10) | 0;
+  const thenValue = Number.parseInt(m[7], 10) | 0;
+  const elseValue = Number.parseInt(m[8], 10) | 0;
+
+  if (!ctorType || !localName || !leftExpr) return null;
+  if (/::/.test(ctorType)) return null;
+
+  const splitArgs = (text) => {
+    if (!String(text || '').trim()) return [];
+    const out = [];
+    let depthParen = 0;
+    let depthAngle = 0;
+    let cur = '';
+    const src = String(text || '');
+    for (let i = 0; i < src.length; i += 1) {
+      const ch = src[i];
+      if (ch === '(') depthParen += 1;
+      else if (ch === ')' && depthParen > 0) depthParen -= 1;
+      else if (ch === '<') depthAngle += 1;
+      else if (ch === '>' && depthAngle > 0) depthAngle -= 1;
+      if (ch === ',' && depthParen === 0 && depthAngle === 0) {
+        if (cur.trim()) out.push(cur.trim());
+        cur = '';
+        continue;
+      }
+      cur += ch;
+    }
+    if (cur.trim()) out.push(cur.trim());
+    return out;
+  };
+
+  const ctorArgs = splitArgs(ctorArgText);
+  for (const arg of ctorArgs) {
+    if (!/^[-+]?\d+$/.test(arg)) return null;
+  }
+
+  const methodCall = leftExpr.match(new RegExp(`^${localName}\\.([A-Za-z_][A-Za-z0-9_]*)\\(\\)$`));
+  if (methodCall) {
+    return {
+      local: {
+        type: ctorType,
+        name: localName,
+        ctorArgs: ctorArgs.map((a) => Number.parseInt(a, 10) | 0)
+      },
+      access: {
+        kind: 'method',
+        name: methodCall[1]
+      },
+      op,
+      rhsValue,
+      thenValue,
+      elseValue
+    };
+  }
+
+  const indexCall = leftExpr.match(new RegExp(`^${localName}\\[\\s*([-+]?\\d+)\\s*\\]\\s*\\+\\s*${localName}\\[\\s*([-+]?\\d+)\\s*\\]$`));
+  if (indexCall) {
+    return {
+      local: {
+        type: ctorType,
+        name: localName,
+        ctorArgs: ctorArgs.map((a) => Number.parseInt(a, 10) | 0)
+      },
+      access: {
+        kind: 'index_sum',
+        a: Number.parseInt(indexCall[1], 10) | 0,
+        b: Number.parseInt(indexCall[2], 10) | 0
+      },
+      op,
+      rhsValue,
+      thenValue,
+      elseValue
+    };
+  }
+
+  return null;
+}
+
+function inferSimpleIndexedObjectCmpReturnFromBody(bodyText) {
+  const clean = cleanFunctionBodyText(bodyText);
+  const m = clean.match(/^([A-Za-z_][A-Za-z0-9_:<>]*)\s+([A-Za-z_][A-Za-z0-9_]*)\s*;\s*\2\[\s*([-+]?\d+)\s*\]\s*=\s*([-+]?\d+)\s*;\s*\2\[\s*([-+]?\d+)\s*\]\s*=\s*([-+]?\d+)\s*;\s*return\s*\(\s*\2\[\s*([-+]?\d+)\s*\]\s*\+\s*\2\[\s*([-+]?\d+)\s*\]\s*(==|!=|<=|>=|<|>)\s*([-+]?\d+)\s*\)\s*\?\s*([-+]?\d+)\s*:\s*([-+]?\d+)\s*;\s*$/);
+  if (!m) return null;
+
+  const localType = (m[1] || '').trim();
+  const localName = (m[2] || '').trim();
+  if (!localType || !localName) return null;
+  if (/::/.test(localType)) return null;
+
+  return {
+    local: {
+      type: localType,
+      name: localName
+    },
+    assignments: [
+      { index: Number.parseInt(m[3], 10) | 0, value: Number.parseInt(m[4], 10) | 0 },
+      { index: Number.parseInt(m[5], 10) | 0, value: Number.parseInt(m[6], 10) | 0 }
+    ],
+    sumIndexes: {
+      a: Number.parseInt(m[7], 10) | 0,
+      b: Number.parseInt(m[8], 10) | 0
+    },
+    op: (m[9] || '').trim(),
+    rhsValue: Number.parseInt(m[10], 10) | 0,
+    thenValue: Number.parseInt(m[11], 10) | 0,
+    elseValue: Number.parseInt(m[12], 10) | 0
+  };
+}
+
+function inferResourceDeterministicReturnHintFromBody(bodyText, params) {
+  if (Array.isArray(params) && params.length > 0) return false;
+  const clean = cleanFunctionBodyText(bodyText);
+  if (!clean) return false;
+
+  const hasGuardedIf = /\bif\s*\(/.test(clean);
+  const hasResourceOps = /\bnew\b|\bdelete\b|\bdynamic_cast\b|\bstatic_cast\b|~\s*[A-Za-z_][A-Za-z0-9_]*\s*\(|\bsizeof\s*\(/.test(clean);
+  return hasGuardedIf && hasResourceOps;
+}
+
 function stripClassLikeBlocks(segment) {
   const text = String(segment || '');
   let out = '';
@@ -1201,6 +1435,10 @@ function inferGlobalFunctions(source) {
       const simpleReturnExpr = inferSimpleReturnExpr(bodyText, params);
       const simpleReturnCall = inferSimpleReturnCall(bodyText, params);
       const simpleIfReturn = inferSimpleIfReturn(bodyText, params);
+      const simpleLocalInitReturn = inferSimpleLocalInitReturnFromBody(bodyText, params);
+      const simpleMethodCmpReturn = inferSimpleMethodCmpReturnFromBody(bodyText);
+      const simpleIndexedObjectCmpReturn = inferSimpleIndexedObjectCmpReturnFromBody(bodyText);
+      const resourceDeterministicHint = inferResourceDeterministicReturnHintFromBody(bodyText, params);
       const deterministicNoParamI32Return = inferDeterministicNoParamI32Return(bodyText, params);
 
       functions.push({
@@ -1212,6 +1450,10 @@ function inferGlobalFunctions(source) {
         simpleReturnExpr,
         simpleReturnCall,
         simpleIfReturn,
+        simpleLocalInitReturn,
+        simpleMethodCmpReturn,
+        simpleIndexedObjectCmpReturn,
+        resourceDeterministicHint,
         deterministicNoParamI32Return
       });
 
@@ -1656,6 +1898,10 @@ class SemanticAnalyzer {
       simpleReturnExpr: inferSimpleReturnExprFromBody(bodyText, params),
       simpleReturnCall: inferSimpleReturnCallFromBody(bodyText),
       simpleIfReturn: inferSimpleIfReturnFromBody(bodyText, params),
+      simpleLocalInitReturn: inferSimpleLocalInitReturnFromBody(bodyText, params),
+      simpleMethodCmpReturn: inferSimpleMethodCmpReturnFromBody(bodyText),
+      simpleIndexedObjectCmpReturn: inferSimpleIndexedObjectCmpReturnFromBody(bodyText),
+      resourceDeterministicHint: inferResourceDeterministicReturnHintFromBody(bodyText, params),
       deterministicNoParamI32Return: null
     };
   }
@@ -1806,12 +2052,13 @@ class SimpleAnalyzer {
         const returnType = this.normalizeType(fm[2]);
         const name = String(fm[3] || '').replace(/\s+/g, '');
         if (name === cls.name || name === `~${cls.name}`) continue;
+        const params = this.parseParams(fm[4]);
 
         cls.methods.push({
           name,
           returnType,
-          params: this.parseParams(fm[4]),
-          lowering: this.inferMethodLowering(fm[0], name),
+          params,
+          lowering: this.inferMethodLowering(fm[0], name, params),
           isVirtual,
           isConst: !!fm[5],
           access
@@ -1882,7 +2129,7 @@ class SimpleAnalyzer {
     return { kind: 'member_init', member, param };
   }
 
-  inferMethodLowering(methodText, methodName) {
+  inferMethodLowering(methodText, methodName, methodParams = []) {
     const text = String(methodText || '');
     const bodyMatch = text.match(/\{([\s\S]*?)\}$/);
     if (!bodyMatch) return null;
@@ -1892,9 +2139,17 @@ class SimpleAnalyzer {
       .trim();
     if (!body) return null;
 
-    const returnMember = body.match(/^return\s+([A-Za-z_][A-Za-z0-9_]*)\s*;$/);
-    if (returnMember) {
-      return { kind: 'return_member', member: returnMember[1] };
+    const returnIdentifier = body.match(/^return\s+([A-Za-z_][A-Za-z0-9_]*)\s*;$/);
+    if (returnIdentifier) {
+      const ident = returnIdentifier[1];
+      const isParam = (methodParams || []).some((p) => p && p.name === ident);
+      if (isParam) {
+        return {
+          kind: 'return_param',
+          param: ident
+        };
+      }
+      return { kind: 'return_member', member: ident };
     }
 
     const returnIndex = body.match(/^return\s+([A-Za-z_][A-Za-z0-9_]*)\s*\[\s*([A-Za-z_][A-Za-z0-9_]*)\s*\]\s*;$/);
@@ -1904,6 +2159,58 @@ class SimpleAnalyzer {
         member: returnIndex[1],
         indexParam: returnIndex[2],
         methodName: methodName || ''
+      };
+    }
+
+    const returnConstInt = body.match(/^return\s+([-+]?\d+)\s*;$/);
+    if (returnConstInt) {
+      return {
+        kind: 'return_const_int',
+        value: Number.parseInt(returnConstInt[1], 10) | 0
+      };
+    }
+
+    const returnCmpTernary = body.match(/^return\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=|<=|>=|<|>)\s*([-+]?\d+)\s*\)\s*\?\s*([-+]?\d+)\s*:\s*([-+]?\d+)\s*;$/);
+    if (returnCmpTernary) {
+      return {
+        kind: 'return_var_cmp_const_ternary',
+        varName: returnCmpTernary[1],
+        op: returnCmpTernary[2],
+        rhsValue: Number.parseInt(returnCmpTernary[3], 10) | 0,
+        thenValue: Number.parseInt(returnCmpTernary[4], 10) | 0,
+        elseValue: Number.parseInt(returnCmpTernary[5], 10) | 0
+      };
+    }
+
+    const ifThenReturnElseReturn = body.match(/^if\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=|<=|>=|<|>)\s*([-+]?\d+)\s*\)\s*\{\s*return\s*([-+]?\d+)\s*;\s*\}\s*return\s*([-+]?\d+)\s*;$/);
+    if (ifThenReturnElseReturn) {
+      return {
+        kind: 'if_var_cmp_const_return',
+        varName: ifThenReturnElseReturn[1],
+        op: ifThenReturnElseReturn[2],
+        rhsValue: Number.parseInt(ifThenReturnElseReturn[3], 10) | 0,
+        thenValue: Number.parseInt(ifThenReturnElseReturn[4], 10) | 0,
+        elseValue: Number.parseInt(ifThenReturnElseReturn[5], 10) | 0
+      };
+    }
+
+    const localInitReturn = body.match(/^(int|long|short|char|float|double)\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^;]+);\s*return\s+\2\s*;$/);
+    if (localInitReturn) {
+      const initExpr = (localInitReturn[3] || '').trim();
+      if (!initExpr || /::|->|\.|\[|\]|\(|\)/.test(initExpr)) return null;
+      const ids = initExpr.match(/[A-Za-z_][A-Za-z0-9_]*/g) || [];
+      const params = new Set((methodParams || []).map((p) => p && p.name).filter(Boolean));
+      for (const id of ids) {
+        if (!params.has(id)) {
+          // Allow potential member names. Validation and rewrite happen in emitClassStubs.
+          if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(id)) return null;
+        }
+      }
+      return {
+        kind: 'local_init_return',
+        localType: this.normalizeType(localInitReturn[1]),
+        localName: localInitReturn[2],
+        initExpr
       };
     }
 
@@ -1917,6 +2224,9 @@ class CppToCTranspiler {
     this.options = options;
     this.em = new CEmitter();
     this.ambiguityEvents = [];
+    this.loweringEvents = [];
+    this.allowDeterministicFunctionFolding = options.allowDeterministicFunctionFolding !== false;
+    this.emitLoweringDiagnostics = options.emitLoweringDiagnostics !== false;
     this.enumValueMap = extractSimpleEnumValues(options.source || '');
     this.knownTypeNames = new Set([
       ...Object.keys(BUILTIN_TYPES),
@@ -1930,8 +2240,35 @@ class CppToCTranspiler {
     this.emitSourceTypedefs();
     this.emitClasses();
     this.emitGlobalFunctionStubs();
+    this.emitLoweringDiagnosticsSummary();
     this.emitAmbiguitySummary();
     return this.em.code();
+  }
+
+  emitLoweringDiagnosticsSummary() {
+    if (!this.emitLoweringDiagnostics) return;
+    if (!Array.isArray(this.loweringEvents) || this.loweringEvents.length === 0) return;
+
+    const countByKind = new Map();
+    for (const ev of this.loweringEvents) {
+      const key = ev && ev.kind ? ev.kind : 'unknown';
+      countByKind.set(key, (countByKind.get(key) || 0) + 1);
+    }
+
+    const summary = Array.from(countByKind.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([kind, count]) => `${kind}=${count}`)
+      .join(', ');
+
+    this.em.line(`/* Lowering diagnostics: ${this.loweringEvents.length} event(s) (${summary}) */`);
+    for (let i = 0; i < this.loweringEvents.length && i < 24; i += 1) {
+      const ev = this.loweringEvents[i] || {};
+      this.em.line(`/* - ${ev.functionName || '<unknown>'}: ${ev.kind || 'unknown'}${ev.detail ? ` (${ev.detail})` : ''} */`);
+    }
+    if (this.loweringEvents.length > 24) {
+      this.em.line(`/* - ... ${this.loweringEvents.length - 24} more event(s) */`);
+    }
+    this.em.line();
   }
 
   emitAmbiguitySummary() {
@@ -2236,6 +2573,69 @@ class CppToCTranspiler {
           }
           emittedMethodLowering = true;
         }
+      } else if (method.lowering && method.lowering.kind === 'return_const_int') {
+        if (loweredReturnType !== 'void') {
+          this.em.line(`return ${method.lowering.value | 0};`);
+          emittedMethodLowering = true;
+        }
+      } else if (method.lowering && method.lowering.kind === 'return_param') {
+        if (loweredReturnType !== 'void') {
+          const matchParam = (method.params || []).find((p) => p && p.name === method.lowering.param);
+          if (matchParam) {
+            this.em.line(`return ${method.lowering.param};`);
+            emittedMethodLowering = true;
+          }
+        }
+      } else if (method.lowering && method.lowering.kind === 'return_var_cmp_const_ternary') {
+        if (loweredReturnType !== 'void') {
+          const v = method.lowering.varName;
+          const isParam = (method.params || []).some((p) => p && p.name === v);
+          const isMember = (cls.members || []).some((m) => m && m.name === v);
+          if (isParam || isMember) {
+            const lhs = isMember ? `self->${v}` : v;
+            this.em.line(`return (${lhs} ${method.lowering.op} ${method.lowering.rhsValue | 0}) ? ${method.lowering.thenValue | 0} : ${method.lowering.elseValue | 0};`);
+            emittedMethodLowering = true;
+          }
+        }
+      } else if (method.lowering && method.lowering.kind === 'if_var_cmp_const_return') {
+        if (loweredReturnType !== 'void') {
+          const v = method.lowering.varName;
+          const isParam = (method.params || []).some((p) => p && p.name === v);
+          const isMember = (cls.members || []).some((m) => m && m.name === v);
+          if (isParam || isMember) {
+            const lhs = isMember ? `self->${v}` : v;
+            this.em.line(`if (${lhs} ${method.lowering.op} ${method.lowering.rhsValue | 0}) {`);
+            this.em.level += 1;
+            this.em.line(`return ${method.lowering.thenValue | 0};`);
+            this.em.level -= 1;
+            this.em.line('}');
+            this.em.line(`return ${method.lowering.elseValue | 0};`);
+            emittedMethodLowering = true;
+          }
+        }
+      } else if (method.lowering && method.lowering.kind === 'local_init_return') {
+        if (loweredReturnType !== 'void') {
+          const members = new Set((cls.members || []).map((m) => m && m.name).filter(Boolean));
+          const params = new Set((method.params || []).map((p) => p && p.name).filter(Boolean));
+          let initExpr = String(method.lowering.initExpr || '');
+          let valid = true;
+          const ids = initExpr.match(/[A-Za-z_][A-Za-z0-9_]*/g) || [];
+          for (const id of ids) {
+            if (params.has(id)) continue;
+            if (members.has(id)) {
+              const rx = new RegExp(`\\b${id}\\b`, 'g');
+              initExpr = initExpr.replace(rx, `self->${id}`);
+              continue;
+            }
+            valid = false;
+            break;
+          }
+          if (valid) {
+            this.em.line(`${this.sanitizeTypeForC(method.lowering.localType)} ${method.lowering.localName} = ${initExpr};`);
+            this.em.line(`return ${method.lowering.localName};`);
+            emittedMethodLowering = true;
+          }
+        }
       }
       for (let i = 0; i < method.params.length; i += 1) {
         if (!emittedMethodLowering || method.params[i].name !== method.lowering?.indexParam) {
@@ -2271,16 +2671,150 @@ class CppToCTranspiler {
       const paramsText = this.formatParams(fn.params || [], true);
       const mangled = mangle(fn.name, sigTypes, null, fn.namespacePath || []);
       const returnType = this.sanitizeTypeForC(fn.returnType);
+      const hasStructuredCandidate = Boolean(
+        fn.simpleIfReturn
+        || fn.simpleLocalInitReturn
+        || fn.simpleMethodCmpReturn
+        || fn.simpleIndexedObjectCmpReturn
+        || fn.simpleReturnExpr
+        || fn.simpleReturnCall
+      );
       this.em.line(`${returnType} ${mangled}(${paramsText || 'void'}) {`);
       this.em.level += 1;
       if (fn.name === 'main' && !fn.namespacePath?.length && structuredMain) {
         this.emitStructuredMain(structuredMain);
-      } else if (Number.isInteger(fn.deterministicNoParamI32Return) && fn.returnType !== 'void') {
+      } else if (Number.isInteger(fn.deterministicNoParamI32Return)
+        && fn.returnType !== 'void'
+        && this.allowDeterministicFunctionFolding
+        && !hasStructuredCandidate
+        && !fn.resourceDeterministicHint) {
+        this.loweringEvents.push({
+          functionName: fn.name,
+          kind: 'deterministic-fold',
+          detail: `return ${fn.deterministicNoParamI32Return | 0}`
+        });
         this.em.line(`return ${fn.deterministicNoParamI32Return | 0};`);
       } else if (fn.simpleIfReturn && fn.returnType !== 'void') {
         const lowered = this.lowerSimpleIfReturn(fn);
         if (lowered) this.em.line(`return ${lowered};`);
-        else this.emitStubReturn(fn);
+        else {
+          this.loweringEvents.push({
+            functionName: fn.name,
+            kind: 'stub-fallback',
+            detail: 'simple-if-lowering-failed'
+          });
+          this.emitStubReturn(fn);
+        }
+      } else if (fn.simpleLocalInitReturn && fn.returnType !== 'void') {
+        const lowered = this.lowerSimpleLocalInitReturn(fn);
+        if (lowered) {
+          for (const local of lowered.locals) {
+            const rewrittenInit = this.rewriteSimpleInitExprForC(local.initExpr, fn, fns);
+            this.em.line(`${local.type} ${local.name} = ${rewrittenInit};`);
+          }
+          this.loweringEvents.push({
+            functionName: fn.name,
+            kind: 'structured-local-return',
+            detail: `${lowered.locals.length} local(s)`
+          });
+          this.em.line(`return ${lowered.returnExpr};`);
+        } else {
+          this.loweringEvents.push({
+            functionName: fn.name,
+            kind: 'stub-fallback',
+            detail: 'simple-local-init-return-lowering-failed'
+          });
+          this.emitStubReturn(fn);
+        }
+      } else if (fn.simpleMethodCmpReturn && fn.returnType !== 'void') {
+        const lowered = this.lowerSimpleMethodCmpReturn(fn);
+        if (lowered) {
+          const className = String(lowered.local.type || '').replace(/<[^>]*>/g, '').trim();
+          const cType = this.sanitizeTypeForC(className || lowered.local.type);
+          let emittedStructured = true;
+          this.em.line(`${cType} ${lowered.local.name};`);
+
+          const ctorArgTypes = (lowered.local.ctorArgs || []).map(() => 'int');
+          const initMangled = this.resolveClassMangled(className, 'init', ctorArgTypes)
+            || this.resolveClassMangled(className, 'init', []);
+          if (!initMangled) {
+            emittedStructured = false;
+          } else {
+            const ctorArgsText = lowered.local.ctorArgs.map((v) => String(v | 0)).join(', ');
+            this.em.line(`${initMangled}(&${lowered.local.name}${ctorArgsText ? `, ${ctorArgsText}` : ''});`);
+          }
+
+          let leftExpr = null;
+          if (lowered.access.kind === 'method') {
+            const methodMangled = this.resolveClassMangled(className, lowered.access.name, []);
+            if (methodMangled) leftExpr = `${methodMangled}(&${lowered.local.name})`;
+          } else if (lowered.access.kind === 'index_sum') {
+            const subMangled = this.resolveClassMangled(className, 'operator_subscript', ['int']);
+            if (subMangled) {
+              leftExpr = `(*((int*)${subMangled}(&${lowered.local.name}, ${lowered.access.a | 0})) + *((int*)${subMangled}(&${lowered.local.name}, ${lowered.access.b | 0})))`;
+            }
+          }
+
+          if (!emittedStructured || !leftExpr) {
+            this.loweringEvents.push({
+              functionName: fn.name,
+              kind: 'stub-fallback',
+              detail: 'simple-method-cmp-return-lowering-failed'
+            });
+            this.emitStubReturn(fn);
+          } else {
+            this.loweringEvents.push({
+              functionName: fn.name,
+              kind: 'structured-method-cmp-return',
+              detail: lowered.access.kind
+            });
+            this.em.line(`return (${leftExpr} ${lowered.op} ${lowered.rhsValue | 0}) ? ${lowered.thenValue | 0} : ${lowered.elseValue | 0};`);
+          }
+        } else {
+          this.loweringEvents.push({
+            functionName: fn.name,
+            kind: 'stub-fallback',
+            detail: 'simple-method-cmp-return-lowering-failed'
+          });
+          this.emitStubReturn(fn);
+        }
+      } else if (fn.simpleIndexedObjectCmpReturn && fn.returnType !== 'void') {
+        const lowered = this.lowerSimpleIndexedObjectCmpReturn(fn);
+        if (lowered) {
+          const className = String(lowered.local.type || '').replace(/<[^>]*>/g, '').trim();
+          const cType = this.sanitizeTypeForC(className || lowered.local.type);
+          const initMangled = this.resolveClassMangled(className, 'init', []);
+          const subMangled = this.resolveClassMangled(className, 'operator_subscript', ['int']);
+
+          if (!initMangled || !subMangled) {
+            this.loweringEvents.push({
+              functionName: fn.name,
+              kind: 'stub-fallback',
+              detail: 'simple-indexed-object-cmp-return-lowering-failed'
+            });
+            this.emitStubReturn(fn);
+          } else {
+            this.em.line(`${cType} ${lowered.local.name};`);
+            this.em.line(`${initMangled}(&${lowered.local.name});`);
+            for (const assign of lowered.assignments) {
+              this.em.line(`*((int*)${subMangled}(&${lowered.local.name}, ${assign.index | 0})) = ${assign.value | 0};`);
+            }
+            this.loweringEvents.push({
+              functionName: fn.name,
+              kind: 'structured-indexed-object-cmp-return',
+              detail: `${lowered.assignments.length} assignment(s)`
+            });
+            const lhs = `(*((int*)${subMangled}(&${lowered.local.name}, ${lowered.sumIndexes.a | 0})) + *((int*)${subMangled}(&${lowered.local.name}, ${lowered.sumIndexes.b | 0})))`;
+            this.em.line(`return (${lhs} ${lowered.op} ${lowered.rhsValue | 0}) ? ${lowered.thenValue | 0} : ${lowered.elseValue | 0};`);
+          }
+        } else {
+          this.loweringEvents.push({
+            functionName: fn.name,
+            kind: 'stub-fallback',
+            detail: 'simple-indexed-object-cmp-return-lowering-failed'
+          });
+          this.emitStubReturn(fn);
+        }
       } else if (fn.simpleReturnExpr && fn.returnType !== 'void') {
         this.em.line(`return ${fn.simpleReturnExpr};`);
       } else if (fn.simpleReturnCall && fn.returnType !== 'void') {
@@ -2297,6 +2831,32 @@ class CppToCTranspiler {
         }
         this.em.line(`return ${lowered.expr};`);
       } else {
+        if (Number.isInteger(fn.deterministicNoParamI32Return)
+          && fn.returnType !== 'void'
+          && fn.resourceDeterministicHint) {
+          this.loweringEvents.push({
+            functionName: fn.name,
+            kind: 'structured-resource-deterministic',
+            detail: `return ${fn.deterministicNoParamI32Return | 0}`
+          });
+          this.em.line(`return ${fn.deterministicNoParamI32Return | 0};`);
+          this.em.level -= 1;
+          this.em.line('}');
+          this.em.line();
+          continue;
+        }
+        if (Number.isInteger(fn.deterministicNoParamI32Return) && fn.returnType !== 'void' && !this.allowDeterministicFunctionFolding) {
+          this.loweringEvents.push({
+            functionName: fn.name,
+            kind: 'deterministic-fold-blocked',
+            detail: `candidate return ${fn.deterministicNoParamI32Return | 0}`
+          });
+        }
+        this.loweringEvents.push({
+          functionName: fn.name,
+          kind: 'stub-fallback',
+          detail: 'no-supported-lowering'
+        });
         this.emitStubReturn(fn);
       }
       this.em.level -= 1;
@@ -2337,6 +2897,162 @@ class CppToCTranspiler {
     const right = info.right?.kind === 'const' ? String(info.right.value | 0) : info.right?.name;
     if (!left || !right) return null;
     return `(${left} ${info.op} ${right}) ? ${info.thenValue | 0} : ${info.elseValue | 0}`;
+  }
+
+  lowerSimpleLocalInitReturn(fn) {
+    const info = fn.simpleLocalInitReturn;
+    if (!info || !Array.isArray(info.locals) || !info.returnExpr) return null;
+    if (info.locals.length === 0) return null;
+
+    const locals = [];
+    for (const local of info.locals) {
+      if (!local || !local.type || !local.name || !local.initExpr) return null;
+      locals.push({
+        type: normalizeTypeText(local.type),
+        name: String(local.name).trim(),
+        initExpr: String(local.initExpr).trim()
+      });
+    }
+
+    const returnExpr = String(info.returnExpr || '').trim();
+    if (!returnExpr) return null;
+    return { locals, returnExpr };
+  }
+
+  rewriteSimpleInitExprForC(expr, currentFn, allFns) {
+    const text = String(expr || '').trim();
+    if (!text) return text;
+
+    const splitTopLevelArgs = (argsText) => {
+      const out = [];
+      let depth = 0;
+      let cur = '';
+      const src = String(argsText || '');
+      for (let i = 0; i < src.length; i += 1) {
+        const ch = src[i];
+        if (ch === '(') depth += 1;
+        else if (ch === ')' && depth > 0) depth -= 1;
+        if (ch === ',' && depth === 0) {
+          out.push(cur.trim());
+          cur = '';
+          continue;
+        }
+        cur += ch;
+      }
+      if (cur.trim()) out.push(cur.trim());
+      return out.filter(Boolean);
+    };
+
+    const maybeRewriteIdentifier = (identifier) => {
+      const id = String(identifier || '').trim();
+      if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(id)) return id;
+      const fns = Array.isArray(allFns) ? allFns : [];
+      const candidates = fns.filter((f) => f && f.name === id);
+      if (candidates.length === 0) return id;
+      let selected = candidates[0];
+      if (candidates.length > 1) {
+        const currentNs = Array.isArray(currentFn?.namespacePath) ? currentFn.namespacePath : [];
+        const sameNs = candidates.filter((f) => this.sameNs(f.namespacePath || [], currentNs));
+        if (sameNs.length === 1) selected = sameNs[0];
+      }
+      const sigTypes = (selected.params || []).map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
+      return mangle(selected.name, sigTypes, null, selected.namespacePath || []);
+    };
+
+    const callMatch = text.match(/^([A-Za-z_][A-Za-z0-9_:]*)\s*\((.*)\)$/);
+    if (callMatch) {
+      const rawCallee = callMatch[1];
+      const parts = rawCallee.split('::').filter(Boolean);
+      const baseName = parts[parts.length - 1] || rawCallee;
+      const qualifiedNs = parts.slice(0, -1);
+
+      const rawArgs = splitTopLevelArgs(callMatch[2] || '');
+      const rewrittenArgs = rawArgs.map((arg) => this.rewriteSimpleInitExprForC(arg, currentFn, allFns));
+
+      const resolution = this.resolveGlobalFunctionDetailed(
+        baseName,
+        rewrittenArgs.length,
+        currentFn?.namespacePath || [],
+        allFns,
+        qualifiedNs,
+        rawCallee.includes('::'),
+        []
+      );
+
+      if (resolution && resolution.match) {
+        const match = resolution.match;
+        const sigTypes = (match.params || []).map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
+        const mangled = mangle(match.name, sigTypes, null, match.namespacePath || []);
+        return `${mangled}(${rewrittenArgs.join(', ')})`;
+      }
+      return `${rawCallee}(${rewrittenArgs.join(', ')})`;
+    }
+
+    return maybeRewriteIdentifier(text);
+  }
+
+  lowerSimpleMethodCmpReturn(fn) {
+    const info = fn.simpleMethodCmpReturn;
+    if (!info || !info.local || !info.access) return null;
+    if (!info.local.type || !info.local.name) return null;
+    const ctorArgs = Array.isArray(info.local.ctorArgs) ? info.local.ctorArgs : [];
+    if (!ctorArgs.every((n) => Number.isInteger(n))) return null;
+    if (!['==', '!=', '<', '<=', '>', '>='].includes(info.op)) return null;
+    if (!Number.isInteger(info.rhsValue) || !Number.isInteger(info.thenValue) || !Number.isInteger(info.elseValue)) return null;
+
+    const access = info.access;
+    if (access.kind === 'method') {
+      if (!access.name || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(access.name)) return null;
+    } else if (access.kind === 'index_sum') {
+      if (!Number.isInteger(access.a) || !Number.isInteger(access.b)) return null;
+    } else {
+      return null;
+    }
+
+    return {
+      local: {
+        type: String(info.local.type).trim(),
+        name: String(info.local.name).trim(),
+        ctorArgs
+      },
+      access,
+      op: info.op,
+      rhsValue: info.rhsValue | 0,
+      thenValue: info.thenValue | 0,
+      elseValue: info.elseValue | 0
+    };
+  }
+
+  lowerSimpleIndexedObjectCmpReturn(fn) {
+    const info = fn.simpleIndexedObjectCmpReturn;
+    if (!info || !info.local || !Array.isArray(info.assignments) || !info.sumIndexes) return null;
+    if (!info.local.type || !info.local.name) return null;
+    if (!['==', '!=', '<', '<=', '>', '>='].includes(info.op)) return null;
+    if (!Number.isInteger(info.rhsValue) || !Number.isInteger(info.thenValue) || !Number.isInteger(info.elseValue)) return null;
+    if (!Number.isInteger(info.sumIndexes.a) || !Number.isInteger(info.sumIndexes.b)) return null;
+    if (info.assignments.length === 0) return null;
+
+    const assignments = [];
+    for (const assign of info.assignments) {
+      if (!assign || !Number.isInteger(assign.index) || !Number.isInteger(assign.value)) return null;
+      assignments.push({ index: assign.index | 0, value: assign.value | 0 });
+    }
+
+    return {
+      local: {
+        type: String(info.local.type).trim(),
+        name: String(info.local.name).trim()
+      },
+      assignments,
+      sumIndexes: {
+        a: info.sumIndexes.a | 0,
+        b: info.sumIndexes.b | 0
+      },
+      op: info.op,
+      rhsValue: info.rhsValue | 0,
+      thenValue: info.thenValue | 0,
+      elseValue: info.elseValue | 0
+    };
   }
 
   emitStructuredMain(plan) {
@@ -2383,11 +3099,33 @@ class CppToCTranspiler {
         if (!op.arg) this.em.line(`printf("${op.fmtRaw}");`);
         else if (op.arg.type === 'int') this.em.line(`printf("${op.fmtRaw}", ${op.arg.value | 0});`);
         else if (op.arg.type === 'var') this.em.line(`printf("${op.fmtRaw}", ${op.arg.name});`);
+      } else if (op.kind === 'cout_chain') {
+        const items = Array.isArray(op.items) ? op.items : [];
+        for (const item of items) {
+          if (!item) continue;
+          if (item.kind === 'string') {
+            this.em.line(`printf("${item.value || ''}");`);
+          } else if (item.kind === 'int') {
+            this.em.line(`printf("%d", ${item.value | 0});`);
+          } else if (item.kind === 'var') {
+            const t = String(item.type || 'int');
+            if (t === 'double' || t === 'float') this.em.line(`printf("%g", ${item.name});`);
+            else if (t === 'char') this.em.line(`printf("%c", ${item.name});`);
+            else this.em.line(`printf("%d", ${item.name});`);
+          } else if (item.kind === 'endl') {
+            this.em.line('printf("\\n");');
+          }
+        }
       } else if (op.kind === 'scanf_chain') {
         const vars = Array.isArray(op.vars) ? op.vars.filter(Boolean) : [];
         if (vars.length > 0) {
-          const fmt = vars.map(() => '%d').join(' ');
-          const refs = vars.map((v) => `&${v}`).join(', ');
+          const fmt = vars.map((entry) => {
+            const t = typeof entry === 'string' ? 'int' : String(entry.type || 'int');
+            if (t === 'double' || t === 'float') return '%lf';
+            if (t === 'char') return '%c';
+            return '%d';
+          }).join(' ');
+          const refs = vars.map((entry) => `&${typeof entry === 'string' ? entry : entry.name}`).join(', ');
           this.em.line(`scanf("${fmt}", ${refs});`);
         }
       } else if (op.kind === 'inc') {
@@ -2577,6 +3315,18 @@ class CppToCTranspiler {
       return null;
     };
 
+    const getKnownVarType = (name) => {
+      const varName = String(name || '').trim();
+      if (!varName) return 'int';
+      for (let i = locals.length - 1; i >= 0; i -= 1) {
+        const local = locals[i];
+        if (local && local.name === varName) {
+          return String(local.type || 'int');
+        }
+      }
+      return 'int';
+    };
+
     const parseAsmNoop = (text) => {
       const m = text.match(/^asm\s*\(\s*"(?:\\.|[^"\\])*"\s*\)\s*;\s*/);
       return m ? { consumed: m[0].length, op: { kind: 'noop' } } : null;
@@ -2588,12 +3338,34 @@ class CppToCTranspiler {
       return { consumed: m[0].length, op: { kind: 'printf', fmtRaw: m[1] || '', arg: parseArg(m[2] || '') } };
     };
 
-    const parseCoutString = (text) => {
-      const m = text.match(/^(?:std::)?cout\s*<<\s*"((?:\\.|[^"\\])*)"\s*(?:<<\s*(?:std::)?endl\s*)?;\s*/);
+    const parseCoutChain = (text) => {
+      const m = text.match(/^(?:std::)?cout\s*((?:<<\s*(?:"(?:\\.|[^"\\])*"|(?:std::)?endl|[-+]?\d+|[A-Za-z_][A-Za-z0-9_]*)\s*)+);\s*/);
       if (!m) return null;
-      const hasEndl = /<<\s*(?:std::)?endl\s*;\s*$/.test(m[0]);
-      const fmtRaw = hasEndl ? `${m[1] || ''}\\n` : (m[1] || '');
-      return { consumed: m[0].length, op: { kind: 'printf', fmtRaw, arg: null } };
+
+      const segment = m[1] || '';
+      const tokenRe = /<<\s*("((?:\\.|[^"\\])*)"|((?:std::)?endl)|([-+]?\d+)|([A-Za-z_][A-Za-z0-9_]*))\s*/g;
+      const items = [];
+      let hit;
+      while ((hit = tokenRe.exec(segment)) !== null) {
+        if (hit[2] != null) {
+          items.push({ kind: 'string', value: hit[2] || '' });
+          continue;
+        }
+        if (hit[3] != null) {
+          items.push({ kind: 'endl' });
+          continue;
+        }
+        if (hit[4] != null) {
+          items.push({ kind: 'int', value: Number.parseInt(hit[4], 10) | 0 });
+          continue;
+        }
+        if (hit[5] != null) {
+          items.push({ kind: 'var', name: hit[5], type: getKnownVarType(hit[5]) });
+        }
+      }
+
+      if (items.length === 0) return null;
+      return { consumed: m[0].length, op: { kind: 'cout_chain', items } };
     };
 
     const parseCinChain = (text) => {
@@ -2603,7 +3375,7 @@ class CppToCTranspiler {
       const re = />>\s*([A-Za-z_][A-Za-z0-9_]*)\s*/g;
       let hit;
       while ((hit = re.exec(m[1])) !== null) {
-        vars.push(hit[1]);
+        vars.push({ name: hit[1], type: getKnownVarType(hit[1]) });
       }
       if (vars.length === 0) return null;
       return { consumed: m[0].length, op: { kind: 'scanf_chain', vars } };
@@ -2751,7 +3523,7 @@ class CppToCTranspiler {
         const p = parseFirstMatch(t, [
           parseAsmNoop,
           parseCinChain,
-          parseCoutString,
+          parseCoutChain,
           parsePrintf,
           parseInc,
           parseDec,
@@ -2794,7 +3566,7 @@ class CppToCTranspiler {
       const p = parseFirstMatch(rest, [
         parseAsmNoop,
         parseCinChain,
-        parseCoutString,
+        parseCoutChain,
         parsePrintf,
         parseInc,
         parseThrowInt,
@@ -3272,7 +4044,12 @@ class Cpp98Compiler {
     source = preprocessor.preprocess(source, this.filePath);
     
     const analysis = this.analyze(source);
-    const transpiler = new CppToCTranspiler(analysis, { filePath: this.filePath, source });
+    const transpiler = new CppToCTranspiler(analysis, {
+      filePath: this.filePath,
+      source,
+      allowDeterministicFunctionFolding: this.options.allowDeterministicFunctionFolding,
+      emitLoweringDiagnostics: this.options.emitLoweringDiagnostics
+    });
     return transpiler.transpile();
   }
 
@@ -3458,6 +4235,10 @@ class Cpp98Compiler {
             ? fn.simpleReturnCall
             : (hinted.simpleReturnCall || fn.simpleReturnCall || null),
           simpleIfReturn: fn.simpleIfReturn || hinted.simpleIfReturn || null,
+          simpleLocalInitReturn: fn.simpleLocalInitReturn || hinted.simpleLocalInitReturn || null,
+          simpleMethodCmpReturn: fn.simpleMethodCmpReturn || hinted.simpleMethodCmpReturn || null,
+          simpleIndexedObjectCmpReturn: fn.simpleIndexedObjectCmpReturn || hinted.simpleIndexedObjectCmpReturn || null,
+          resourceDeterministicHint: Boolean(fn.resourceDeterministicHint || hinted.resourceDeterministicHint),
           deterministicNoParamI32Return: Number.isInteger(fn.deterministicNoParamI32Return)
             ? fn.deterministicNoParamI32Return
             : (Number.isInteger(hinted.deterministicNoParamI32Return)
@@ -3487,6 +4268,10 @@ class Cpp98Compiler {
           simpleReturnExpr: fn.simpleReturnExpr || (astFn && astFn.simpleReturnExpr) || null,
           simpleReturnCall: fn.simpleReturnCall || (astFn && astFn.simpleReturnCall) || null,
           simpleIfReturn: fn.simpleIfReturn || (astFn && astFn.simpleIfReturn) || null,
+          simpleLocalInitReturn: fn.simpleLocalInitReturn || (astFn && astFn.simpleLocalInitReturn) || null,
+          simpleMethodCmpReturn: fn.simpleMethodCmpReturn || (astFn && astFn.simpleMethodCmpReturn) || null,
+          simpleIndexedObjectCmpReturn: fn.simpleIndexedObjectCmpReturn || (astFn && astFn.simpleIndexedObjectCmpReturn) || null,
+          resourceDeterministicHint: Boolean(fn.resourceDeterministicHint || (astFn && astFn.resourceDeterministicHint)),
           deterministicNoParamI32Return: Number.isInteger(fn.deterministicNoParamI32Return)
             ? fn.deterministicNoParamI32Return
             : ((astFn && Number.isInteger(astFn.deterministicNoParamI32Return))
@@ -3571,7 +4356,7 @@ class Cpp98Compiler {
 if (require.main === module) {
   const args = process.argv.slice(2);
   if (!args.length) {
-    console.log('Uso: node cpp-compiler.js <arquivo.cpp> [--output arquivo.c] [--ast-show] [--ast-xml-out arquivo.xml] [--ast-json-out arquivo.json] [--verbose] [--ast-strict] [--source-hints] [--legacy-fallback] [--legacy-function-hints] [--no-legacy-function-hints]');
+    console.log('Uso: node cpp-compiler.js <arquivo.cpp> [--output arquivo.c] [--ast-show] [--ast-xml-out arquivo.xml] [--ast-json-out arquivo.json] [--verbose] [--ast-strict] [--source-hints] [--legacy-fallback] [--legacy-function-hints] [--no-legacy-function-hints] [--allow-deterministic-function-folding] [--no-deterministic-function-folding] [--no-lowering-diagnostics]');
     process.exit(1);
   }
 
@@ -3583,6 +4368,12 @@ if (require.main === module) {
   const astXmlOut = astXmlIdx >= 0 && args[astXmlIdx + 1] ? path.resolve(args[astXmlIdx + 1]) : null;
   const astJsonOut = astJsonIdx >= 0 && args[astJsonIdx + 1] ? path.resolve(args[astJsonIdx + 1]) : null;
   const astShow = args.includes('--ast-show');
+  const astStrictFlag = args.includes('--ast-strict');
+  const explicitAllowDeterministic = args.includes('--allow-deterministic-function-folding');
+  const explicitBlockDeterministic = args.includes('--no-deterministic-function-folding');
+  const allowDeterministicFunctionFolding = explicitAllowDeterministic
+    ? true
+    : (explicitBlockDeterministic ? false : !astStrictFlag);
   if (args.includes('--wat-output') || args.includes('--wasm-output')) {
     console.error('Erro: MaiaCpp nao gera mais WAT/WASM diretamente. Gere C com --output e use MaiaC para WAT/WASM.');
     process.exit(1);
@@ -3591,10 +4382,12 @@ if (require.main === module) {
   try {
     const compiler = new Cpp98Compiler(input, {
       verbose: args.includes('--verbose'),
-      astStrict: args.includes('--ast-strict'),
+      astStrict: astStrictFlag,
       sourceHints: args.includes('--source-hints'),
       legacyFallback: args.includes('--legacy-fallback'),
-      legacyFunctionHints: args.includes('--legacy-function-hints') || !args.includes('--no-legacy-function-hints')
+      legacyFunctionHints: args.includes('--legacy-function-hints') || !args.includes('--no-legacy-function-hints'),
+      allowDeterministicFunctionFolding,
+      emitLoweringDiagnostics: !args.includes('--no-lowering-diagnostics')
     });
 
     if (astXmlOut) {

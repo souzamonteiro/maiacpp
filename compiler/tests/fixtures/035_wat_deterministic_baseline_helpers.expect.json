@@ -4,7 +4,7 @@
     "int run_class_tests(void)",
     "int run_template_tests(void)",
     "int run_function_pointer_tests(void)",
-    "return 1;"
+    "int s = execute__iiN8BinaryOp(7, 3, add__ii);"
   ],
   "mustNotContainCompiler": [
     "int run_class_tests(void) {\n  return (int)0;",

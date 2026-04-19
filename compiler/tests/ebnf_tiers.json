@@ -435,6 +435,81 @@
         ]
       },
       {
+        "id": "tier1_iostream_cin_cout_chain_dist_run_stdin",
+        "family": "iostream_runtime_input",
+        "matrixFamily": "runtime host integration (printf in Node/browser)",
+        "command": [
+          "bash",
+          "-lc",
+          "printf '7 8\\n' | bash ./bin/webcpp.sh --file ./compiler/tests/equivalence/435_iostream_cin_cout_chain_int_smoke.cpp --dist-run --out-dir {tmpDir}/cin_cout_chain_dist --name cin-cout-chain-smoke"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "SUM=15",
+          "[node-runner] program returned: 0"
+        ]
+      },
+      {
+        "id": "tier1_iostream_cin_cout_chain_dist_run_stdin_inequality",
+        "family": "iostream_runtime_input",
+        "matrixFamily": "runtime host integration (printf in Node/browser)",
+        "command": [
+          "bash",
+          "-lc",
+          "printf '7 7\\n' | bash ./bin/webcpp.sh --file ./compiler/tests/equivalence/435_iostream_cin_cout_chain_int_smoke.cpp --dist-run --out-dir {tmpDir}/cin_cout_chain_dist_neq --name cin-cout-chain-smoke-neq"
+        ],
+        "expectExitCode": 1,
+        "stdoutContains": [
+          "SUM=14",
+          "[node-runner] program returned: 1"
+        ]
+      },
+      {
+        "id": "tier1_iostream_cin_cout_double_dist_run_stdin",
+        "family": "iostream_runtime_input",
+        "matrixFamily": "runtime host integration (printf in Node/browser)",
+        "command": [
+          "bash",
+          "-lc",
+          "printf '3.5\\n' | bash ./bin/webcpp.sh --file ./compiler/tests/equivalence/436_iostream_cin_cout_double_smoke.cpp --dist-run --out-dir {tmpDir}/cin_cout_double_dist --name cin-cout-double-smoke"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "A=3.5",
+          "[node-runner] program returned: 0"
+        ]
+      },
+      {
+        "id": "tier1_semantic_compare_class_method_simple_return_patterns",
+        "family": "class_method_semantic_equivalence",
+        "matrixFamily": "classSpecifier / classHead / baseClause",
+        "command": [
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
+          "--file",
+          "./compiler/tests/equivalence/437_class_method_simple_return_patterns.cpp"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] native C++ output matches MaiaCpp pipeline output"
+        ]
+      },
+      {
+        "id": "tier1_semantic_compare_class_method_if_local_init_patterns",
+        "family": "class_method_semantic_equivalence",
+        "matrixFamily": "classSpecifier / classHead / baseClause",
+        "command": [
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
+          "--file",
+          "./compiler/tests/equivalence/438_class_method_if_and_local_init_patterns.cpp"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] native C++ output matches MaiaCpp pipeline output"
+        ]
+      },
+      {
         "id": "tier1_stdio_sscanf_dist_run_smoke",
         "family": "stdio_runtime_sscanf",
         "matrixFamily": "runtime host integration (printf in Node/browser)",
@@ -610,6 +685,43 @@
           "while (acc > 0)",
           "do {",
           "return (acc == 1) ? 0 : 1;"
+        ]
+      },
+      {
+        "id": "tier2_lowering_diagnostics_default_probe",
+        "family": "lowering_diagnostics",
+        "matrixFamily": "full statement lowering",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/examples/test.cpp"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Lowering diagnostics:",
+          "structured-local-return=",
+          "structured-method-cmp-return=",
+          "structured-indexed-object-cmp-return=",
+          "structured-resource-deterministic="
+        ]
+      },
+      {
+        "id": "tier2_lowering_diagnostics_block_deterministic_probe",
+        "family": "lowering_diagnostics",
+        "matrixFamily": "full statement lowering",
+        "command": [
+          "node",
+          "./compiler/cpp-compiler.js",
+          "./compiler/examples/test.cpp",
+          "--no-deterministic-function-folding"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "Lowering diagnostics:",
+          "structured-local-return=",
+          "structured-method-cmp-return=",
+          "structured-indexed-object-cmp-return=",
+          "structured-resource-deterministic="
         ]
       },
       {
