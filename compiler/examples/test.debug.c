@@ -1,5 +1,3 @@
-Parsing: /Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/test.cpp
-Parser: ok (namespace normalized)
 /* Generated from C++98 source */
 /* Target: C89 */
 
@@ -171,19 +169,23 @@ int run_function_pointer_tests(void) {
 }
 
 int run_cast_tests(void) {
-  DDerived __obj;
-  DDerived_init__i(&__obj, 15);
+  DDerived* __obj = (DDerived*)__malloc((unsigned long)sizeof(DDerived));
+  if (__obj == 0) return 0;
+  DDerived_init__i(__obj, 15);
+  BBase* b = (BBase*)__obj;
+  DDerived* d = (DDerived*)b;
   int n = (int)(3.2);
-  if (DDerived_value(&__obj) != 15) return 0;
-  if (n != 3) return 0;
+  if (d == 0) { __free(__obj); return 0; }
+  if (DDerived_value(d) != 15) { __free(__obj); return 0; }
+  if (n != 3) { __free(__obj); return 0; }
+  __free(__obj);
   return 1;
 }
 
 int run_new_delete_tests(void) {
   int* a = (int*)__malloc((unsigned long)sizeof(int));
   if (a == 0) return 0;
-  *a = 1;
-  if (*a != 1) { __free(a); return 0; }
+  if (1 != 1) { __free(a); return 0; }
   __free(a);
   P* p = (P*)__malloc((unsigned long)sizeof(P));
   if (p == 0) return 0;
@@ -262,4 +264,3 @@ int main(void) {
 /* - run_function_pointer_tests: structured-local-return (2 local(s)) */
 /* - run_cast_tests: structured-resource-runtime (cast-static-runtime) */
 /* - run_new_delete_tests: structured-resource-runtime (new-delete-runtime) */
-

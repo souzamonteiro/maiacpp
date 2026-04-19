@@ -1,0 +1,37 @@
+{
+  "generatedAt": "2026-04-19T15:55:47.325Z",
+  "input": "/var/folders/6p/871hys095mq5mm7078sqplx40000gn/T/tmp.xq8YojV09v/435_iostream_cin_cout_chain_int_smoke.c",
+  "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/tests/tmp/cin_cout_int_eq_after_typed",
+  "appName": "cin-cout-int-smoke-after-typed",
+  "artifacts": {
+    "wasm": "cin-cout-int-smoke-after-typed.wasm",
+    "wrapper": "cin-cout-int-smoke-after-typed.js",
+    "wat": null,
+    "browserRunner": "browser-runner.html",
+    "browserMemoryFileStore": "browser-memory-file-store.js",
+    "nodeRunner": "node-runner.js",
+    "nodeRunnerShell": "node-runner.sh"
+  },
+  "linkedLibraries": [],
+  "copiedLibraries": [
+    "ctype",
+    "setjmp",
+    "stdlib",
+    "string",
+    "__builtins",
+    "cwchar",
+    "cwctype",
+    "exception",
+    "fstream",
+    "ios",
+    "iostream",
+    "memory",
+    "new",
+    "sstream",
+    "stdexcept",
+    "typeinfo"
+  ],
+  "runtimeProvidedHeaders": [],
+  "missingLibraries": [],
+  "sourceBytes": 735
+}

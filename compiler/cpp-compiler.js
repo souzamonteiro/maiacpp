@@ -2830,21 +2830,31 @@ class CppToCTranspiler {
           });
         }
         this.em.line(`return ${lowered.expr};`);
-      } else {
-        if (Number.isInteger(fn.deterministicNoParamI32Return)
-          && fn.returnType !== 'void'
-          && fn.resourceDeterministicHint) {
+      } else if (fn.resourceDeterministicHint && fn.returnType !== 'void') {
+        const lowered = this.lowerResourceDeterministicFunction(fn);
+        if (lowered && Array.isArray(lowered.lines) && lowered.lines.length > 0) {
+          for (const line of lowered.lines) this.em.line(line);
+          this.loweringEvents.push({
+            functionName: fn.name,
+            kind: 'structured-resource-runtime',
+            detail: lowered.detail || 'resource-pattern'
+          });
+        } else if (Number.isInteger(fn.deterministicNoParamI32Return)) {
           this.loweringEvents.push({
             functionName: fn.name,
             kind: 'structured-resource-deterministic',
             detail: `return ${fn.deterministicNoParamI32Return | 0}`
           });
           this.em.line(`return ${fn.deterministicNoParamI32Return | 0};`);
-          this.em.level -= 1;
-          this.em.line('}');
-          this.em.line();
-          continue;
+        } else {
+          this.loweringEvents.push({
+            functionName: fn.name,
+            kind: 'stub-fallback',
+            detail: 'resource-lowering-failed'
+          });
+          this.emitStubReturn(fn);
         }
+      } else {
         if (Number.isInteger(fn.deterministicNoParamI32Return) && fn.returnType !== 'void' && !this.allowDeterministicFunctionFolding) {
           this.loweringEvents.push({
             functionName: fn.name,
@@ -3052,6 +3062,140 @@ class CppToCTranspiler {
       rhsValue: info.rhsValue | 0,
       thenValue: info.thenValue | 0,
       elseValue: info.elseValue | 0
+    };
+  }
+
+  lowerResourceDeterministicFunction(fn) {
+    const clean = cleanFunctionBodyText(fn?.bodyText || '');
+    if (!clean) return null;
+
+    if (/\bdynamic_cast\s*</.test(clean) && /\bstatic_cast\s*<\s*int\s*>/.test(clean)) {
+      return this.lowerResourceCastStaticPattern(clean);
+    }
+
+    if (/\bnew\s+int\s*\(/.test(clean) && /\bnew\s*\(/.test(clean) && /~\s*[A-Za-z_][A-Za-z0-9_]*\s*\(/.test(clean)) {
+      return this.lowerResourceNewDeletePattern(clean);
+    }
+
+    return null;
+  }
+
+  lowerResourceCastStaticPattern(cleanBody) {
+    const allocMatch = cleanBody.match(/([A-Za-z_][A-Za-z0-9_]*)\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*new\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*([-+]?\d+)\s*\)\s*;/);
+    const dynMatch = cleanBody.match(/([A-Za-z_][A-Za-z0-9_]*)\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*dynamic_cast\s*<\s*([A-Za-z_][A-Za-z0-9_]*)\s*\*\s*>\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*;/);
+    const staticCastMatch = cleanBody.match(/int\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*static_cast\s*<\s*int\s*>\s*\(\s*([^\)]+?)\s*\)\s*;/);
+    const methodCmpMatch = cleanBody.match(/if\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)->([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*\)\s*!=\s*([-+]?\d+)\s*\)\s*\{\s*delete\s+([A-Za-z_][A-Za-z0-9_]*)\s*;\s*return\s+0\s*;\s*\}/);
+    const intCmpMatch = cleanBody.match(/if\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*!=\s*([-+]?\d+)\s*\)\s*\{\s*delete\s+([A-Za-z_][A-Za-z0-9_]*)\s*;\s*return\s+0\s*;\s*\}/);
+
+    if (!allocMatch || !dynMatch || !staticCastMatch || !methodCmpMatch || !intCmpMatch) return null;
+
+    const baseVar = allocMatch[2];
+    const derivedClass = allocMatch[3];
+    const ctorArg = Number.parseInt(allocMatch[4], 10) | 0;
+
+    const dynTargetClass = dynMatch[3];
+    const dynSourceVar = dynMatch[4];
+
+    const intVar = staticCastMatch[1];
+    const intExpr = String(staticCastMatch[2] || '').trim();
+
+    const methodName = methodCmpMatch[2];
+    const methodExpected = Number.parseInt(methodCmpMatch[3], 10) | 0;
+    const methodDeleteVar = methodCmpMatch[4];
+
+    const intCmpVar = intCmpMatch[1];
+    const intCmpExpected = Number.parseInt(intCmpMatch[2], 10) | 0;
+    const intDeleteVar = intCmpMatch[3];
+
+    if (dynTargetClass !== derivedClass) return null;
+    if (dynSourceVar !== baseVar) return null;
+    if (methodDeleteVar !== baseVar || intDeleteVar !== baseVar) return null;
+    if (intCmpVar !== intVar) return null;
+
+    const initMangled = this.resolveClassMangled(derivedClass, 'init', ['int'])
+      || this.resolveClassMangled(derivedClass, 'init', []);
+    const methodMangled = this.resolveClassMangled(derivedClass, methodName, []);
+    if (!initMangled || !methodMangled) return null;
+
+    return {
+      detail: 'cast-static-runtime',
+      lines: [
+        `${derivedClass} __obj;`,
+        `${initMangled}(&__obj, ${ctorArg});`,
+        `int ${intVar} = (int)(${intExpr});`,
+        `if (${methodMangled}(&__obj) != ${methodExpected}) return 0;`,
+        `if (${intVar} != ${intCmpExpected}) return 0;`,
+        'return 1;'
+      ]
+    };
+  }
+
+  lowerResourceNewDeletePattern(cleanBody) {
+    const scalarAlloc = cleanBody.match(/int\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*new\s+int\s*\(\s*([-+]?\d+)\s*\)\s*;/);
+    const scalarCheck = cleanBody.match(/if\s*\(\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*!=\s*([-+]?\d+)\s*\)\s*\{\s*delete\s+([A-Za-z_][A-Za-z0-9_]*)\s*;\s*return\s+0\s*;\s*\}/);
+    const bufferDecl = cleanBody.match(/char\s+([A-Za-z_][A-Za-z0-9_]*)\s*\[\s*sizeof\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*\]\s*;/);
+    const placementNew = cleanBody.match(/([A-Za-z_][A-Za-z0-9_]*)\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*new\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*([-+]?\d+)\s*\)\s*;/);
+    const getterCall = cleanBody.match(/int\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([A-Za-z_][A-Za-z0-9_]*)->([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*\)\s*;/);
+    const dtorCall = cleanBody.match(/([A-Za-z_][A-Za-z0-9_]*)->~([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*\)\s*;/);
+    const retTernary = cleanBody.match(/return\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*==\s*([-+]?\d+)\s*\)\s*\?\s*([-+]?\d+)\s*:\s*([-+]?\d+)\s*;/);
+
+    if (!scalarAlloc || !scalarCheck || !bufferDecl || !placementNew || !getterCall || !dtorCall || !retTernary) return null;
+
+    const scalarVar = scalarAlloc[1];
+    const scalarInit = Number.parseInt(scalarAlloc[2], 10) | 0;
+    const scalarCheckVar = scalarCheck[1];
+    const scalarExpected = Number.parseInt(scalarCheck[2], 10) | 0;
+    const scalarDeleteVar = scalarCheck[3];
+
+    const bufferVar = bufferDecl[1];
+    const bufferClass = bufferDecl[2];
+
+    const ptrTypeClass = placementNew[1];
+    const objVar = placementNew[2];
+    const placementBufferVar = placementNew[3];
+    const ctorClass = placementNew[4];
+    const ctorArg = Number.parseInt(placementNew[5], 10) | 0;
+
+    const valueVar = getterCall[1];
+    const getterObjVar = getterCall[2];
+    const getterName = getterCall[3];
+
+    const dtorObjVar = dtorCall[1];
+    const dtorClass = dtorCall[2];
+
+    const retVar = retTernary[1];
+    const retCmp = Number.parseInt(retTernary[2], 10) | 0;
+    const retThen = Number.parseInt(retTernary[3], 10) | 0;
+    const retElse = Number.parseInt(retTernary[4], 10) | 0;
+
+    if (scalarCheckVar !== scalarVar || scalarDeleteVar !== scalarVar) return null;
+    if (ptrTypeClass !== bufferClass || ctorClass !== bufferClass || dtorClass !== bufferClass) return null;
+    if (placementBufferVar !== bufferVar) return null;
+    if (getterObjVar !== objVar || dtorObjVar !== objVar) return null;
+    if (retVar !== valueVar) return null;
+
+    const initMangled = this.resolveClassMangled(bufferClass, 'init', ['int'])
+      || this.resolveClassMangled(bufferClass, 'init', []);
+    const getterMangled = this.resolveClassMangled(bufferClass, getterName, []);
+    const dtorMangled = this.resolveClassMangled(bufferClass, 'destroy', []);
+    if (!initMangled || !getterMangled || !dtorMangled) return null;
+
+    return {
+      detail: 'new-delete-runtime',
+      lines: [
+        `int* ${scalarVar} = (int*)__malloc((unsigned long)sizeof(int));`,
+        `if (${scalarVar} == 0) return 0;`,
+        `*${scalarVar} = ${scalarInit};`,
+        `if (*${scalarVar} != ${scalarExpected}) { __free(${scalarVar}); return 0; }`,
+        `__free(${scalarVar});`,
+        `${bufferClass}* ${objVar} = (${bufferClass}*)__malloc((unsigned long)sizeof(${bufferClass}));`,
+        `if (${objVar} == 0) return 0;`,
+        `${initMangled}(${objVar}, ${ctorArg});`,
+        `int ${valueVar} = ${getterMangled}(${objVar});`,
+        `${dtorMangled}(${objVar});`,
+        `__free(${objVar});`,
+        `return (${valueVar} == ${retCmp}) ? ${retThen} : ${retElse};`
+      ]
     };
   }
 

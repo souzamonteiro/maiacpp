@@ -5,8 +5,10 @@
  * runtime-friendly features for browser/node (printf output, no iostream/std::cout).
  */
 
+#include <iostream>
 #include <stdio.h>
 #include <new>
+using namespace std;
 
 class C {
 public:
@@ -136,53 +138,55 @@ int run_new_delete_tests() {
 int main() {
     int failures = 0;
 
-    printf("=== MaiaCpp Comprehensive Baseline ===\n");
+    cout << "=== MaiaCpp Comprehensive Baseline ===" << endl;
 
-    printf("1. class/ctor/const: ");
+    cout << "1. class/ctor/const: ";
     if (run_class_tests()) {
-        printf("OK\n");
+       cout << "OK" << endl;
     } else {
-        printf("FAIL\n");
+        cout << "FAIL" << endl;
         failures++;
     }
 
-    printf("2. template/operator[]: ");
+    cout << "2. template/operator[]: ";
     if (run_template_tests()) {
-        printf("OK\n");
+        cout << "OK" << endl;
     } else {
-        printf("FAIL\n");
+        cout << "FAIL" << endl;
         failures++;
     }
 
-    printf("3. function pointer: ");
+    cout << "3. function pointer: ";
     if (run_function_pointer_tests()) {
-        printf("OK\n");
+        cout << "OK" << endl;
     } else {
-        printf("FAIL\n");
+        cout << "FAIL" << endl;
         failures++;
     }
 
-    printf("4. casts (dynamic/static): ");
+    cout << "4. casts (dynamic/static): ";
     if (run_cast_tests()) {
-        printf("OK\n");
+        cout << "OK" << endl;
     } else {
-        printf("FAIL\n");
+        cout << "FAIL" << endl;
         failures++;
     }
 
-    printf("5. new/delete/placement-new: ");
+    cout << "5. new/delete/placement-new: ";
     if (run_new_delete_tests()) {
-        printf("OK\n");
+        cout << "OK" << endl;
     } else {
-        printf("FAIL\n");
+        cout << "FAIL" << endl;
         failures++;
     }
 
     if (failures == 0) {
-        printf("ALL TESTS PASSED\n");
+        cout << "ALL TESTS PASSED" << endl;
         return 0;
     }
 
     printf("TESTS FAILED: %d\n", failures);
+    cout << "TESTS FAILED: " << failures << endl;
+        
     return 1;
 }

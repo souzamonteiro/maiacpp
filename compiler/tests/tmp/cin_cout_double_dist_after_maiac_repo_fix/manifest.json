@@ -1,0 +1,37 @@
+{
+  "generatedAt": "2026-04-19T16:03:36.161Z",
+  "input": "/var/folders/6p/871hys095mq5mm7078sqplx40000gn/T/tmp.iPFhRvYOUf/436_iostream_cin_cout_double_smoke.c",
+  "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/tests/tmp/cin_cout_double_dist_after_maiac_repo_fix",
+  "appName": "cin-cout-double-smoke-after-maiac-fix",
+  "artifacts": {
+    "wasm": "cin-cout-double-smoke-after-maiac-fix.wasm",
+    "wrapper": "cin-cout-double-smoke-after-maiac-fix.js",
+    "wat": null,
+    "browserRunner": "browser-runner.html",
+    "browserMemoryFileStore": "browser-memory-file-store.js",
+    "nodeRunner": "node-runner.js",
+    "nodeRunnerShell": "node-runner.sh"
+  },
+  "linkedLibraries": [],
+  "copiedLibraries": [
+    "ctype",
+    "setjmp",
+    "stdlib",
+    "string",
+    "__builtins",
+    "cwchar",
+    "cwctype",
+    "exception",
+    "fstream",
+    "ios",
+    "iostream",
+    "memory",
+    "new",
+    "sstream",
+    "stdexcept",
+    "typeinfo"
+  ],
+  "runtimeProvidedHeaders": [],
+  "missingLibraries": [],
+  "sourceBytes": 734
+}

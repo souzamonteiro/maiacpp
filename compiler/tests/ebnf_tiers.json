@@ -702,7 +702,7 @@
           "structured-local-return=",
           "structured-method-cmp-return=",
           "structured-indexed-object-cmp-return=",
-          "structured-resource-deterministic="
+          "structured-resource-runtime="
         ]
       },
       {
@@ -721,7 +721,7 @@
           "structured-local-return=",
           "structured-method-cmp-return=",
           "structured-indexed-object-cmp-return=",
-          "structured-resource-deterministic="
+          "structured-resource-runtime="
         ]
       },
       {
