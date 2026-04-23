@@ -1,0 +1,12 @@
+{
+  "shouldParse": true,
+  "mustContainCompiler": [
+    "/* Host import declarations */",
+    "extern void* __maia_lambda1_capture1(int c1);"
+  ],
+  "mustNotContainCompiler": [
+    "extern new __maia_runtime_value(void);",
+    "extern return __maia_runtime_alloc_value();",
+    "extern extern void* __maia_lambda1_capture1(int c1);"
+  ]
+}

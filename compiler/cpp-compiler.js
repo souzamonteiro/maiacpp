@@ -2377,16 +2377,20 @@ class CppToCTranspiler {
 
     // Match: returnType __funcName(params);
     const declRx = /\b([A-Za-z_][A-Za-z0-9_\s*]*?)\s+(__[A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*;/g;
+    const invalidTypeKeywordRx = /\b(return|new|delete|if|for|while|switch|case|else|do|goto|break|continue)\b/;
     const lines = [];
     let m;
     while ((m = declRx.exec(allText)) !== null) {
-      const retType = m[1].trim().replace(/\s+/g, ' ');
+      let retType = m[1].trim().replace(/\s+/g, ' ');
       const funcName = m[2];
       const params = (m[3] || '').trim();
       if (seen.has(funcName) || PRELUDE.has(funcName)) continue;
+      retType = retType.replace(/^extern\s+/, '').trim();
+      if (!retType) continue;
       // Skip storage-class prefixed matches — those are variable declarations,
       // not function declarations (e.g. "static T __name(args);").
-      if (/\b(static|inline|auto|register)\b/.test(retType)) continue;
+      if (/\b(static|inline|auto|register|typedef)\b/.test(retType)) continue;
+      if (invalidTypeKeywordRx.test(retType)) continue;
       seen.add(funcName);
       lines.push(`extern ${retType} ${funcName}(${params || 'void'});`);
     }
