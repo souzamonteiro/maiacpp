@@ -1,3 +1,5 @@
+Parsing: /Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/test.cpp
+Parser: ok
 /* Generated from C++98 source */
 /* Target: C89 */
 

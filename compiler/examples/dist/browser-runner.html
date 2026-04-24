@@ -66,7 +66,7 @@
   </main>
 
   <script src="./browser-memory-file-store.js"></script>
-  <script src="./test.js?v=1776977601043"></script>
+  <script src="./test.js?v=1777066459064"></script>
   <script>
     (function () {
       const runBtn = document.getElementById('run');
@@ -114,6 +114,50 @@
         keys.forEach((key) => localStorage.removeItem(key));
       }
 
+      function createMachineAwareBridgeResolver(runtimeBridgeEntries, availableBridgeSymbols) {
+        const pointerToBridge = new Map();
+        const bridgeToPointer = new Map();
+
+        return function resolveResumeBridge(event) {
+          if (!event || availableBridgeSymbols.length === 0) {
+            return null;
+          }
+
+          const stateId = Number(event.stateId) | 0;
+          for (const entry of runtimeBridgeEntries) {
+            if (!entry || typeof entry.bridgeSymbol !== 'string') {
+              continue;
+            }
+
+            const start = entry.scheduleStateStart;
+            const end = entry.scheduleStateEnd;
+            if (Number.isInteger(start) && Number.isInteger(end) && stateId >= start && stateId <= end) {
+              return entry.bridgeSymbol;
+            }
+          }
+
+          const ptr = Number(event.smPtr) >>> 0;
+          const existing = pointerToBridge.get(ptr);
+          if (typeof existing === 'string') {
+            return existing;
+          }
+
+          let index = ptr % availableBridgeSymbols.length;
+          for (let attempt = 0; attempt < availableBridgeSymbols.length; attempt += 1) {
+            const candidate = availableBridgeSymbols[index];
+            const owner = bridgeToPointer.get(candidate);
+            if (owner == null || owner === ptr) {
+              pointerToBridge.set(ptr, candidate);
+              bridgeToPointer.set(candidate, ptr);
+              return candidate;
+            }
+            index = (index + 1) % availableBridgeSymbols.length;
+          }
+
+          return null;
+        };
+      }
+
       async function runApp() {
         outputEl.textContent = '';
         statusEl.textContent = 'Running...';
@@ -121,6 +165,17 @@
         try {
           const manifestResponse = await fetch('./manifest.json');
           const manifest = await manifestResponse.json();
+          const runtimeBridgeMeta = manifest
+            && manifest.asyncRuntime
+            && Array.isArray(manifest.asyncRuntime.resumeBridges)
+            ? manifest.asyncRuntime.resumeBridges
+            : [];
+          const runtimeBridgeEntries = runtimeBridgeMeta.map((item) => ({
+            bridgeSymbol: item && typeof item.bridgeSymbol === 'string' ? item.bridgeSymbol : null,
+            scheduleStateStart: Number.isInteger(item.scheduleStateStart) ? item.scheduleStateStart : null,
+            scheduleStateEnd: Number.isInteger(item.scheduleStateEnd) ? item.scheduleStateEnd : null
+          })).filter((item) => typeof item.bridgeSymbol === 'string' && item.bridgeSymbol.length > 0);
+          const availableBridgeSymbols = runtimeBridgeEntries.map((item) => item.bridgeSymbol);
           const response = await fetch('./test.wasm');
           const bytes = await response.arrayBuffer();
           let memoryRef = null;
@@ -162,6 +217,20 @@
           const instantiated = await WebAssembly.instantiate(bytes, imports);
           const instance = instantiated.instance || instantiated;
           memoryRef = instance.exports.memory || null;
+
+          const exceptionRuntime = imports
+            && imports.env
+            && imports.env.__exceptionRuntime
+            && imports.env.__exceptionRuntime.scheduler
+            ? imports.env.__exceptionRuntime
+            : null;
+
+          if (exceptionRuntime && exceptionRuntime.scheduler && typeof exceptionRuntime.scheduler.setAutoResumeResolver === 'function') {
+            exceptionRuntime.scheduler.setAutoResumeResolver(
+              instance.exports,
+              createMachineAwareBridgeResolver(runtimeBridgeEntries, availableBridgeSymbols)
+            );
+          }
 
           const entry = instance.exports.main || instance.exports.test_entry;
           if (typeof entry !== 'function') {
