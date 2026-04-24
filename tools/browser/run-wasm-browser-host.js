@@ -161,6 +161,7 @@ async function main() {
   }
 
   let memoryRef = null;
+  let heap = 1024;
   const imports = {
     env: {
       printf: (fmtPtr, a1, a2, a3, a4, a5, a6, a7) => {
@@ -177,7 +178,12 @@ async function main() {
           return 0;
         }
       },
-      __malloc: () => 0,
+      __malloc: (size) => {
+        const ptr = heap;
+        const n = Number(size) >>> 0;
+        heap += Math.max(1, n);
+        return ptr;
+      },
       __free: () => {},
       __exc_push: () => {},
       __exc_pop: () => {},

@@ -4647,7 +4647,7 @@ class Cpp98Compiler {
     const source = fs.readFileSync(this.filePath, 'utf8');
     const { collector, candidate } = this.collectParseTree(source);
     console.error(`Parsing: ${this.filePath}`);
-    console.error(candidate.label);
+    console.log(candidate.label);
 
     if (options.xmlOut) {
       fs.writeFileSync(options.xmlOut, collector.toXml({ includeDeclaration: true }), 'utf8');
@@ -4665,13 +4665,13 @@ class Cpp98Compiler {
   }
 
   analyze(source) {
-    console.error(`Parsing: ${this.filePath}`);
+    console.log(`Parsing: ${this.filePath}`);
     let lastErr = null;
     const astStrict = !!(this.options && this.options.astStrict);
 
     try {
       const { collector, candidate, usedNormalized } = this.collectParseTree(source);
-      console.error(candidate.label);
+      console.log(candidate.label);
       const sema = new SemanticAnalyzer(collector.root, { source });
       const analysis = sema.analyze();
       if (!astStrict || (this.options && this.options.sourceHints)) {
@@ -4682,9 +4682,9 @@ class Cpp98Compiler {
       lastErr = err;
     }
 
-    console.error(`Parser falhou (${lastErr ? lastErr.message : 'erro desconhecido'}).`);
+    console.log(`Parser falhou (${lastErr ? lastErr.message : 'erro desconhecido'}).`);
     if (!astStrict || (this.options && this.options.legacyFallback)) {
-      console.error('Usando fallback simples.');
+      console.log('Usando fallback simples.');
       return new SimpleAnalyzer(this.filePath).analyze();
     }
     throw lastErr || new Error('Falha ao analisar AST');
