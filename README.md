@@ -1,6 +1,12 @@
 # MaiaCpp (WebCpp)
 Maia C++ Compiler.
 
+## Process Documentation
+
+Mandatory cross-repository synchronization workflow:
+
+- [docs/Maia_Ecosystem_Synchronization_Protocol.md](docs/Maia_Ecosystem_Synchronization_Protocol.md)
+
 <img src="images/TheWebCpp.png" style="width: 512px; height: auto;">
 
 ## Wrapper CLI
