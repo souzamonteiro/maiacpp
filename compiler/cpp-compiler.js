@@ -2379,7 +2379,7 @@ class CppToCTranspiler {
 
     // Match: returnType __funcName(params);
     const declRx = /\b([A-Za-z_][A-Za-z0-9_\s*]*?)\s+(__[A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*;/g;
-    const invalidTypeKeywordRx = /\b(return|new|delete|if|for|while|switch|case|else|do|goto|break|continue)\b/;
+    const invalidTypeKeywordRx = /\b(return|throw|new|delete|if|for|while|switch|case|else|do|goto|break|continue|try|catch)\b/;
     const lines = [];
     let m;
     while ((m = declRx.exec(allText)) !== null) {
