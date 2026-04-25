@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
+const { spawnSync } = require('child_process');
 const Parser = require('./cpp-parser');
 const { ParseTreeCollector, printTree } = require('./parse-tree-collector');
 const { CppPreprocessor } = require('./cpp-preprocessor');
@@ -4577,6 +4579,47 @@ class Cpp98Compiler {
   constructor(filePath, options = {}) {
     this.filePath = filePath;
     this.options = options;
+    this.parseProbeTimeoutMs = Number.isFinite(options.parseProbeTimeoutMs)
+      ? Math.max(250, Math.floor(options.parseProbeTimeoutMs))
+      : 5000;
+    this.parseProbeMinSourceLength = Number.isFinite(options.parseProbeMinSourceLength)
+      ? Math.max(0, Math.floor(options.parseProbeMinSourceLength))
+      : 12000;
+  }
+
+  preflightParseWithTimeout(sourceText, candidateLabel = 'parser candidate') {
+    if (!sourceText || sourceText.length < this.parseProbeMinSourceLength || this.parseProbeTimeoutMs <= 0) {
+      return;
+    }
+
+    const tmpFile = path.join(
+      os.tmpdir(),
+      `maiacpp-parse-probe-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}.cpp`
+    );
+
+    try {
+      fs.writeFileSync(tmpFile, sourceText, 'utf8');
+      const probeResult = spawnSync(
+        process.execPath,
+        [__filename, '--parse-probe', tmpFile],
+        {
+          encoding: 'utf8',
+          timeout: this.parseProbeTimeoutMs
+        }
+      );
+
+      if (probeResult.error && probeResult.error.code === 'ETIMEDOUT') {
+        throw new Error(`Parser timeout (${this.parseProbeTimeoutMs}ms) during ${candidateLabel}`);
+      }
+    } finally {
+      try {
+        if (fs.existsSync(tmpFile)) {
+          fs.unlinkSync(tmpFile);
+        }
+      } catch (_err) {
+        // Best-effort temp cleanup.
+      }
+    }
   }
 
   compile() {
@@ -4611,6 +4654,7 @@ class Cpp98Compiler {
       for (let i = 0; i < parseSources.length; i += 1) {
         const candidate = parseSources[i];
         try {
+          this.preflightParseWithTimeout(candidate.text, candidate.label || 'parser candidate');
           const collector = new ParseTreeCollector();
           const parser = new Parser(candidate.text, collector);
           parser.parse();
@@ -4898,6 +4942,28 @@ class Cpp98Compiler {
 
 if (require.main === module) {
   const args = process.argv.slice(2);
+
+  if (args[0] === '--parse-probe') {
+    const probeFile = args[1] ? path.resolve(args[1]) : null;
+    if (!probeFile || !fs.existsSync(probeFile)) {
+      console.error('Erro: arquivo de probe invalido para --parse-probe');
+      process.exit(2);
+    }
+
+    try {
+      const probeSource = fs.readFileSync(probeFile, 'utf8');
+      const collector = new ParseTreeCollector();
+      const parser = new Parser(probeSource, collector);
+      parser.parse();
+      if (!collector.root) {
+        throw new Error('Nenhuma árvore de parse disponível');
+      }
+      process.exit(0);
+    } catch (_err) {
+      process.exit(2);
+    }
+  }
+
   if (!args.length) {
     console.log('Uso: node cpp-compiler.js <arquivo.cpp> [--output arquivo.c] [--ast-show] [--ast-xml-out arquivo.xml] [--ast-json-out arquivo.json] [--verbose] [--ast-strict] [--source-hints] [--legacy-fallback] [--legacy-function-hints] [--no-legacy-function-hints] [--allow-deterministic-function-folding] [--no-deterministic-function-folding] [--no-lowering-diagnostics]');
     process.exit(1);
