@@ -1,0 +1,36 @@
+{
+  "generatedAt": "2026-04-25T21:26:42.883Z",
+  "input": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/suite/07_memory/memory.c",
+  "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/suite/07_memory/dist",
+  "appName": "memory",
+  "artifacts": {
+    "wasm": "memory.wasm",
+    "wrapper": "memory.js",
+    "wat": "memory.wat",
+    "browserRunner": "browser-runner.html",
+    "browserMemoryFileStore": "browser-memory-file-store.js",
+    "nodeRunner": "node-runner.js",
+    "nodeRunnerShell": "node-runner.sh"
+  },
+  "linkedLibraries": [],
+  "copiedLibraries": [
+    "ctype",
+    "setjmp",
+    "stdlib",
+    "string",
+    "__builtins",
+    "cwchar",
+    "cwctype",
+    "exception",
+    "fstream",
+    "ios",
+    "iostream",
+    "new",
+    "sstream",
+    "stdexcept",
+    "typeinfo"
+  ],
+  "runtimeProvidedHeaders": [],
+  "missingLibraries": [],
+  "sourceBytes": 1483
+}

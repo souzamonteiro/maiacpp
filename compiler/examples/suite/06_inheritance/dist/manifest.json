@@ -1,0 +1,37 @@
+{
+  "generatedAt": "2026-04-25T21:26:42.396Z",
+  "input": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/suite/06_inheritance/inheritance.c",
+  "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/suite/06_inheritance/dist",
+  "appName": "inheritance",
+  "artifacts": {
+    "wasm": "inheritance.wasm",
+    "wrapper": "inheritance.js",
+    "wat": "inheritance.wat",
+    "browserRunner": "browser-runner.html",
+    "browserMemoryFileStore": "browser-memory-file-store.js",
+    "nodeRunner": "node-runner.js",
+    "nodeRunnerShell": "node-runner.sh"
+  },
+  "linkedLibraries": [],
+  "copiedLibraries": [
+    "ctype",
+    "setjmp",
+    "stdlib",
+    "string",
+    "__builtins",
+    "cwchar",
+    "cwctype",
+    "exception",
+    "fstream",
+    "ios",
+    "iostream",
+    "memory",
+    "new",
+    "sstream",
+    "stdexcept",
+    "typeinfo"
+  ],
+  "runtimeProvidedHeaders": [],
+  "missingLibraries": [],
+  "sourceBytes": 1806
+}

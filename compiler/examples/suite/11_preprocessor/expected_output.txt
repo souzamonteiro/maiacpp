@@ -1,0 +1,8 @@
+PASS object_like_sum
+PASS function_like_add
+PASS nested_macro_mul
+PASS token_paste
+PASS defined_if
+PASS stringification_raw
+PASS object_like_string
+ALL PASS

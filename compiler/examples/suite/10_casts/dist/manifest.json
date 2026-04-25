@@ -1,0 +1,37 @@
+{
+  "generatedAt": "2026-04-25T21:26:44.238Z",
+  "input": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/suite/10_casts/casts.c",
+  "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/suite/10_casts/dist",
+  "appName": "casts",
+  "artifacts": {
+    "wasm": "casts.wasm",
+    "wrapper": "casts.js",
+    "wat": "casts.wat",
+    "browserRunner": "browser-runner.html",
+    "browserMemoryFileStore": "browser-memory-file-store.js",
+    "nodeRunner": "node-runner.js",
+    "nodeRunnerShell": "node-runner.sh"
+  },
+  "linkedLibraries": [],
+  "copiedLibraries": [
+    "ctype",
+    "setjmp",
+    "stdlib",
+    "string",
+    "__builtins",
+    "cwchar",
+    "cwctype",
+    "exception",
+    "fstream",
+    "ios",
+    "iostream",
+    "memory",
+    "new",
+    "sstream",
+    "stdexcept",
+    "typeinfo"
+  ],
+  "runtimeProvidedHeaders": [],
+  "missingLibraries": [],
+  "sourceBytes": 1282
+}

@@ -1,0 +1,16 @@
+PASS sc_double_to_int
+PASS sc_int_to_char
+PASS sc_int_to_double_div
+PASS sc_neg_to_uint
+PASS sc_upcast_tag
+PASS sc_downcast_extra
+PASS dc_ok
+PASS dc_fail_null
+PASS rc_raw_bytes
+PASS rc_alias_consistent
+PASS cc_write
+PASS cc_read
+PASS cstyle_trunc
+PASS cstyle_char
+PASS cstyle_div
+ALL PASS

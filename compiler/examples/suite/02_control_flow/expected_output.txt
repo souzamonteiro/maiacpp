@@ -1,0 +1,14 @@
+PASS if_true
+PASS if_false_else
+PASS elseif_chain
+PASS for_sum
+PASS for_backward_prod
+PASS nested_for_pairs
+PASS while_pow2
+PASS dowhile_halve
+PASS switch_basic
+PASS switch_fallthrough
+PASS break_loop
+PASS continue_evens
+PASS nested_break
+ALL PASS

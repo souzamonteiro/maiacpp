@@ -1,0 +1,37 @@
+{
+  "generatedAt": "2026-04-25T21:26:40.326Z",
+  "input": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/suite/02_control_flow/control_flow.c",
+  "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/suite/02_control_flow/dist",
+  "appName": "control_flow",
+  "artifacts": {
+    "wasm": "control_flow.wasm",
+    "wrapper": "control_flow.js",
+    "wat": "control_flow.wat",
+    "browserRunner": "browser-runner.html",
+    "browserMemoryFileStore": "browser-memory-file-store.js",
+    "nodeRunner": "node-runner.js",
+    "nodeRunnerShell": "node-runner.sh"
+  },
+  "linkedLibraries": [],
+  "copiedLibraries": [
+    "ctype",
+    "setjmp",
+    "stdlib",
+    "string",
+    "__builtins",
+    "cwchar",
+    "cwctype",
+    "exception",
+    "fstream",
+    "ios",
+    "iostream",
+    "memory",
+    "new",
+    "sstream",
+    "stdexcept",
+    "typeinfo"
+  ],
+  "runtimeProvidedHeaders": [],
+  "missingLibraries": [],
+  "sourceBytes": 685
+}
