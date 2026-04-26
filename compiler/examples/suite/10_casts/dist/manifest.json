@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-25T21:26:44.238Z",
+  "generatedAt": "2026-04-26T18:44:52.700Z",
   "input": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/suite/10_casts/casts.c",
   "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/suite/10_casts/dist",
   "appName": "casts",
@@ -13,25 +13,8 @@
     "nodeRunnerShell": "node-runner.sh"
   },
   "linkedLibraries": [],
-  "copiedLibraries": [
-    "ctype",
-    "setjmp",
-    "stdlib",
-    "string",
-    "__builtins",
-    "cwchar",
-    "cwctype",
-    "exception",
-    "fstream",
-    "ios",
-    "iostream",
-    "memory",
-    "new",
-    "sstream",
-    "stdexcept",
-    "typeinfo"
-  ],
+  "copiedLibraries": [],
   "runtimeProvidedHeaders": [],
   "missingLibraries": [],
-  "sourceBytes": 1282
+  "sourceBytes": 1837
 }

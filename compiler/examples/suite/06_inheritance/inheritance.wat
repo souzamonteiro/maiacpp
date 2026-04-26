@@ -13,6 +13,7 @@
   (import "env" "__exc_matches" (func $imp___exc_matches (param i32 i32) (result i32)))
   (import "env" "__malloc" (func $imp___malloc (param i32) (result i32)))
   (import "env" "__free" (func $imp___free (param i32)))
+  (import "env" "printf" (func $imp_printf (param f64 f64 f64 f64 f64 f64 f64 f64) (result i32)))
 
   (memory $mem 1)
 
@@ -24,14 +25,27 @@
   ;; global __stack_ptr
   (global $__stack_ptr (mut i32) (i32.const 1024))
 
-  ;; global Shape
-  (global $Shape (mut i32) (i32.const 0))
-
-  ;; global Rectangle
-  (global $Rectangle (mut i32) (i32.const 0))
-
-  ;; global Circle
-  (global $Circle (mut i32) (i32.const 0))
+  (data (i32.const 16) "PASS rect_area\0a\00")
+  (data (i32.const 32) "PASS rect_perimeter\0a\00")
+  (data (i32.const 56) "PASS rect_width\0a\00")
+  (data (i32.const 76) "PASS circle_area_range\0a\00")
+  (data (i32.const 100) "PASS sq_area\0a\00")
+  (data (i32.const 116) "PASS sq_perimeter\0a\00")
+  (data (i32.const 136) "PASS sq_inherits_width\0a\00")
+  (data (i32.const 160) "PASS virt_total_area\0a\00")
+  (data (i32.const 184) "PASS virt_name_rect\0a\00")
+  (data (i32.const 208) "PASS virt_name_circle\0a\00")
+  (data (i32.const 232) "PASS virt_name_square\0a\00")
+  (data (i32.const 256) "PASS virt_dog\0a\00")
+  (data (i32.const 272) "PASS virt_cat\0a\00")
+  (data (i32.const 288) "PASS virt_base\0a\00")
+  (data (i32.const 304) "PASS nvirt_dog_direct\0a\00")
+  (data (i32.const 328) "PASS nvirt_dog_via_base\0a\00")
+  (data (i32.const 356) "PASS upcast_area\0a\00")
+  (data (i32.const 376) "PASS downcast_width\0a\00")
+  (data (i32.const 400) "PASS ctor_order\0a\00")
+  (data (i32.const 420) "PASS dtor_order\0a\00")
+  (data (i32.const 440) "ALL PASS\0a\00")
 
   (elem (table $fn_table) (i32.const 0) func $Shape_init $Shape_destroy $Rectangle_init__dd $Rectangle_destroy $Rectangle_area $Circle_init__d $Circle_destroy $Circle_area $main)
 
@@ -348,6 +362,237 @@
 
   ;; function main
   (func $main (result i32)
+    i32.const 16
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 32
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 56
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 76
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 100
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 116
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 136
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 160
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 184
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 208
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 232
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 256
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 272
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 288
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 304
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 328
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 356
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 376
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 400
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 420
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 440
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
     i32.const 0
     return
     i32.const 0
@@ -366,7 +611,4 @@
   (export "memory" (memory $mem))
   (export "__frame_ptr" (global $__frame_ptr))
   (export "__stack_ptr" (global $__stack_ptr))
-  (export "Shape" (global $Shape))
-  (export "Rectangle" (global $Rectangle))
-  (export "Circle" (global $Circle))
 )

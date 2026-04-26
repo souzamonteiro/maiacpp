@@ -22,12 +22,15 @@ FILTER="${1:-}"
 PASS=0
 FAIL=0
 SKIP=0
+FAIL_SEMANTIC=0
+FAIL_EXPECTED=0
 
 run_one() {
     local test_dir="$1"
     local stem="$2"
     local runner="$test_dir/dist/node-runner.sh"
     local expected="$test_dir/expected_output.txt"
+    local generated_c="$test_dir/$stem.c"
 
     echo ""
     echo "--> $(basename "$test_dir")/$stem"
@@ -38,19 +41,36 @@ run_one() {
         return
     fi
 
+    local actual_raw
+    actual_raw="$(bash "$runner" 2>/dev/null)" || true
     local actual
-    actual="$(bash "$runner" 2>/dev/null)" || true
+    actual="$(printf '%s\n' "$actual_raw" | sed '/^\[node-runner\] program returned:/d')"
+    local actual_norm
+    actual_norm="$(printf '%s\n' "$actual" | awk 'NF{last=NR} {lines[NR]=$0} END{for(i=1;i<=last;i++) print lines[i]}')"
 
     if [[ -f "$expected" ]]; then
-        if diff <(printf '%s\n' "$actual") "$expected" > /dev/null 2>&1; then
+        local expected_norm
+        expected_norm="$(awk 'NF{last=NR} {lines[NR]=$0} END{for(i=1;i<=last;i++) print lines[i]}' "$expected")"
+        if diff <(printf '%s\n' "$actual_norm") <(printf '%s\n' "$expected_norm") > /dev/null 2>&1; then
             echo "    PASS"
             PASS=$((PASS + 1))
         else
+            local classification="unknown"
+            if [[ -f "$generated_c" ]]; then
+                if grep -q "main: stub-fallback" "$generated_c"; then
+                    classification="semantic-gap"
+                    FAIL_SEMANTIC=$((FAIL_SEMANTIC + 1))
+                else
+                    classification="expected-drift"
+                    FAIL_EXPECTED=$((FAIL_EXPECTED + 1))
+                fi
+            fi
             echo "    FAIL — output mismatch"
+            echo "    Classificacao: $classification"
             echo "    ┌── expected ──────────────────────────────────────"
-            sed 's/^/    │ /' "$expected"
+            printf '%s\n' "$expected_norm" | sed 's/^/    │ /'
             echo "    ├── actual ────────────────────────────────────────"
-            printf '%s\n' "$actual" | sed 's/^/    │ /'
+            printf '%s\n' "$actual_norm" | sed 's/^/    │ /'
             echo "    └─────────────────────────────────────────────────"
             FAIL=$((FAIL + 1))
         fi
@@ -84,6 +104,7 @@ done
 echo ""
 echo "========================================"
 echo "Results: $PASS passed  /  $FAIL failed  /  $SKIP skipped"
+echo "Failed breakdown: semantic-gap=$FAIL_SEMANTIC  /  expected-drift=$FAIL_EXPECTED"
 echo "========================================"
 
 if [[ "$FAIL" -gt 0 ]]; then

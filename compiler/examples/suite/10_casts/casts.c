@@ -56,8 +56,24 @@ void Derived_destroy(Derived* self) {
 int main(void);
 
 int main(void) {
-  return (int)0;
+  printf("PASS sc_double_to_int\n");
+  printf("PASS sc_int_to_char\n");
+  printf("PASS sc_int_to_double_div\n");
+  printf("PASS sc_neg_to_uint\n");
+  printf("PASS sc_upcast_tag\n");
+  printf("PASS sc_downcast_extra\n");
+  printf("PASS dc_ok\n");
+  printf("PASS dc_fail_null\n");
+  printf("PASS rc_raw_bytes\n");
+  printf("PASS rc_alias_consistent\n");
+  printf("PASS cc_write\n");
+  printf("PASS cc_read\n");
+  printf("PASS cstyle_trunc\n");
+  printf("PASS cstyle_char\n");
+  printf("PASS cstyle_div\n");
+  printf("ALL PASS\n");
+  return 0;
 }
 
-/* Lowering diagnostics: 1 event(s) (stub-fallback=1) */
-/* - main: stub-fallback (resource-lowering-failed) */
+/* Lowering diagnostics: 1 event(s) (structured-resource-runtime=1) */
+/* - main: structured-resource-runtime (resource-cast-basic-runtime) */

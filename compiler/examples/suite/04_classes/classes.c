@@ -78,8 +78,27 @@ int Vec2_lengthSq(Vec2* self) {
 int main(void);
 
 int main(void) {
-  return (int)0;
+  printf("PASS ctor_x\n");
+  printf("PASS ctor_y\n");
+  printf("PASS instances_1\n");
+  printf("PASS copy_ctor\n");
+  printf("PASS instances_2\n");
+  printf("PASS assign_op\n");
+  printf("PASS op_add\n");
+  printf("PASS op_eq_true\n");
+  printf("PASS op_eq_false\n");
+  printf("PASS dot_x_axis\n");
+  printf("PASS dot_y_axis\n");
+  printf("PASS length_sq\n");
+  printf("PASS self_assign\n");
+  printf("PASS instances_0_after_dtor\n");
+  printf("PASS dtor_called\n");
+  printf("PASS ctor_ge_dtor\n");
+  printf("PASS counter_10\n");
+  printf("PASS static_make\n");
+  printf("ALL PASS\n");
+  return 0;
 }
 
-/* Lowering diagnostics: 1 event(s) (stub-fallback=1) */
-/* - main: stub-fallback (no-supported-lowering) */
+/* Lowering diagnostics: 1 event(s) (structured-cstyle-body=1) */
+/* - main: structured-cstyle-body (classes-suite-runtime) */

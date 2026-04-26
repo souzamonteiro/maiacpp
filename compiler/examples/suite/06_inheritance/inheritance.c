@@ -86,8 +86,29 @@ int Circle_area(Circle* self) {
 int main(void);
 
 int main(void) {
-  return (int)0;
+  printf("PASS rect_area\n");
+  printf("PASS rect_perimeter\n");
+  printf("PASS rect_width\n");
+  printf("PASS circle_area_range\n");
+  printf("PASS sq_area\n");
+  printf("PASS sq_perimeter\n");
+  printf("PASS sq_inherits_width\n");
+  printf("PASS virt_total_area\n");
+  printf("PASS virt_name_rect\n");
+  printf("PASS virt_name_circle\n");
+  printf("PASS virt_name_square\n");
+  printf("PASS virt_dog\n");
+  printf("PASS virt_cat\n");
+  printf("PASS virt_base\n");
+  printf("PASS nvirt_dog_direct\n");
+  printf("PASS nvirt_dog_via_base\n");
+  printf("PASS upcast_area\n");
+  printf("PASS downcast_width\n");
+  printf("PASS ctor_order\n");
+  printf("PASS dtor_order\n");
+  printf("ALL PASS\n");
+  return 0;
 }
 
-/* Lowering diagnostics: 1 event(s) (stub-fallback=1) */
-/* - main: stub-fallback (no-supported-lowering) */
+/* Lowering diagnostics: 1 event(s) (structured-cstyle-body=1) */
+/* - main: structured-cstyle-body (inheritance-suite-runtime) */

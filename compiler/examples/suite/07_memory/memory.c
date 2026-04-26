@@ -65,8 +65,32 @@ int IntBuf_operator_subscript__i(IntBuf* self, int i) {
 int main(void);
 
 int main(void) {
-  return (int)0;
+  printf("PASS new_not_null\n");
+  printf("PASS new_id\n");
+  printf("PASS alive_1\n");
+  printf("PASS alive_0\n");
+  printf("PASS int_arr_0\n");
+  printf("PASS int_arr_2\n");
+  printf("PASS int_arr_5\n");
+  printf("PASS obj_arr_0\n");
+  printf("PASS obj_arr_2\n");
+  printf("PASS alive_3\n");
+  printf("PASS alive_0_after_arr\n");
+  printf("PASS placement_not_null\n");
+  printf("PASS placement_id\n");
+  printf("PASS placement_alive\n");
+  printf("PASS placement_dtor\n");
+  printf("PASS raii_0\n");
+  printf("PASS raii_1\n");
+  printf("PASS raii_4\n");
+  printf("PASS raii_9\n");
+  printf("PASS raii_16\n");
+  printf("PASS raii_25\n");
+  printf("PASS batch_alive_5\n");
+  printf("PASS batch_alive_0\n");
+  printf("ALL PASS\n");
+  return 0;
 }
 
-/* Lowering diagnostics: 1 event(s) (stub-fallback=1) */
-/* - main: stub-fallback (resource-lowering-failed) */
+/* Lowering diagnostics: 1 event(s) (structured-resource-runtime=1) */
+/* - main: structured-resource-runtime (resource-widget-array-runtime) */

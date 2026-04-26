@@ -13,18 +13,1549 @@
   (import "env" "__exc_matches" (func $imp___exc_matches (param i32 i32) (result i32)))
   (import "env" "__malloc" (func $imp___malloc (param i32) (result i32)))
   (import "env" "__free" (func $imp___free (param i32)))
+  (import "env" "printf" (func $imp_printf (param f64 f64 f64 f64 f64 f64 f64 f64) (result i32)))
+
+  (memory $mem 1)
 
   (table $fn_table 1 funcref)
+
+  ;; global __frame_ptr
+  (global $__frame_ptr (mut i32) (i32.const 0))
+
+  ;; global __stack_ptr
+  (global $__stack_ptr (mut i32) (i32.const 1024))
+
+  (data (i32.const 16) "PASS if_true\0a\00")
+  (data (i32.const 32) "PASS if_false_else\0a\00")
+  (data (i32.const 52) "PASS elseif_chain\0a\00")
+  (data (i32.const 72) "PASS for_sum\0a\00")
+  (data (i32.const 88) "PASS for_backward_prod\0a\00")
+  (data (i32.const 112) "PASS nested_for_pairs\0a\00")
+  (data (i32.const 136) "PASS while_pow2\0a\00")
+  (data (i32.const 156) "PASS dowhile_halve\0a\00")
+  (data (i32.const 176) "\00")
+  (data (i32.const 180) "Mon\00")
+  (data (i32.const 184) "Tue\00")
+  (data (i32.const 188) "Wed\00")
+  (data (i32.const 192) "Thu\00")
+  (data (i32.const 196) "?\00")
+  (data (i32.const 200) "PASS switch_basic\0a\00")
+  (data (i32.const 220) "PASS switch_fallthrough\0a\00")
+  (data (i32.const 248) "PASS break_loop\0a\00")
+  (data (i32.const 268) "PASS continue_evens\0a\00")
+  (data (i32.const 292) "PASS nested_break\0a\00")
+  (data (i32.const 312) "ALL PASS\0a\00")
 
   (elem (table $fn_table) (i32.const 0) func $main)
 
   ;; function main
   (func $main (result i32)
+    (local $__frame i32)
+    (local $i i32)
+    (local $j i32)
+    (local $x i32)
+    (local $r i32)
+    (local $__tmp_i32 i32)
+    (local $grade i32)
+    (local $cat i32)
+    (local $sum i32)
+    (local $__tmp_addr i32)
+    (local $prod i32)
+    (local $pairs i32)
+    (local $pw i32)
+    (local $steps i32)
+    (local $val i32)
+    (local $halvings i32)
+    (local $day i32)
+    (local $day_name i32)
+    (local $main___switch_value_18 i32)
+    (local $main___switch_matched_19 i32)
+    (local $mask i32)
+    (local $main___switch_value_21 i32)
+    (local $main___switch_matched_22 i32)
+    (local $found i32)
+    (local $esum i32)
+    (local $fi i32)
+    (local $fj i32)
+    (local $__parent_frame i32)
+    global.get $__frame_ptr
+    local.set $__parent_frame
+    global.get $__stack_ptr
+    local.set $__frame
+    local.get $__frame
+    global.set $__frame_ptr
+    global.get $__stack_ptr
+    i32.const 80
+    i32.add
+    global.set $__stack_ptr
+    local.get $__frame
+    i32.const 8
+    i32.add
+    i32.const 10
+    i32.store
+    local.get $__frame
+    i32.const 12
+    i32.add
     i32.const 0
+    i32.store
+    local.get $__frame
+    i32.const 8
+    i32.add
+    i32.load
+    i32.const 5
+    i32.gt_s
+    i32.eqz
+    i32.eqz
+    if
+      local.get $__frame
+      i32.const 12
+      i32.add
+      i32.const 1
+      local.set $__tmp_i32
+      local.get $__tmp_i32
+      i32.store
+      local.get $__tmp_i32
+      drop
+    else
+      local.get $__frame
+      i32.const 12
+      i32.add
+      i32.const 0
+      local.set $__tmp_i32
+      local.get $__tmp_i32
+      i32.store
+      local.get $__tmp_i32
+      drop
+    end
+    local.get $__frame
+    i32.const 12
+    i32.add
+    i32.load
+    i32.const 1
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 16
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
+    local.get $__frame
+    i32.const 8
+    i32.add
+    i32.load
+    i32.const 5
+    i32.lt_s
+    i32.eqz
+    i32.eqz
+    if
+      local.get $__frame
+      i32.const 12
+      i32.add
+      i32.const 1
+      local.set $__tmp_i32
+      local.get $__tmp_i32
+      i32.store
+      local.get $__tmp_i32
+      drop
+    else
+      local.get $__frame
+      i32.const 12
+      i32.add
+      i32.const 0
+      local.set $__tmp_i32
+      local.get $__tmp_i32
+      i32.store
+      local.get $__tmp_i32
+      drop
+    end
+    local.get $__frame
+    i32.const 12
+    i32.add
+    i32.load
+    i32.const 0
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 32
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
+    local.get $__frame
+    i32.const 16
+    i32.add
+    i32.const 75
+    i32.store
+    local.get $__frame
+    i32.const 20
+    i32.add
+    i32.const 0
+    i32.store
+    local.get $__frame
+    i32.const 16
+    i32.add
+    i32.load
+    i32.const 90
+    i32.ge_s
+    i32.eqz
+    i32.eqz
+    if
+      local.get $__frame
+      i32.const 20
+      i32.add
+      i32.const 4
+      local.set $__tmp_i32
+      local.get $__tmp_i32
+      i32.store
+      local.get $__tmp_i32
+      drop
+    else
+      local.get $__frame
+      i32.const 16
+      i32.add
+      i32.load
+      i32.const 80
+      i32.ge_s
+      i32.eqz
+      i32.eqz
+      if
+        local.get $__frame
+        i32.const 20
+        i32.add
+        i32.const 3
+        local.set $__tmp_i32
+        local.get $__tmp_i32
+        i32.store
+        local.get $__tmp_i32
+        drop
+      else
+        local.get $__frame
+        i32.const 16
+        i32.add
+        i32.load
+        i32.const 70
+        i32.ge_s
+        i32.eqz
+        i32.eqz
+        if
+          local.get $__frame
+          i32.const 20
+          i32.add
+          i32.const 2
+          local.set $__tmp_i32
+          local.get $__tmp_i32
+          i32.store
+          local.get $__tmp_i32
+          drop
+        else
+          local.get $__frame
+          i32.const 20
+          i32.add
+          i32.const 1
+          local.set $__tmp_i32
+          local.get $__tmp_i32
+          i32.store
+          local.get $__tmp_i32
+          drop
+        end
+      end
+    end
+    local.get $__frame
+    i32.const 20
+    i32.add
+    i32.load
+    i32.const 2
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 52
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
+    local.get $__frame
+    i32.const 24
+    i32.add
+    i32.const 0
+    i32.store
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.const 1
+    local.set $__tmp_i32
+    local.get $__tmp_i32
+    i32.store
+    local.get $__tmp_i32
+    drop
+    block $main_for_exit_0
+      loop $main_for_loop_2
+        local.get $__frame
+        i32.const 0
+        i32.add
+        i32.load
+        i32.const 10
+        i32.le_s
+        i32.eqz
+        i32.eqz
+        i32.eqz
+        br_if $main_for_exit_0
+        block $main_for_continue_1
+          local.get $__frame
+          i32.const 24
+          i32.add
+          local.get $__frame
+          i32.const 24
+          i32.add
+          i32.load
+          local.get $__frame
+          i32.const 0
+          i32.add
+          i32.load
+          i32.add
+          local.set $__tmp_i32
+          local.get $__tmp_i32
+          i32.store
+          local.get $__tmp_i32
+          drop
+        end
+        local.get $__frame
+        i32.const 0
+        i32.add
+        local.tee $__tmp_addr
+        i32.load
+        i32.const 1
+        i32.add
+        local.set $__tmp_i32
+        local.get $__tmp_addr
+        local.get $__tmp_i32
+        i32.store
+        local.get $__tmp_i32
+        drop
+        br $main_for_loop_2
+      end
+    end
+    local.get $__frame
+    i32.const 24
+    i32.add
+    i32.load
+    i32.const 55
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 72
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
+    local.get $__frame
+    i32.const 28
+    i32.add
+    i32.const 1
+    i32.store
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.const 5
+    local.set $__tmp_i32
+    local.get $__tmp_i32
+    i32.store
+    local.get $__tmp_i32
+    drop
+    block $main_for_exit_3
+      loop $main_for_loop_5
+        local.get $__frame
+        i32.const 0
+        i32.add
+        i32.load
+        i32.const 1
+        i32.ge_s
+        i32.eqz
+        i32.eqz
+        i32.eqz
+        br_if $main_for_exit_3
+        block $main_for_continue_4
+          local.get $__frame
+          i32.const 28
+          i32.add
+          local.get $__frame
+          i32.const 28
+          i32.add
+          i32.load
+          local.get $__frame
+          i32.const 0
+          i32.add
+          i32.load
+          i32.mul
+          local.set $__tmp_i32
+          local.get $__tmp_i32
+          i32.store
+          local.get $__tmp_i32
+          drop
+        end
+        local.get $__frame
+        i32.const 0
+        i32.add
+        local.tee $__tmp_addr
+        i32.load
+        i32.const 1
+        i32.sub
+        local.set $__tmp_i32
+        local.get $__tmp_addr
+        local.get $__tmp_i32
+        i32.store
+        local.get $__tmp_i32
+        drop
+        br $main_for_loop_5
+      end
+    end
+    local.get $__frame
+    i32.const 28
+    i32.add
+    i32.load
+    i32.const 120
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 88
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
+    local.get $__frame
+    i32.const 32
+    i32.add
+    i32.const 0
+    i32.store
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.const 0
+    local.set $__tmp_i32
+    local.get $__tmp_i32
+    i32.store
+    local.get $__tmp_i32
+    drop
+    block $main_for_exit_6
+      loop $main_for_loop_8
+        local.get $__frame
+        i32.const 0
+        i32.add
+        i32.load
+        i32.const 5
+        i32.le_s
+        i32.eqz
+        i32.eqz
+        i32.eqz
+        br_if $main_for_exit_6
+        block $main_for_continue_7
+          local.get $__frame
+          i32.const 4
+          i32.add
+          i32.const 0
+          local.set $__tmp_i32
+          local.get $__tmp_i32
+          i32.store
+          local.get $__tmp_i32
+          drop
+          block $main_for_exit_9
+            loop $main_for_loop_11
+              local.get $__frame
+              i32.const 4
+              i32.add
+              i32.load
+              i32.const 5
+              i32.le_s
+              i32.eqz
+              i32.eqz
+              i32.eqz
+              br_if $main_for_exit_9
+              block $main_for_continue_10
+                local.get $__frame
+                i32.const 0
+                i32.add
+                i32.load
+                local.get $__frame
+                i32.const 4
+                i32.add
+                i32.load
+                i32.add
+                i32.const 5
+                i32.eq
+                i32.eqz
+                i32.eqz
+                if
+                  local.get $__frame
+                  i32.const 32
+                  i32.add
+                  local.tee $__tmp_addr
+                  i32.load
+                  i32.const 1
+                  i32.add
+                  local.set $__tmp_i32
+                  local.get $__tmp_addr
+                  local.get $__tmp_i32
+                  i32.store
+                  local.get $__tmp_i32
+                  drop
+                end
+              end
+              local.get $__frame
+              i32.const 4
+              i32.add
+              local.tee $__tmp_addr
+              i32.load
+              i32.const 1
+              i32.add
+              local.set $__tmp_i32
+              local.get $__tmp_addr
+              local.get $__tmp_i32
+              i32.store
+              local.get $__tmp_i32
+              drop
+              br $main_for_loop_11
+            end
+          end
+        end
+        local.get $__frame
+        i32.const 0
+        i32.add
+        local.tee $__tmp_addr
+        i32.load
+        i32.const 1
+        i32.add
+        local.set $__tmp_i32
+        local.get $__tmp_addr
+        local.get $__tmp_i32
+        i32.store
+        local.get $__tmp_i32
+        drop
+        br $main_for_loop_8
+      end
+    end
+    local.get $__frame
+    i32.const 32
+    i32.add
+    i32.load
+    i32.const 6
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 112
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
+    local.get $__frame
+    i32.const 36
+    i32.add
+    i32.const 1
+    i32.store
+    local.get $__frame
+    i32.const 40
+    i32.add
+    i32.const 0
+    i32.store
+    block $main_while_exit_12
+      loop $main_while_loop_13
+        local.get $__frame
+        i32.const 36
+        i32.add
+        i32.load
+        i32.const 100
+        i32.lt_s
+        i32.eqz
+        i32.eqz
+        i32.eqz
+        br_if $main_while_exit_12
+        local.get $__frame
+        i32.const 36
+        i32.add
+        local.get $__frame
+        i32.const 36
+        i32.add
+        i32.load
+        i32.const 2
+        i32.mul
+        local.set $__tmp_i32
+        local.get $__tmp_i32
+        i32.store
+        local.get $__tmp_i32
+        drop
+        local.get $__frame
+        i32.const 40
+        i32.add
+        local.tee $__tmp_addr
+        i32.load
+        i32.const 1
+        i32.add
+        local.set $__tmp_i32
+        local.get $__tmp_addr
+        local.get $__tmp_i32
+        i32.store
+        local.get $__tmp_i32
+        drop
+        br $main_while_loop_13
+      end
+    end
+    local.get $__frame
+    i32.const 36
+    i32.add
+    i32.load
+    i32.const 128
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if (result i32)
+      local.get $__frame
+      i32.const 40
+      i32.add
+      i32.load
+      i32.const 7
+      i32.eq
+      i32.eqz
+      i32.eqz
+    else
+      i32.const 0
+    end
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 136
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
+    local.get $__frame
+    i32.const 44
+    i32.add
+    i32.const 256
+    i32.store
+    local.get $__frame
+    i32.const 48
+    i32.add
+    i32.const 0
+    i32.store
+    block $main_do_exit_14
+      loop $main_do_loop_16
+        block $main_do_continue_15
+          local.get $__frame
+          i32.const 44
+          i32.add
+          local.get $__frame
+          i32.const 44
+          i32.add
+          i32.load
+          i32.const 2
+          i32.div_s
+          local.set $__tmp_i32
+          local.get $__tmp_i32
+          i32.store
+          local.get $__tmp_i32
+          drop
+          local.get $__frame
+          i32.const 48
+          i32.add
+          local.tee $__tmp_addr
+          i32.load
+          i32.const 1
+          i32.add
+          local.set $__tmp_i32
+          local.get $__tmp_addr
+          local.get $__tmp_i32
+          i32.store
+          local.get $__tmp_i32
+          drop
+        end
+        local.get $__frame
+        i32.const 44
+        i32.add
+        i32.load
+        i32.const 1
+        i32.gt_s
+        i32.eqz
+        i32.eqz
+        br_if $main_do_loop_16
+      end
+    end
+    local.get $__frame
+    i32.const 48
+    i32.add
+    i32.load
+    i32.const 8
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if (result i32)
+      local.get $__frame
+      i32.const 44
+      i32.add
+      i32.load
+      i32.const 1
+      i32.eq
+      i32.eqz
+      i32.eqz
+    else
+      i32.const 0
+    end
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 156
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
+    local.get $__frame
+    i32.const 52
+    i32.add
+    i32.const 3
+    i32.store
+    local.get $__frame
+    i32.const 56
+    i32.add
+    i32.const 176
+    i32.store
+    local.get $__frame
+    i32.const 52
+    i32.add
+    i32.load
+    local.set $main___switch_value_18
+    i32.const 0
+    local.set $main___switch_matched_19
+    block $main_switch_exit_17
+      local.get $main___switch_matched_19
+      if
+        local.get $__frame
+        i32.const 56
+        i32.add
+        i32.const 180
+        local.set $__tmp_i32
+        local.get $__tmp_i32
+        i32.store
+        local.get $__tmp_i32
+        drop
+        br $main_switch_exit_17
+      else
+        local.get $main___switch_value_18
+        i32.const 1
+        i32.eq
+        if
+          i32.const 1
+          local.set $main___switch_matched_19
+          local.get $__frame
+          i32.const 56
+          i32.add
+          i32.const 180
+          local.set $__tmp_i32
+          local.get $__tmp_i32
+          i32.store
+          local.get $__tmp_i32
+          drop
+          br $main_switch_exit_17
+        end
+      end
+      local.get $main___switch_matched_19
+      if
+        local.get $__frame
+        i32.const 56
+        i32.add
+        i32.const 184
+        local.set $__tmp_i32
+        local.get $__tmp_i32
+        i32.store
+        local.get $__tmp_i32
+        drop
+        br $main_switch_exit_17
+      else
+        local.get $main___switch_value_18
+        i32.const 2
+        i32.eq
+        if
+          i32.const 1
+          local.set $main___switch_matched_19
+          local.get $__frame
+          i32.const 56
+          i32.add
+          i32.const 184
+          local.set $__tmp_i32
+          local.get $__tmp_i32
+          i32.store
+          local.get $__tmp_i32
+          drop
+          br $main_switch_exit_17
+        end
+      end
+      local.get $main___switch_matched_19
+      if
+        local.get $__frame
+        i32.const 56
+        i32.add
+        i32.const 188
+        local.set $__tmp_i32
+        local.get $__tmp_i32
+        i32.store
+        local.get $__tmp_i32
+        drop
+        br $main_switch_exit_17
+      else
+        local.get $main___switch_value_18
+        i32.const 3
+        i32.eq
+        if
+          i32.const 1
+          local.set $main___switch_matched_19
+          local.get $__frame
+          i32.const 56
+          i32.add
+          i32.const 188
+          local.set $__tmp_i32
+          local.get $__tmp_i32
+          i32.store
+          local.get $__tmp_i32
+          drop
+          br $main_switch_exit_17
+        end
+      end
+      local.get $main___switch_matched_19
+      if
+        local.get $__frame
+        i32.const 56
+        i32.add
+        i32.const 192
+        local.set $__tmp_i32
+        local.get $__tmp_i32
+        i32.store
+        local.get $__tmp_i32
+        drop
+        br $main_switch_exit_17
+      else
+        local.get $main___switch_value_18
+        i32.const 4
+        i32.eq
+        if
+          i32.const 1
+          local.set $main___switch_matched_19
+          local.get $__frame
+          i32.const 56
+          i32.add
+          i32.const 192
+          local.set $__tmp_i32
+          local.get $__tmp_i32
+          i32.store
+          local.get $__tmp_i32
+          drop
+          br $main_switch_exit_17
+        end
+      end
+      local.get $main___switch_matched_19
+      if
+        local.get $__frame
+        i32.const 56
+        i32.add
+        i32.const 196
+        local.set $__tmp_i32
+        local.get $__tmp_i32
+        i32.store
+        local.get $__tmp_i32
+        drop
+        br $main_switch_exit_17
+      else
+        i32.const 1
+        if
+          i32.const 1
+          local.set $main___switch_matched_19
+          local.get $__frame
+          i32.const 56
+          i32.add
+          i32.const 196
+          local.set $__tmp_i32
+          local.get $__tmp_i32
+          i32.store
+          local.get $__tmp_i32
+          drop
+          br $main_switch_exit_17
+        end
+      end
+    end
+    local.get $__frame
+    i32.const 56
+    i32.add
+    i32.load
+    i32.const 0
+    i32.const 1
+    i32.mul
+    i32.add
+    i32.load8_u
+    i32.const 87
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 200
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
+    local.get $__frame
+    i32.const 60
+    i32.add
+    i32.const 0
+    i32.store
+    i32.const 2
+    local.set $main___switch_value_21
+    i32.const 0
+    local.set $main___switch_matched_22
+    block $main_switch_exit_20
+      local.get $main___switch_matched_22
+      if
+        local.get $__frame
+        i32.const 60
+        i32.add
+        local.get $__frame
+        i32.const 60
+        i32.add
+        i32.load
+        i32.const 1
+        i32.or
+        local.set $__tmp_i32
+        local.get $__tmp_i32
+        i32.store
+        local.get $__tmp_i32
+        drop
+      else
+        local.get $main___switch_value_21
+        i32.const 1
+        i32.eq
+        if
+          i32.const 1
+          local.set $main___switch_matched_22
+          local.get $__frame
+          i32.const 60
+          i32.add
+          local.get $__frame
+          i32.const 60
+          i32.add
+          i32.load
+          i32.const 1
+          i32.or
+          local.set $__tmp_i32
+          local.get $__tmp_i32
+          i32.store
+          local.get $__tmp_i32
+          drop
+        end
+      end
+      local.get $main___switch_matched_22
+      if
+        local.get $__frame
+        i32.const 60
+        i32.add
+        local.get $__frame
+        i32.const 60
+        i32.add
+        i32.load
+        i32.const 2
+        i32.or
+        local.set $__tmp_i32
+        local.get $__tmp_i32
+        i32.store
+        local.get $__tmp_i32
+        drop
+      else
+        local.get $main___switch_value_21
+        i32.const 2
+        i32.eq
+        if
+          i32.const 1
+          local.set $main___switch_matched_22
+          local.get $__frame
+          i32.const 60
+          i32.add
+          local.get $__frame
+          i32.const 60
+          i32.add
+          i32.load
+          i32.const 2
+          i32.or
+          local.set $__tmp_i32
+          local.get $__tmp_i32
+          i32.store
+          local.get $__tmp_i32
+          drop
+        end
+      end
+      local.get $main___switch_matched_22
+      if
+        local.get $__frame
+        i32.const 60
+        i32.add
+        local.get $__frame
+        i32.const 60
+        i32.add
+        i32.load
+        i32.const 4
+        i32.or
+        local.set $__tmp_i32
+        local.get $__tmp_i32
+        i32.store
+        local.get $__tmp_i32
+        drop
+        br $main_switch_exit_20
+      else
+        local.get $main___switch_value_21
+        i32.const 3
+        i32.eq
+        if
+          i32.const 1
+          local.set $main___switch_matched_22
+          local.get $__frame
+          i32.const 60
+          i32.add
+          local.get $__frame
+          i32.const 60
+          i32.add
+          i32.load
+          i32.const 4
+          i32.or
+          local.set $__tmp_i32
+          local.get $__tmp_i32
+          i32.store
+          local.get $__tmp_i32
+          drop
+          br $main_switch_exit_20
+        end
+      end
+      local.get $main___switch_matched_22
+      if
+        local.get $__frame
+        i32.const 60
+        i32.add
+        local.get $__frame
+        i32.const 60
+        i32.add
+        i32.load
+        i32.const 8
+        i32.or
+        local.set $__tmp_i32
+        local.get $__tmp_i32
+        i32.store
+        local.get $__tmp_i32
+        drop
+      else
+        local.get $main___switch_value_21
+        i32.const 4
+        i32.eq
+        if
+          i32.const 1
+          local.set $main___switch_matched_22
+          local.get $__frame
+          i32.const 60
+          i32.add
+          local.get $__frame
+          i32.const 60
+          i32.add
+          i32.load
+          i32.const 8
+          i32.or
+          local.set $__tmp_i32
+          local.get $__tmp_i32
+          i32.store
+          local.get $__tmp_i32
+          drop
+        end
+      end
+    end
+    local.get $__frame
+    i32.const 60
+    i32.add
+    i32.load
+    i32.const 6
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 220
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
+    local.get $__frame
+    i32.const 64
+    i32.add
+    i32.const 0
+    i32.const 1
+    i32.sub
+    i32.store
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.const 0
+    local.set $__tmp_i32
+    local.get $__tmp_i32
+    i32.store
+    local.get $__tmp_i32
+    drop
+    block $main_for_exit_23
+      loop $main_for_loop_25
+        local.get $__frame
+        i32.const 0
+        i32.add
+        i32.load
+        i32.const 100
+        i32.lt_s
+        i32.eqz
+        i32.eqz
+        i32.eqz
+        br_if $main_for_exit_23
+        block $main_for_continue_24
+          local.get $__frame
+          i32.const 0
+          i32.add
+          i32.load
+          local.get $__frame
+          i32.const 0
+          i32.add
+          i32.load
+          i32.mul
+          i32.const 49
+          i32.eq
+          i32.eqz
+          i32.eqz
+          if
+            local.get $__frame
+            i32.const 64
+            i32.add
+            local.get $__frame
+            i32.const 0
+            i32.add
+            i32.load
+            local.set $__tmp_i32
+            local.get $__tmp_i32
+            i32.store
+            local.get $__tmp_i32
+            drop
+            br $main_for_exit_23
+          end
+        end
+        local.get $__frame
+        i32.const 0
+        i32.add
+        local.tee $__tmp_addr
+        i32.load
+        i32.const 1
+        i32.add
+        local.set $__tmp_i32
+        local.get $__tmp_addr
+        local.get $__tmp_i32
+        i32.store
+        local.get $__tmp_i32
+        drop
+        br $main_for_loop_25
+      end
+    end
+    local.get $__frame
+    i32.const 64
+    i32.add
+    i32.load
+    i32.const 7
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 248
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
+    local.get $__frame
+    i32.const 68
+    i32.add
+    i32.const 0
+    i32.store
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.const 0
+    local.set $__tmp_i32
+    local.get $__tmp_i32
+    i32.store
+    local.get $__tmp_i32
+    drop
+    block $main_for_exit_26
+      loop $main_for_loop_28
+        local.get $__frame
+        i32.const 0
+        i32.add
+        i32.load
+        i32.const 10
+        i32.le_s
+        i32.eqz
+        i32.eqz
+        i32.eqz
+        br_if $main_for_exit_26
+        block $main_for_continue_27
+          local.get $__frame
+          i32.const 0
+          i32.add
+          i32.load
+          i32.const 2
+          i32.rem_s
+          i32.const 0
+          i32.ne
+          i32.eqz
+          i32.eqz
+          if
+            br $main_for_continue_27
+          end
+          local.get $__frame
+          i32.const 68
+          i32.add
+          local.get $__frame
+          i32.const 68
+          i32.add
+          i32.load
+          local.get $__frame
+          i32.const 0
+          i32.add
+          i32.load
+          i32.add
+          local.set $__tmp_i32
+          local.get $__tmp_i32
+          i32.store
+          local.get $__tmp_i32
+          drop
+        end
+        local.get $__frame
+        i32.const 0
+        i32.add
+        local.tee $__tmp_addr
+        i32.load
+        i32.const 1
+        i32.add
+        local.set $__tmp_i32
+        local.get $__tmp_addr
+        local.get $__tmp_i32
+        i32.store
+        local.get $__tmp_i32
+        drop
+        br $main_for_loop_28
+      end
+    end
+    local.get $__frame
+    i32.const 68
+    i32.add
+    i32.load
+    i32.const 30
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 268
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
+    local.get $__frame
+    i32.const 72
+    i32.add
+    i32.const 0
+    i32.const 1
+    i32.sub
+    i32.store
+    local.get $__frame
+    i32.const 76
+    i32.add
+    i32.const 0
+    i32.const 1
+    i32.sub
+    i32.store
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.const 1
+    local.set $__tmp_i32
+    local.get $__tmp_i32
+    i32.store
+    local.get $__tmp_i32
+    drop
+    block $main_for_exit_29
+      loop $main_for_loop_31
+        local.get $__frame
+        i32.const 0
+        i32.add
+        i32.load
+        i32.const 10
+        i32.le_s
+        i32.eqz
+        i32.eqz
+        if (result i32)
+          local.get $__frame
+          i32.const 72
+          i32.add
+          i32.load
+          i32.const 0
+          i32.const 1
+          i32.sub
+          i32.eq
+          i32.eqz
+          i32.eqz
+        else
+          i32.const 0
+        end
+        i32.eqz
+        i32.eqz
+        i32.eqz
+        br_if $main_for_exit_29
+        block $main_for_continue_30
+          local.get $__frame
+          i32.const 4
+          i32.add
+          i32.const 1
+          local.set $__tmp_i32
+          local.get $__tmp_i32
+          i32.store
+          local.get $__tmp_i32
+          drop
+          block $main_for_exit_32
+            loop $main_for_loop_34
+              local.get $__frame
+              i32.const 4
+              i32.add
+              i32.load
+              i32.const 10
+              i32.le_s
+              i32.eqz
+              i32.eqz
+              i32.eqz
+              br_if $main_for_exit_32
+              block $main_for_continue_33
+                local.get $__frame
+                i32.const 0
+                i32.add
+                i32.load
+                local.get $__frame
+                i32.const 4
+                i32.add
+                i32.load
+                i32.mul
+                i32.const 20
+                i32.gt_s
+                i32.eqz
+                i32.eqz
+                if
+                  local.get $__frame
+                  i32.const 72
+                  i32.add
+                  local.get $__frame
+                  i32.const 0
+                  i32.add
+                  i32.load
+                  local.set $__tmp_i32
+                  local.get $__tmp_i32
+                  i32.store
+                  local.get $__tmp_i32
+                  drop
+                  local.get $__frame
+                  i32.const 76
+                  i32.add
+                  local.get $__frame
+                  i32.const 4
+                  i32.add
+                  i32.load
+                  local.set $__tmp_i32
+                  local.get $__tmp_i32
+                  i32.store
+                  local.get $__tmp_i32
+                  drop
+                  br $main_for_exit_32
+                end
+              end
+              local.get $__frame
+              i32.const 4
+              i32.add
+              local.tee $__tmp_addr
+              i32.load
+              i32.const 1
+              i32.add
+              local.set $__tmp_i32
+              local.get $__tmp_addr
+              local.get $__tmp_i32
+              i32.store
+              local.get $__tmp_i32
+              drop
+              br $main_for_loop_34
+            end
+          end
+        end
+        local.get $__frame
+        i32.const 0
+        i32.add
+        local.tee $__tmp_addr
+        i32.load
+        i32.const 1
+        i32.add
+        local.set $__tmp_i32
+        local.get $__tmp_addr
+        local.get $__tmp_i32
+        i32.store
+        local.get $__tmp_i32
+        drop
+        br $main_for_loop_31
+      end
+    end
+    local.get $__frame
+    i32.const 72
+    i32.add
+    i32.load
+    i32.const 3
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if (result i32)
+      local.get $__frame
+      i32.const 76
+      i32.add
+      i32.load
+      i32.const 7
+      i32.eq
+      i32.eqz
+      i32.eqz
+    else
+      i32.const 0
+    end
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 292
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
+    i32.const 312
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
     return
     i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
     return
   )
 
   (export "main" (func $main))
+  (export "memory" (memory $mem))
+  (export "__frame_ptr" (global $__frame_ptr))
+  (export "__stack_ptr" (global $__stack_ptr))
 )

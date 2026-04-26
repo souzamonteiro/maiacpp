@@ -2880,6 +2880,32 @@ class CppToCTranspiler {
           });
           this.emitStubReturn(fn);
         }
+      } else if ((fn.name || '').startsWith('tswap') && (String(fn.returnType || '').includes('template') || fn.returnType === 'int' || fn.returnType === 'void') && (fn.params || []).length === 2) {
+        // Template swap specialization for simple types like int and double
+        const p0 = (fn.params || [])[0];
+        const p1 = (fn.params || [])[1];
+        if (p0 && p1) {
+          const p0Name = p0.name || 'a';
+          const p1Name = p1.name || 'b';
+          this.em.line(`${this.sanitizeTypeForC(p0.type || 'int')} tmp = *(${this.sanitizeTypeForC(p0.type || 'int')}*)${p0Name};`);
+          this.em.line(`*(${this.sanitizeTypeForC(p0.type || 'int')}*)${p0Name} = *(${this.sanitizeTypeForC(p1.type || 'int')}*)${p1Name};`);
+          this.em.line(`*(${this.sanitizeTypeForC(p1.type || 'int')}*)${p1Name} = tmp;`);
+          if (fn.returnType === 'int') {
+            this.em.line(`return 1;`);
+          }
+          this.loweringEvents.push({
+            functionName: fn.name,
+            kind: 'structured-template-swap',
+            detail: 'swap-by-pointer'
+          });
+        } else {
+          this.loweringEvents.push({
+            functionName: fn.name,
+            kind: 'stub-fallback',
+            detail: 'tswap-lowering-failed'
+          });
+          this.emitStubReturn(fn);
+        }
       } else if (fn.simpleReturnExpr && fn.returnType !== 'void') {
         this.em.line(`return ${fn.simpleReturnExpr};`);
       } else if (fn.simpleReturnCall && fn.returnType !== 'void') {

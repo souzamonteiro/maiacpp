@@ -13,18 +13,1369 @@
   (import "env" "__exc_matches" (func $imp___exc_matches (param i32 i32) (result i32)))
   (import "env" "__malloc" (func $imp___malloc (param i32) (result i32)))
   (import "env" "__free" (func $imp___free (param i32)))
+  (import "env" "printf" (func $imp_printf (param f64 f64 f64 f64 f64 f64 f64 f64) (result i32)))
 
-  (table $fn_table 1 funcref)
+  (memory $mem 1)
 
-  (elem (table $fn_table) (i32.const 0) func $main)
+  (table $fn_table 9 funcref)
+
+  ;; global __frame_ptr
+  (global $__frame_ptr (mut i32) (i32.const 0))
+
+  ;; global __stack_ptr
+  (global $__stack_ptr (mut i32) (i32.const 1024))
+
+  (data (i32.const 16) "PASS add\0a\00")
+  (data (i32.const 28) "PASS sub\0a\00")
+  (data (i32.const 40) "PASS mul\0a\00")
+  (data (i32.const 52) "PASS idiv\0a\00")
+  (data (i32.const 64) "PASS imod\0a\00")
+  (data (i32.const 76) "PASS eq\0a\00")
+  (data (i32.const 88) "PASS ne\0a\00")
+  (data (i32.const 100) "PASS lt\0a\00")
+  (data (i32.const 112) "PASS gt\0a\00")
+  (data (i32.const 124) "PASS le\0a\00")
+  (data (i32.const 136) "PASS ge\0a\00")
+  (data (i32.const 148) "PASS land\0a\00")
+  (data (i32.const 160) "PASS lor\0a\00")
+  (data (i32.const 172) "PASS lnot\0a\00")
+  (data (i32.const 184) "PASS band\0a\00")
+  (data (i32.const 196) "PASS bor\0a\00")
+  (data (i32.const 208) "PASS bxor\0a\00")
+  (data (i32.const 220) "PASS shl\0a\00")
+  (data (i32.const 232) "PASS shr\0a\00")
+  (data (i32.const 244) "PASS bnot\0a\00")
+  (data (i32.const 256) "PASS cadd\0a\00")
+  (data (i32.const 268) "PASS csub\0a\00")
+  (data (i32.const 280) "PASS cmul\0a\00")
+  (data (i32.const 292) "PASS cdiv\0a\00")
+  (data (i32.const 304) "PASS cmod\0a\00")
+  (data (i32.const 316) "PASS cband\0a\00")
+  (data (i32.const 328) "PASS cbor\0a\00")
+  (data (i32.const 340) "PASS cbxor\0a\00")
+  (data (i32.const 352) "PASS cshl\0a\00")
+  (data (i32.const 364) "PASS cshr\0a\00")
+  (data (i32.const 376) "PASS preinc\0a\00")
+  (data (i32.const 392) "PASS postinc\0a\00")
+  (data (i32.const 408) "PASS after_postinc\0a\00")
+  (data (i32.const 428) "PASS predec\0a\00")
+  (data (i32.const 444) "PASS postdec\0a\00")
+  (data (i32.const 460) "PASS after_postdec\0a\00")
+  (data (i32.const 480) "PASS ternary_t\0a\00")
+  (data (i32.const 496) "PASS ternary_f\0a\00")
+  (data (i32.const 512) "PASS fadd\0a\00")
+  (data (i32.const 524) "PASS fsub\0a\00")
+  (data (i32.const 536) "PASS fmul\0a\00")
+  (data (i32.const 548) "PASS fdiv\0a\00")
+  (data (i32.const 560) "ALL PASS\0a\00")
+
+  (elem (table $fn_table) (i32.const 0) func $test_arithmetic $test_relational $test_logical $test_bitwise $test_compound $test_prepost $test_ternary $test_float $main)
+
+  ;; function test_arithmetic
+  (func $test_arithmetic (result i32)
+    (local $a i32)
+    (local $b i32)
+    (local $ok i32)
+    i32.const 17
+    local.set $a
+    i32.const 5
+    local.set $b
+    i32.const 0
+    local.set $ok
+    local.get $a
+    local.get $b
+    i32.add
+    i32.const 22
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 16
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $a
+    local.get $b
+    i32.sub
+    i32.const 12
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 28
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $a
+    local.get $b
+    i32.mul
+    i32.const 85
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 40
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $a
+    local.get $b
+    i32.div_s
+    i32.const 3
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 52
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $a
+    local.get $b
+    i32.rem_s
+    i32.const 2
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 64
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $ok
+    return
+    i32.const 0
+    return
+  )
+
+  ;; function test_relational
+  (func $test_relational (result i32)
+    (local $a i32)
+    (local $b i32)
+    (local $ok i32)
+    i32.const 17
+    local.set $a
+    i32.const 5
+    local.set $b
+    i32.const 0
+    local.set $ok
+    local.get $a
+    i32.const 17
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 76
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $a
+    local.get $b
+    i32.ne
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 88
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $b
+    local.get $a
+    i32.lt_s
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 100
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $a
+    local.get $b
+    i32.gt_s
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 112
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $b
+    i32.const 5
+    i32.le_s
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 124
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $a
+    i32.const 17
+    i32.ge_s
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 136
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $ok
+    return
+    i32.const 0
+    return
+  )
+
+  ;; function test_logical
+  (func $test_logical (result i32)
+    (local $a i32)
+    (local $b i32)
+    (local $ok i32)
+    i32.const 17
+    local.set $a
+    i32.const 5
+    local.set $b
+    i32.const 0
+    local.set $ok
+    local.get $a
+    i32.const 0
+    i32.gt_s
+    i32.eqz
+    i32.eqz
+    if (result i32)
+      local.get $b
+      i32.const 0
+      i32.gt_s
+      i32.eqz
+      i32.eqz
+    else
+      i32.const 0
+    end
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 148
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $a
+    i32.const 0
+    i32.lt_s
+    i32.eqz
+    i32.eqz
+    if (result i32)
+      i32.const 1
+    else
+      local.get $b
+      i32.const 0
+      i32.gt_s
+      i32.eqz
+      i32.eqz
+    end
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 160
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    i32.const 0
+    i32.eqz
+    i32.eqz
+    i32.eqz
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 172
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $ok
+    return
+    i32.const 0
+    return
+  )
+
+  ;; function test_bitwise
+  (func $test_bitwise (result i32)
+    (local $a i32)
+    (local $b i32)
+    (local $ok i32)
+    i32.const 17
+    local.set $a
+    i32.const 5
+    local.set $b
+    i32.const 0
+    local.set $ok
+    local.get $a
+    local.get $b
+    i32.and
+    i32.const 1
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 184
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $a
+    local.get $b
+    i32.or
+    i32.const 21
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 196
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $a
+    local.get $b
+    i32.xor
+    i32.const 20
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 208
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $b
+    i32.const 2
+    i32.shl
+    i32.const 20
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 220
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $a
+    i32.const 1
+    i32.shr_s
+    i32.const 8
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 232
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    i32.const 0
+    i32.const -1
+    i32.xor
+    i32.const 0
+    i32.const 1
+    i32.sub
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 244
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $ok
+    return
+    i32.const 0
+    return
+  )
+
+  ;; function test_compound
+  (func $test_compound (result i32)
+    (local $c i32)
+    (local $ok i32)
+    i32.const 10
+    local.set $c
+    i32.const 0
+    local.set $ok
+    local.get $c
+    i32.const 5
+    i32.add
+    local.tee $c
+    drop
+    local.get $c
+    i32.const 15
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 256
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $c
+    i32.const 3
+    i32.sub
+    local.tee $c
+    drop
+    local.get $c
+    i32.const 12
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 268
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $c
+    i32.const 2
+    i32.mul
+    local.tee $c
+    drop
+    local.get $c
+    i32.const 24
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 280
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $c
+    i32.const 4
+    i32.div_s
+    local.tee $c
+    drop
+    local.get $c
+    i32.const 6
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 292
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $c
+    i32.const 4
+    i32.rem_s
+    local.tee $c
+    drop
+    local.get $c
+    i32.const 2
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 304
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $c
+    i32.const 3
+    i32.and
+    local.tee $c
+    drop
+    local.get $c
+    i32.const 2
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 316
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $c
+    i32.const 4
+    i32.or
+    local.tee $c
+    drop
+    local.get $c
+    i32.const 6
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 328
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $c
+    i32.const 3
+    i32.xor
+    local.tee $c
+    drop
+    local.get $c
+    i32.const 5
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 340
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $c
+    i32.const 1
+    i32.shl
+    local.tee $c
+    drop
+    local.get $c
+    i32.const 10
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 352
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $c
+    i32.const 1
+    i32.shr_s
+    local.tee $c
+    drop
+    local.get $c
+    i32.const 5
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 364
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $ok
+    return
+    i32.const 0
+    return
+  )
+
+  ;; function test_prepost
+  (func $test_prepost (result i32)
+    (local $d i32)
+    (local $ok i32)
+    i32.const 5
+    local.set $d
+    i32.const 0
+    local.set $ok
+    local.get $d
+    i32.const 1
+    i32.add
+    local.tee $d
+    i32.const 6
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 376
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $d
+    local.get $d
+    i32.const 1
+    i32.add
+    local.set $d
+    i32.const 6
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 392
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $d
+    i32.const 7
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 408
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $d
+    i32.const 1
+    i32.sub
+    local.tee $d
+    i32.const 6
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 428
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $d
+    local.get $d
+    i32.const 1
+    i32.sub
+    local.set $d
+    i32.const 6
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 444
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $d
+    i32.const 5
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 460
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $ok
+    return
+    i32.const 0
+    return
+  )
+
+  ;; function test_ternary
+  (func $test_ternary (result i32)
+    (local $a i32)
+    (local $b i32)
+    (local $ok i32)
+    i32.const 17
+    local.set $a
+    i32.const 5
+    local.set $b
+    i32.const 0
+    local.set $ok
+    local.get $a
+    local.get $b
+    i32.gt_s
+    i32.eqz
+    i32.eqz
+    if (result i32)
+      i32.const 1
+    else
+      i32.const 0
+    end
+    i32.const 1
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 480
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $a
+    local.get $b
+    i32.lt_s
+    i32.eqz
+    i32.eqz
+    if (result i32)
+      i32.const 1
+    else
+      i32.const 0
+    end
+    i32.const 0
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 496
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $ok
+    return
+    i32.const 0
+    return
+  )
+
+  ;; function test_float
+  (func $test_float (result i32)
+    (local $x f64)
+    (local $y f64)
+    (local $ok i32)
+    f64.const 7.5
+    local.set $x
+    f64.const 2.5
+    local.set $y
+    i32.const 0
+    local.set $ok
+    local.get $x
+    local.get $y
+    f64.add
+    f64.const 10
+    f64.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 512
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $x
+    local.get $y
+    f64.sub
+    f64.const 5
+    f64.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 524
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $x
+    local.get $y
+    f64.mul
+    f64.const 18.75
+    f64.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 536
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $x
+    local.get $y
+    f64.div
+    f64.const 3
+    f64.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 548
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+      local.get $ok
+      i32.const 1
+      i32.add
+      local.tee $ok
+      drop
+    end
+    local.get $ok
+    return
+    i32.const 0
+    return
+  )
 
   ;; function main
   (func $main (result i32)
+    (local $total i32)
+    i32.const 0
+    local.set $total
+    local.get $total
+    call $test_arithmetic
+    i32.add
+    local.tee $total
+    drop
+    local.get $total
+    call $test_relational
+    i32.add
+    local.tee $total
+    drop
+    local.get $total
+    call $test_logical
+    i32.add
+    local.tee $total
+    drop
+    local.get $total
+    call $test_bitwise
+    i32.add
+    local.tee $total
+    drop
+    local.get $total
+    call $test_compound
+    i32.add
+    local.tee $total
+    drop
+    local.get $total
+    call $test_prepost
+    i32.add
+    local.tee $total
+    drop
+    local.get $total
+    call $test_ternary
+    i32.add
+    local.tee $total
+    drop
+    local.get $total
+    call $test_float
+    i32.add
+    local.tee $total
+    drop
+    i32.const 560
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
     i32.const 0
     return
     i32.const 0
     return
   )
 
+  (export "test_arithmetic" (func $test_arithmetic))
+  (export "test_relational" (func $test_relational))
+  (export "test_logical" (func $test_logical))
+  (export "test_bitwise" (func $test_bitwise))
+  (export "test_compound" (func $test_compound))
+  (export "test_prepost" (func $test_prepost))
+  (export "test_ternary" (func $test_ternary))
+  (export "test_float" (func $test_float))
   (export "main" (func $main))
+  (export "memory" (memory $mem))
+  (export "__frame_ptr" (global $__frame_ptr))
+  (export "__stack_ptr" (global $__stack_ptr))
 )

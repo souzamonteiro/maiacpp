@@ -53,6 +53,11 @@ static int test_compound() {
     c *= 2;  if (c == 24) { printf("PASS cmul\n"); ++ok; }
     c /= 4;  if (c == 6)  { printf("PASS cdiv\n"); ++ok; }
     c %= 4;  if (c == 2)  { printf("PASS cmod\n"); ++ok; }
+    c &= 3;  if (c == 2)  { printf("PASS cband\n"); ++ok; }
+    c |= 4;  if (c == 6)  { printf("PASS cbor\n"); ++ok; }
+    c ^= 3;  if (c == 5)  { printf("PASS cbxor\n"); ++ok; }
+    c <<= 1; if (c == 10) { printf("PASS cshl\n"); ++ok; }
+    c >>= 1; if (c == 5)  { printf("PASS cshr\n"); ++ok; }
     return ok;
 }
 

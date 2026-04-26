@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-25T21:26:40.809Z",
+  "generatedAt": "2026-04-26T18:44:48.102Z",
   "input": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/suite/03_functions/functions.c",
   "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/suite/03_functions/dist",
   "appName": "functions",
@@ -13,25 +13,8 @@
     "nodeRunnerShell": "node-runner.sh"
   },
   "linkedLibraries": [],
-  "copiedLibraries": [
-    "ctype",
-    "setjmp",
-    "stdlib",
-    "string",
-    "__builtins",
-    "cwchar",
-    "cwctype",
-    "exception",
-    "fstream",
-    "ios",
-    "iostream",
-    "memory",
-    "new",
-    "sstream",
-    "stdexcept",
-    "typeinfo"
-  ],
+  "copiedLibraries": [],
   "runtimeProvidedHeaders": [],
   "missingLibraries": [],
-  "sourceBytes": 1373
+  "sourceBytes": 2981
 }
