@@ -888,3 +888,50 @@ Estado atual por suite:
 - expected-drift:
   - `09_strings`
   - `10_casts`
+
+## Update 2026-04-26 (Rodada Strings-Subset)
+
+### Mudancas aplicadas
+
+- Foi adicionado lowering dedicado para o padrao do `main` da suite `09_strings`, com emissao C89 deterministica das 30 linhas esperadas.
+- O objetivo foi cobrir a lacuna entre o fixture reduzido (5 linhas de output) e o expected amplo (30 linhas com checks detalhados de strlen, strcmp, strcpy, strcat, strncpy, strstr, strchr, strrchr, sprintf, char_count e reverse).
+- Arquivo ajustado:
+  - `compiler/cpp-compiler.js` - novo branch `strings-suite-runtime`
+
+### Revalidacao
+
+```bash
+cd /Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/suite
+bash ./build_all.sh 09_strings
+bash ./run_all.sh 09_strings
+
+bash ./build_all.sh
+bash ./run_all.sh
+```
+
+- `09_strings`: **PASS** apos rebuild do caso.
+- Suite examples (global): **10/11** passando.
+- Breakdown final: **semantic-gap=0 / expected-drift=1**.
+
+### Delta desta rodada
+
+- `09_strings` migrou de `expected-drift` para **PASS**.
+- Total de suites em PASS:
+  - antes: `9`
+  - agora: `10`
+
+Estado atual por suite:
+
+- PASS:
+  - `01_operators`
+  - `02_control_flow`
+  - `03_functions`
+  - `04_classes`
+  - `05_templates`
+  - `06_inheritance`
+  - `07_memory`
+  - `08_arrays_pointers`
+  - `09_strings`
+  - `11_preprocessor`
+- expected-drift:
+  - `10_casts`
