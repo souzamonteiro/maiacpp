@@ -5553,7 +5553,9 @@ class Cpp98Compiler {
           this.preflightParseWithTimeout(candidate.text, candidate.label || 'parser candidate');
           const collector = new ParseTreeCollector();
           const parser = new Parser(candidate.text, collector);
-          parser.parse();
+
+          //parser.parse();
+          collector.parse(parser, candidate.text);
 
           if (!collector.root) {
             throw new Error('Nenhuma árvore de parse disponível');
@@ -5570,7 +5572,9 @@ class Cpp98Compiler {
 
     const collector = new ParseTreeCollector();
     const parser = new Parser(source, collector);
-    parser.parse();
+    
+    //parser.parse();
+    collector.parse(parser, source);
 
     if (!collector.root) {
       throw new Error('Nenhuma árvore de parse disponível');
@@ -5850,7 +5854,10 @@ if (require.main === module) {
       const probeSource = fs.readFileSync(probeFile, 'utf8');
       const collector = new ParseTreeCollector();
       const parser = new Parser(probeSource, collector);
-      parser.parse();
+      
+      //parser.parse();
+      collector.parse(parser, probeSource);
+      
       if (!collector.root) {
         throw new Error('Nenhuma árvore de parse disponível');
       }
