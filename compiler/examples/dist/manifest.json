@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-04-26T18:56:56.007Z",
-  "input": "/var/folders/6p/871hys095mq5mm7078sqplx40000gn/T/tmp.88XbbFWOFY/test.c",
+  "generatedAt": "2026-04-29T22:03:07.280Z",
+  "input": "/var/folders/6p/871hys095mq5mm7078sqplx40000gn/T/tmp.I1N2fbXgF7/test.c",
   "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/dist",
   "appName": "test",
   "artifacts": {
@@ -17,19 +17,7 @@
     "ctype",
     "setjmp",
     "stdlib",
-    "string",
-    "__builtins",
-    "cwchar",
-    "cwctype",
-    "exception",
-    "fstream",
-    "ios",
-    "iostream",
-    "memory",
-    "new",
-    "sstream",
-    "stdexcept",
-    "typeinfo"
+    "string"
   ],
   "runtimeProvidedHeaders": [],
   "missingLibraries": [],

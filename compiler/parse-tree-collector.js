@@ -31,15 +31,34 @@ class ParseTreeCollector {
 
   checkpoint() {
     return {
-      stack: structuredClone(this.stack),
-      root: structuredClone(this.root)
+      stackLen: this.stack.length,
+      stackChildLens: this.stack.map((node) => (Array.isArray(node.children) ? node.children.length : 0)),
+      root: this.root
     };
   }
 
   restore(mark) {
     if (!mark) return;
-    this.stack = mark.stack;
-    this.root = mark.root;
+
+    const targetLen = Number.isFinite(mark.stackLen) ? mark.stackLen : 0;
+    const childLens = Array.isArray(mark.stackChildLens) ? mark.stackChildLens : [];
+
+    // Remove speculative nodes created after checkpoint.
+    if (this.stack.length > targetLen) {
+      this.stack.length = targetLen;
+    }
+
+    // Truncate children appended during speculative parses.
+    for (let i = 0; i < this.stack.length; i += 1) {
+      const node = this.stack[i];
+      if (!node || !Array.isArray(node.children)) continue;
+      const keep = Number.isFinite(childLens[i]) ? childLens[i] : node.children.length;
+      if (node.children.length > keep) {
+        node.children.length = keep;
+      }
+    }
+
+    this.root = mark.root || null;
   }
 
   startNonterminal(name) {
