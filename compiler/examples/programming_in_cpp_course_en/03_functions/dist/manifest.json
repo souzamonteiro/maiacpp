@@ -1,0 +1,20 @@
+{
+  "generatedAt": "2026-05-02T16:44:00.316Z",
+  "input": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/programming_in_cpp_course_en/03_functions/whr.c",
+  "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/programming_in_cpp_course_en/03_functions/dist",
+  "appName": "whr",
+  "artifacts": {
+    "wasm": "whr.wasm",
+    "wrapper": "whr.js",
+    "wat": "whr.wat",
+    "browserRunner": "browser-runner.html",
+    "browserMemoryFileStore": "browser-memory-file-store.js",
+    "nodeRunner": "node-runner.js",
+    "nodeRunnerShell": "node-runner.sh"
+  },
+  "linkedLibraries": [],
+  "copiedLibraries": [],
+  "runtimeProvidedHeaders": [],
+  "missingLibraries": [],
+  "sourceBytes": 960
+}

@@ -22,21 +22,23 @@ typedef struct Vec2 {
 } Vec2;
 
 void Vec2_init__dd(Vec2* self, double x_, double y_);
-void Vec2_init__N9constVec2(Vec2* self, int o);
+void Vec2_init__pv(Vec2* self, Vec2* o);
 void Vec2_destroy(Vec2* self);
-void* Vec2_operator_assign__N9constVec2(Vec2* self, int o);
-void* Vec2_operator_add__N9constVec2(Vec2* self, int o);
-void* Vec2_operator_eq__N9constVec2(Vec2* self, int o);
-void* Vec2_dot__N9constVec2(Vec2* self, int o);
-int Vec2_lengthSq(Vec2* self);
+void* Vec2_operator_assign__N9constVec2(Vec2* self, void* o);
+void* Vec2_operator_add__N9constVec2(Vec2* self, void* o);
+void* Vec2_operator_eq__N9constVec2(Vec2* self, void* o);
+double Vec2_dot__pv(Vec2* self, Vec2* o);
+double Vec2_lengthSq(Vec2* self);
 
 void Vec2_init__dd(Vec2* self, double x_, double y_) {
   (void)self;
+  self->x = x_;
+  self->y = y_;
   (void)x_;
   (void)y_;
 }
 
-void Vec2_init__N9constVec2(Vec2* self, int o) {
+void Vec2_init__pv(Vec2* self, Vec2* o) {
   (void)self;
   (void)o;
 }
@@ -45,60 +47,73 @@ void Vec2_destroy(Vec2* self) {
   (void)self;
 }
 
-void* Vec2_operator_assign__N9constVec2(Vec2* self, int o) {
+void* Vec2_operator_assign__N9constVec2(Vec2* self, void* o) {
   (void)self;
   (void)o;
   return (void*)0;
 }
 
-void* Vec2_operator_add__N9constVec2(Vec2* self, int o) {
+void* Vec2_operator_add__N9constVec2(Vec2* self, void* o) {
   (void)self;
   (void)o;
   return (void*)0;
 }
 
-void* Vec2_operator_eq__N9constVec2(Vec2* self, int o) {
+void* Vec2_operator_eq__N9constVec2(Vec2* self, void* o) {
   (void)self;
   (void)o;
   return (void*)0;
 }
 
-void* Vec2_dot__N9constVec2(Vec2* self, int o) {
+double Vec2_dot__pv(Vec2* self, Vec2* o) {
   (void)self;
   (void)o;
-  return (void*)0;
+  return (double)0;
 }
 
-int Vec2_lengthSq(Vec2* self) {
+double Vec2_lengthSq(Vec2* self) {
   (void)self;
-  return (int)0;
+  return (double)0;
 }
 
 /* Global functions */
 int main(void);
 
 int main(void) {
-  printf("PASS ctor_x\n");
-  printf("PASS ctor_y\n");
-  printf("PASS instances_1\n");
-  printf("PASS copy_ctor\n");
-  printf("PASS instances_2\n");
-  printf("PASS assign_op\n");
-  printf("PASS op_add\n");
-  printf("PASS op_eq_true\n");
-  printf("PASS op_eq_false\n");
-  printf("PASS dot_x_axis\n");
-  printf("PASS dot_y_axis\n");
-  printf("PASS length_sq\n");
-  printf("PASS self_assign\n");
-  printf("PASS instances_0_after_dtor\n");
-  printf("PASS dtor_called\n");
-  printf("PASS ctor_ge_dtor\n");
-  printf("PASS counter_10\n");
-  printf("PASS static_make\n");
+  Vec2 a;
+  Vec2_init__dd(&a, 3.0, 4.0);
+  Vec2 b;
+  Vec2_init__N6object(&b, a);
+  Vec2 c;
+  Vec2_init__dd(&c, 0.0, 0.0);
+  Vec2 d;
+  Vec2_init__dd(&d, 3.0, 4.0);
+
+  if (a.x == 3.0) {
+    printf("PASS ctor_x\n");
+  }
+  if (a.y == 4.0) {
+    printf("PASS ctor_y\n");
+  }
+  if (b.x == 3.0 && b.y == 4.0) {
+    printf("PASS copy_ctor\n");
+  }
+  c = a;
+  if (c.x == 3.0 && c.y == 4.0) {
+    printf("PASS assign_op\n");
+  }
+  if (sum.x == 4.0 && sum.y == 6.0) {
+    printf("PASS op_add\n");
+  }
+  if (a == d) {
+    printf("PASS op_eq_true\n");
+  }
+  if (a.dot(Vec2(1.0, 0.0)) == 3.0) {
+    printf("PASS dot_x_axis\n");
+  }
+  if (a.lengthSq() == 25.0) {
+    printf("PASS length_sq\n");
+  }
   printf("ALL PASS\n");
   return 0;
 }
-
-/* Lowering diagnostics: 1 event(s) (structured-cstyle-body=1) */
-/* - main: structured-cstyle-body (classes-suite-runtime) */

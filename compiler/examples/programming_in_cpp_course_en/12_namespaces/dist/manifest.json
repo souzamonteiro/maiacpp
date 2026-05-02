@@ -1,0 +1,20 @@
+{
+  "generatedAt": "2026-05-02T16:44:29.077Z",
+  "input": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/programming_in_cpp_course_en/12_namespaces/namespaces.c",
+  "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/programming_in_cpp_course_en/12_namespaces/dist",
+  "appName": "namespaces",
+  "artifacts": {
+    "wasm": "namespaces.wasm",
+    "wrapper": "namespaces.js",
+    "wat": "namespaces.wat",
+    "browserRunner": "browser-runner.html",
+    "browserMemoryFileStore": "browser-memory-file-store.js",
+    "nodeRunner": "node-runner.js",
+    "nodeRunnerShell": "node-runner.sh"
+  },
+  "linkedLibraries": [],
+  "copiedLibraries": [],
+  "runtimeProvidedHeaders": [],
+  "missingLibraries": [],
+  "sourceBytes": 688
+}

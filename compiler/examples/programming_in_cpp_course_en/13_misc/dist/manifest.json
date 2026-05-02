@@ -1,0 +1,20 @@
+{
+  "generatedAt": "2026-05-02T15:59:39.990Z",
+  "input": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/programming_in_cpp_course_en/13_misc/command_line_args.c",
+  "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/programming_in_cpp_course_en/13_misc/dist",
+  "appName": "command_line_args",
+  "artifacts": {
+    "wasm": "command_line_args.wasm",
+    "wrapper": "command_line_args.js",
+    "wat": "command_line_args.wat",
+    "browserRunner": "browser-runner.html",
+    "browserMemoryFileStore": "browser-memory-file-store.js",
+    "nodeRunner": "node-runner.js",
+    "nodeRunnerShell": "node-runner.sh"
+  },
+  "linkedLibraries": [],
+  "copiedLibraries": [],
+  "runtimeProvidedHeaders": [],
+  "missingLibraries": [],
+  "sourceBytes": 636
+}

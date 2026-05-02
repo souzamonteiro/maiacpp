@@ -1,0 +1,20 @@
+{
+  "generatedAt": "2026-05-02T16:44:11.282Z",
+  "input": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/programming_in_cpp_course_en/06_polymorphism/polymorphism.c",
+  "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/programming_in_cpp_course_en/06_polymorphism/dist",
+  "appName": "polymorphism",
+  "artifacts": {
+    "wasm": "polymorphism.wasm",
+    "wrapper": "polymorphism.js",
+    "wat": "polymorphism.wat",
+    "browserRunner": "browser-runner.html",
+    "browserMemoryFileStore": "browser-memory-file-store.js",
+    "nodeRunner": "node-runner.js",
+    "nodeRunnerShell": "node-runner.sh"
+  },
+  "linkedLibraries": [],
+  "copiedLibraries": [],
+  "runtimeProvidedHeaders": [],
+  "missingLibraries": [],
+  "sourceBytes": 2090
+}

@@ -1,0 +1,20 @@
+{
+  "generatedAt": "2026-05-02T16:44:02.749Z",
+  "input": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/programming_in_cpp_course_en/04_classes/multiplication_table.c",
+  "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/programming_in_cpp_course_en/04_classes/dist",
+  "appName": "multiplication_table",
+  "artifacts": {
+    "wasm": "multiplication_table.wasm",
+    "wrapper": "multiplication_table.js",
+    "wat": "multiplication_table.wat",
+    "browserRunner": "browser-runner.html",
+    "browserMemoryFileStore": "browser-memory-file-store.js",
+    "nodeRunner": "node-runner.js",
+    "nodeRunnerShell": "node-runner.sh"
+  },
+  "linkedLibraries": [],
+  "copiedLibraries": [],
+  "runtimeProvidedHeaders": [],
+  "missingLibraries": [],
+  "sourceBytes": 1440
+}

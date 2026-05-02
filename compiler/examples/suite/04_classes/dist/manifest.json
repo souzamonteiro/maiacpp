@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-26T18:44:48.874Z",
+  "generatedAt": "2026-05-02T17:00:15.984Z",
   "input": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/suite/04_classes/classes.c",
   "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/suite/04_classes/dist",
   "appName": "classes",
@@ -16,5 +16,5 @@
   "copiedLibraries": [],
   "runtimeProvidedHeaders": [],
   "missingLibraries": [],
-  "sourceBytes": 2447
+  "sourceBytes": 1957
 }

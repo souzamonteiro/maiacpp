@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-26T18:44:52.234Z",
+  "generatedAt": "2026-05-02T21:23:49.431Z",
   "input": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/suite/09_strings/strings.c",
   "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/suite/09_strings/dist",
   "appName": "strings",
@@ -16,5 +16,5 @@
   "copiedLibraries": [],
   "runtimeProvidedHeaders": [],
   "missingLibraries": [],
-  "sourceBytes": 1885
+  "sourceBytes": 1334
 }

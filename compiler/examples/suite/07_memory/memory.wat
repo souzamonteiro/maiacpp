@@ -17,7 +17,7 @@
 
   (memory $mem 1)
 
-  (table $fn_table 7 funcref)
+  (table $fn_table 1 funcref)
 
   ;; global __frame_ptr
   (global $__frame_ptr (mut i32) (i32.const 0))
@@ -27,67 +27,24 @@
 
   (data (i32.const 16) "PASS new_not_null\0a\00")
   (data (i32.const 36) "PASS new_id\0a\00")
-  (data (i32.const 52) "PASS alive_1\0a\00")
-  (data (i32.const 68) "PASS alive_0\0a\00")
-  (data (i32.const 84) "PASS int_arr_0\0a\00")
-  (data (i32.const 100) "PASS int_arr_2\0a\00")
-  (data (i32.const 116) "PASS int_arr_5\0a\00")
-  (data (i32.const 132) "PASS obj_arr_0\0a\00")
-  (data (i32.const 148) "PASS obj_arr_2\0a\00")
-  (data (i32.const 164) "PASS alive_3\0a\00")
-  (data (i32.const 180) "PASS alive_0_after_arr\0a\00")
-  (data (i32.const 204) "PASS placement_not_null\0a\00")
-  (data (i32.const 232) "PASS placement_id\0a\00")
-  (data (i32.const 252) "PASS placement_alive\0a\00")
-  (data (i32.const 276) "PASS placement_dtor\0a\00")
-  (data (i32.const 300) "PASS raii_0\0a\00")
-  (data (i32.const 316) "PASS raii_1\0a\00")
-  (data (i32.const 332) "PASS raii_4\0a\00")
-  (data (i32.const 348) "PASS raii_9\0a\00")
-  (data (i32.const 364) "PASS raii_16\0a\00")
-  (data (i32.const 380) "PASS raii_25\0a\00")
-  (data (i32.const 396) "PASS batch_alive_5\0a\00")
-  (data (i32.const 416) "PASS batch_alive_0\0a\00")
-  (data (i32.const 436) "ALL PASS\0a\00")
+  (data (i32.const 52) "PASS arr_not_null\0a\00")
+  (data (i32.const 72) "PASS int_arr\0a\00")
+  (data (i32.const 88) "PASS double_not_null\0a\00")
+  (data (i32.const 112) "PASS double_val\0a\00")
+  (data (i32.const 132) "ALL PASS\0a\00")
 
-  (elem (table $fn_table) (i32.const 0) func $Widget_init $Widget_init__i $Widget_destroy $IntBuf_init__i $IntBuf_destroy $IntBuf_operator_subscript__i $main)
+  (elem (table $fn_table) (i32.const 0) func $main)
 
-  ;; function Widget_init
-  (func $Widget_init (param $self i32) (result i32)
+  ;; function main
+  (func $main (result i32)
     (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 8
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Widget_init__i
-  (func $Widget_init__i (param $self i32) (param $n i32) (result i32)
-    (local $__frame i32)
+    (local $p i32)
+    (local $arr i32)
+    (local $d i32)
     (local $__tmp_i32 i32)
+    (local $i i32)
+    (local $__tmp_addr i32)
+    (local $__tmp_f64 f64)
     (local $__parent_frame i32)
     global.get $__frame_ptr
     local.set $__parent_frame
@@ -96,297 +53,295 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 8
+    i32.const 16
     i32.add
     global.set $__stack_ptr
     local.get $__frame
     i32.const 0
     i32.add
-    local.get $self
+    i32.const 4
+    call $imp___malloc
     i32.store
     local.get $__frame
     i32.const 4
     i32.add
-    local.get $n
+    i32.const 6
+    i32.const 4
+    i32.mul
+    call $imp___malloc
+    i32.store
+    local.get $__frame
+    i32.const 8
+    i32.add
+    i32.const 8
+    call $imp___malloc
     i32.store
     local.get $__frame
     i32.const 0
     i32.add
     i32.load
-    drop
+    i32.const 0
+    i32.ne
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 16
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
     local.get $__frame
     i32.const 0
     i32.add
     i32.load
-    i32.const 0
-    i32.add
-    local.get $__frame
-    i32.const 4
-    i32.add
-    i32.load
+    i32.const 42
     local.set $__tmp_i32
     local.get $__tmp_i32
     i32.store
     local.get $__tmp_i32
     drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Widget_destroy
-  (func $Widget_destroy (param $self i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 8
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
     local.get $__frame
     i32.const 0
     i32.add
     i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function IntBuf_init__i
-  (func $IntBuf_init__i (param $self i32) (param $n i32) (result i32)
-    (local $__frame i32)
-    (local $__tmp_i32 i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 8
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 4
-    i32.add
-    local.get $n
-    i32.store
+    i32.load
+    i32.const 42
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 36
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
     local.get $__frame
     i32.const 0
     i32.add
     i32.load
-    drop
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    i32.const 4
-    i32.add
+    call $imp___free
     local.get $__frame
     i32.const 4
     i32.add
     i32.load
-    local.set $__tmp_i32
-    local.get $__tmp_i32
+    i32.const 0
+    i32.ne
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 52
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
+    local.get $__frame
+    i32.const 12
+    i32.add
+    i32.const 0
     i32.store
-    local.get $__tmp_i32
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function IntBuf_destroy
-  (func $IntBuf_destroy (param $self i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 8
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function IntBuf_operator_subscript__i
-  (func $IntBuf_operator_subscript__i (param $self i32) (param $i i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 8
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
+    block $main_for_exit_0
+      loop $main_for_loop_2
+        local.get $__frame
+        i32.const 12
+        i32.add
+        i32.load
+        i32.const 6
+        i32.lt_s
+        i32.eqz
+        i32.eqz
+        i32.eqz
+        br_if $main_for_exit_0
+        block $main_for_continue_1
+          local.get $__frame
+          i32.const 4
+          i32.add
+          i32.load
+          local.get $__frame
+          i32.const 12
+          i32.add
+          i32.load
+          i32.const 4
+          i32.mul
+          i32.add
+          local.get $__frame
+          i32.const 12
+          i32.add
+          i32.load
+          i32.const 1
+          i32.add
+          local.get $__frame
+          i32.const 12
+          i32.add
+          i32.load
+          i32.const 1
+          i32.add
+          i32.mul
+          local.set $__tmp_i32
+          local.get $__tmp_i32
+          i32.store
+          local.get $__tmp_i32
+          drop
+        end
+        local.get $__frame
+        i32.const 12
+        i32.add
+        local.tee $__tmp_addr
+        i32.load
+        i32.const 1
+        i32.add
+        local.set $__tmp_i32
+        local.get $__tmp_addr
+        local.get $__tmp_i32
+        i32.store
+        local.get $__tmp_i32
+        drop
+        br $main_for_loop_2
+      end
+    end
     local.get $__frame
     i32.const 4
     i32.add
-    local.get $i
-    i32.store
-    local.get $__frame
+    i32.load
     i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    local.get $__frame
-    i32.const 4
-    i32.add
-    i32.load
     i32.const 4
     i32.mul
     i32.add
     i32.load
-    local.get $__parent_frame
-    global.set $__frame_ptr
+    i32.const 1
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if (result i32)
+      local.get $__frame
+      i32.const 4
+      i32.add
+      i32.load
+      i32.const 5
+      i32.const 4
+      i32.mul
+      i32.add
+      i32.load
+      i32.const 36
+      i32.eq
+      i32.eqz
+      i32.eqz
+    else
+      i32.const 0
+    end
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 72
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
     local.get $__frame
-    global.set $__stack_ptr
-    return
+    i32.const 4
+    i32.add
+    i32.load
+    call $imp___free
+    local.get $__frame
+    i32.const 8
+    i32.add
+    i32.load
     i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
+    i32.ne
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 88
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
     local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function main
-  (func $main (result i32)
-    i32.const 16
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
+    i32.const 8
+    i32.add
+    i32.load
+    f64.const 3.14
+    local.set $__tmp_f64
+    local.get $__tmp_f64
+    f64.store
+    local.get $__tmp_f64
     drop
-    i32.const 36
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 52
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 68
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 84
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 100
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 116
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
+    local.get $__frame
+    i32.const 8
+    i32.add
+    i32.load
+    f64.load
+    f64.const 3
+    f64.gt
+    i32.eqz
+    i32.eqz
+    if (result i32)
+      local.get $__frame
+      i32.const 8
+      i32.add
+      i32.load
+      f64.load
+      f64.const 4
+      f64.lt
+      i32.eqz
+      i32.eqz
+    else
+      i32.const 0
+    end
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 112
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
+    local.get $__frame
+    i32.const 8
+    i32.add
+    i32.load
+    call $imp___free
     i32.const 132
     f64.convert_i32_s
     f64.const 0
@@ -398,194 +353,20 @@
     f64.const 0
     call $imp_printf
     drop
-    i32.const 148
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 164
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 180
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 204
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 232
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 252
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 276
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 300
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 316
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 332
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 348
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 364
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 380
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 396
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 416
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 436
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
     i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
     return
     i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
     return
   )
 
-  (export "Widget_init" (func $Widget_init))
-  (export "Widget_init__i" (func $Widget_init__i))
-  (export "Widget_destroy" (func $Widget_destroy))
-  (export "IntBuf_init__i" (func $IntBuf_init__i))
-  (export "IntBuf_destroy" (func $IntBuf_destroy))
-  (export "IntBuf_operator_subscript__i" (func $IntBuf_operator_subscript__i))
   (export "main" (func $main))
   (export "memory" (memory $mem))
   (export "__frame_ptr" (global $__frame_ptr))

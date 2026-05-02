@@ -1,0 +1,8 @@
+Enter your name: Hello Alice!
+>>Alice<<
+>>Alice<<
+>>Alice<<
+Your name has 5 characters.
+Your name has 5 characters.
+>>Alice<<
+Your name in uppercase is ALICE.

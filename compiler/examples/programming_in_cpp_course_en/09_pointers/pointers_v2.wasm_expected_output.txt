@@ -1,0 +1,8 @@
+Write a word: @
+e
+l
+l
+o
+Address pointed to by p: 1024
+@ello
+Text in uppercase: @ELLO

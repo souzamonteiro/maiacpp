@@ -677,22 +677,23 @@ EscapeSequence ::= SimpleEscapeSequence
                  | HexadecimalEscapeSequence
                  | UniversalCharacterName
 
-SimpleEscapeSequence ::= '\\' ['"\?\\abfnrtv]
+SimpleEscapeSequence ::= #x5C ['"\?\\abfnrtv]
 
-OctalEscapeSequence ::= '\\' [0-7] [0-7]? [0-7]?
+OctalEscapeSequence ::= #x5C [0-7] [0-7]? [0-7]?
 
-HexadecimalEscapeSequence ::= '\\' [xX] [0-9a-fA-F]+
+HexadecimalEscapeSequence ::= #x5C 'x' [0-9a-fA-F]+
 
-UniversalCharacterName ::= '\\' 'u' [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F]
-                         | '\\' 'U' [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F]
+UniversalCharacterName ::= #x5C 'u' [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F]
+                         | #x5C 'U' [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F]
                                    [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F]
 
 StringLiteral ::= '"' SChar* '"'
 
-SChar ::= [!#-~]
+SChar ::= EscapeSequence
+        | [#x21-#x5B]
+        | [#x5D-#x7E]
         | #x20
         | #x9
-        | EscapeSequence
 
 WhiteSpace ::= ( Space | NewLine )+
 

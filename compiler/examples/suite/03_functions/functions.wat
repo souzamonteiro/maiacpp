@@ -19,7 +19,7 @@
 
   (memory $mem 1)
 
-  (table $fn_table 7 funcref)
+  (table $fn_table 11 funcref)
 
   ;; global __frame_ptr
   (global $__frame_ptr (mut i32) (i32.const 0))
@@ -51,7 +51,7 @@
   (data (i32.const 368) "PASS fptr_arr_2\0a\00")
   (data (i32.const 388) "ALL PASS\0a\00")
 
-  (elem (table $fn_table) (i32.const 0) func $factorial__i $fib__i $square__i $swap_ref__pvpv $double_val__i $apply__N5IntOpi $main)
+  (elem (table $fn_table) (i32.const 0) func $factorial__i $fib__i $square__i $square__d $swap_ref__pvpv $sum_cref__ii $clamp__iii $double_val__i $negate__i $apply__N5IntOpi $main)
 
   ;; function factorial__i
   (func $factorial__i (param $n i32) (result i32)
@@ -105,6 +105,17 @@
     local.get $x
     local.get $x
     i32.mul
+    return
+    i32.const 0
+    return
+  )
+
+  ;; function square__d
+  (func $square__d (param $x f64) (result i32)
+    local.get $x
+    local.get $x
+    f64.mul
+    i32.trunc_f64_s
     return
     i32.const 0
     return
@@ -186,11 +197,57 @@
     return
   )
 
+  ;; function sum_cref__ii
+  (func $sum_cref__ii (param $x i32) (param $y i32) (result i32)
+    local.get $x
+    local.get $y
+    i32.add
+    return
+    i32.const 0
+    return
+  )
+
+  ;; function clamp__iii
+  (func $clamp__iii (param $x i32) (param $lo i32) (param $hi i32) (result i32)
+    local.get $x
+    local.get $lo
+    i32.lt_s
+    i32.eqz
+    i32.eqz
+    if
+      local.get $lo
+      return
+    end
+    local.get $x
+    local.get $hi
+    i32.gt_s
+    i32.eqz
+    i32.eqz
+    if
+      local.get $hi
+      return
+    end
+    local.get $x
+    return
+    i32.const 0
+    return
+  )
+
   ;; function double_val__i
   (func $double_val__i (param $x i32) (result i32)
     local.get $x
     i32.const 2
     i32.mul
+    return
+    i32.const 0
+    return
+  )
+
+  ;; function negate__i
+  (func $negate__i (param $x i32) (result i32)
+    i32.const 0
+    local.get $x
+    i32.sub
     return
     i32.const 0
     return
@@ -247,8 +304,7 @@
     (local $__frame i32)
     (local $p i32)
     (local $q i32)
-    (local $ops i32)
-    (local $__tmp_i32 i32)
+    (local $arr i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
     local.set $__parent_frame
@@ -260,6 +316,35 @@
     i32.const 24
     i32.add
     global.set $__stack_ptr
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.const 3
+    i32.store
+    local.get $__frame
+    i32.const 4
+    i32.add
+    i32.const 8
+    i32.store
+    local.get $__frame
+    i32.const 8
+    i32.add
+    i32.const 7
+    i32.store
+    local.get $__frame
+    i32.const 8
+    i32.add
+    i32.const 4
+    i32.add
+    i32.const 8
+    i32.store
+    local.get $__frame
+    i32.const 8
+    i32.add
+    i32.const 8
+    i32.add
+    i32.const 2
+    i32.store
     i32.const 0
     call $factorial__i
     i32.const 1
@@ -431,24 +516,11 @@
       call $imp_printf
       drop
     end
-    f64.const 2.5
-    f64.const 2.5
-    f64.mul
-    f64.const 6.24
-    f64.gt
-    i32.eqz
-    i32.eqz
-    if (result i32)
-      f64.const 2.5
-      f64.const 2.5
-      f64.mul
-      f64.const 6.26
-      f64.lt
-      i32.eqz
-      i32.eqz
-    else
-      i32.const 0
-    end
+    f64.const 5
+    call $square__d
+    f64.convert_i32_s
+    f64.const 25
+    f64.eq
     i32.eqz
     i32.eqz
     if
@@ -464,16 +536,6 @@
       call $imp_printf
       drop
     end
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.const 3
-    i32.store
-    local.get $__frame
-    i32.const 4
-    i32.add
-    i32.const 8
-    i32.store
     local.get $__frame
     i32.const 0
     i32.add
@@ -517,10 +579,10 @@
       call $imp_printf
       drop
     end
-    i32.const 4
-    i32.const 6
-    i32.add
     i32.const 10
+    i32.const 10
+    call $sum_cref__ii
+    i32.const 20
     i32.eq
     i32.eqz
     i32.eqz
@@ -537,9 +599,9 @@
       call $imp_printf
       drop
     end
-    i32.const 40
-    i32.const 60
-    i32.add
+    i32.const 50
+    i32.const 50
+    call $sum_cref__ii
     i32.const 100
     i32.eq
     i32.eqz
@@ -557,26 +619,11 @@
       call $imp_printf
       drop
     end
-    i32.const 5
+    i32.const 50
     i32.const 0
-    i32.lt_s
-    i32.eqz
-    i32.eqz
-    if (result i32)
-      i32.const 0
-    else
-      i32.const 5
-      i32.const 10
-      i32.gt_s
-      i32.eqz
-      i32.eqz
-      if (result i32)
-        i32.const 10
-      else
-        i32.const 5
-      end
-    end
-    i32.const 5
+    i32.const 100
+    call $clamp__iii
+    i32.const 50
     i32.eq
     i32.eqz
     i32.eqz
@@ -594,30 +641,11 @@
       drop
     end
     i32.const 0
-    i32.const 7
+    i32.const 5
     i32.sub
     i32.const 0
-    i32.lt_s
-    i32.eqz
-    i32.eqz
-    if (result i32)
-      i32.const 0
-    else
-      i32.const 0
-      i32.const 7
-      i32.sub
-      i32.const 10
-      i32.gt_s
-      i32.eqz
-      i32.eqz
-      if (result i32)
-        i32.const 10
-      else
-        i32.const 0
-        i32.const 7
-        i32.sub
-      end
-    end
+    i32.const 100
+    call $clamp__iii
     i32.const 0
     i32.eq
     i32.eqz
@@ -635,26 +663,11 @@
       call $imp_printf
       drop
     end
-    i32.const 17
+    i32.const 150
     i32.const 0
-    i32.lt_s
-    i32.eqz
-    i32.eqz
-    if (result i32)
-      i32.const 0
-    else
-      i32.const 17
-      i32.const 10
-      i32.gt_s
-      i32.eqz
-      i32.eqz
-      if (result i32)
-        i32.const 10
-      else
-        i32.const 17
-      end
-    end
-    i32.const 10
+    i32.const 100
+    call $clamp__iii
+    i32.const 100
     i32.eq
     i32.eqz
     i32.eqz
@@ -671,7 +684,7 @@
       call $imp_printf
       drop
     end
-    i32.const 4
+    i32.const 7
     i32.const 7
     call $apply__N5IntOpi
     i32.const 14
@@ -691,11 +704,11 @@
       call $imp_printf
       drop
     end
+    i32.const 8
+    i32.const 5
+    call $apply__N5IntOpi
     i32.const 0
-    i32.const 7
-    i32.sub
-    i32.const 0
-    i32.const 7
+    i32.const 5
     i32.sub
     i32.eq
     i32.eqz
@@ -714,9 +727,9 @@
       drop
     end
     i32.const 2
-    i32.const 7
+    i32.const 8
     call $apply__N5IntOpi
-    i32.const 49
+    i32.const 64
     i32.eq
     i32.eqz
     i32.eqz
@@ -733,45 +746,7 @@
       call $imp_printf
       drop
     end
-    local.get $__frame
-    i32.const 8
-    i32.add
-    i32.const 0
-    i32.const 4
-    i32.mul
-    i32.add
-    i32.const 4
-    local.set $__tmp_i32
-    local.get $__tmp_i32
-    i32.store
-    local.get $__tmp_i32
-    drop
-    local.get $__frame
-    i32.const 8
-    i32.add
-    i32.const 1
-    i32.const 4
-    i32.mul
-    i32.add
-    i32.const 2
-    local.set $__tmp_i32
-    local.get $__tmp_i32
-    i32.store
-    local.get $__tmp_i32
-    drop
-    local.get $__frame
-    i32.const 8
-    i32.add
-    i32.const 2
-    i32.const 4
-    i32.mul
-    i32.add
-    i32.const 4
-    local.set $__tmp_i32
-    local.get $__tmp_i32
-    i32.store
-    local.get $__tmp_i32
-    drop
+    i32.const 3
     local.get $__frame
     i32.const 8
     i32.add
@@ -780,9 +755,8 @@
     i32.mul
     i32.add
     i32.load
-    i32.const 7
-    call $apply__N5IntOpi
-    i32.const 14
+    call_indirect (type 0)
+    i32.const 6
     i32.eq
     i32.eqz
     i32.eqz
@@ -799,6 +773,7 @@
       call $imp_printf
       drop
     end
+    i32.const 7
     local.get $__frame
     i32.const 8
     i32.add
@@ -807,9 +782,10 @@
     i32.mul
     i32.add
     i32.load
-    i32.const 5
-    call $apply__N5IntOpi
-    i32.const 25
+    call_indirect (type 0)
+    i32.const 0
+    i32.const 7
+    i32.sub
     i32.eq
     i32.eqz
     i32.eqz
@@ -826,6 +802,7 @@
       call $imp_printf
       drop
     end
+    i32.const 9
     local.get $__frame
     i32.const 8
     i32.add
@@ -834,9 +811,8 @@
     i32.mul
     i32.add
     i32.load
-    i32.const 9
-    call $apply__N5IntOpi
-    i32.const 18
+    call_indirect (type 0)
+    i32.const 81
     i32.eq
     i32.eqz
     i32.eqz
@@ -881,8 +857,12 @@
   (export "factorial__i" (func $factorial__i))
   (export "fib__i" (func $fib__i))
   (export "square__i" (func $square__i))
+  (export "square__d" (func $square__d))
   (export "swap_ref__pvpv" (func $swap_ref__pvpv))
+  (export "sum_cref__ii" (func $sum_cref__ii))
+  (export "clamp__iii" (func $clamp__iii))
   (export "double_val__i" (func $double_val__i))
+  (export "negate__i" (func $negate__i))
   (export "apply__N5IntOpi" (func $apply__N5IntOpi))
   (export "main" (func $main))
   (export "memory" (memory $mem))

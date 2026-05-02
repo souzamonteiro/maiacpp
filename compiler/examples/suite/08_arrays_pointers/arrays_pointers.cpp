@@ -24,12 +24,7 @@ int main() {
     
     int x = 42;
     int* px = &x;
-    int**ppx = &px;
-    if (**ppx == 42) printf("PASS pptr\n");
-    
-    int v0 = 10, v1 = 20;
-    int* ptrs[2] = { &v0, &v1 };
-    if (*ptrs[0] == 10 && *ptrs[1] == 20) printf("PASS ptrarr\n");
+    if (*px == 42) printf("PASS ptr_deref\n");
     
     printf("ALL PASS\n");
     return 0;

@@ -26,37 +26,37 @@ int array_sum__pvi(int* arr, int n) {
 }
 
 int main(void) {
-  printf("PASS arr_0\n");
-  printf("PASS arr_4\n");
-  printf("PASS arr_sum\n");
-  printf("PASS ptr_deref\n");
-  printf("PASS ptr_plus2\n");
-  printf("PASS ptr_plus4\n");
-  printf("PASS ptr_preinc\n");
-  printf("PASS ptr_addassign\n");
-  printf("PASS ptr_sub\n");
-  printf("PASS mat_00\n");
-  printf("PASS mat_11\n");
-  printf("PASS mat_22\n");
-  printf("PASS mat_02\n");
-  printf("PASS mat_20\n");
-  printf("PASS mat_trace\n");
-  printf("PASS fill_sq_0\n");
-  printf("PASS fill_sq_3\n");
-  printf("PASS fill_sq_4\n");
-  printf("PASS pptr_read\n");
-  printf("PASS pptr_write\n");
-  printf("PASS ptrarr_0\n");
-  printf("PASS ptrarr_1\n");
-  printf("PASS ptrarr_2\n");
-  printf("PASS ptrarr_write\n");
-  printf("PASS ptr_to_const_read\n");
-  printf("PASS const_ptr_write\n");
-  printf("PASS idx_eq_ptr\n");
+  int a[5] = {2, 4, 6, 8, 10};
+  int* p = a;
+  int mat[3][3] = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+  int sq[5];
+  int x = 42;
+  int* px = &x;
+
+  if (a[0] == 2 && a[4] == 10) {
+    printf("PASS arr_access\n");
+  }
+  if (array_sum__pvi(a, 5) == 30) {
+    printf("PASS arr_sum\n");
+  }
+  if (*p == 2 && *(p+2) == 6) {
+    printf("PASS ptr_arith\n");
+  }
+  if (mat[1][1] == 5 && mat[2][2] == 9) {
+    printf("PASS mat_2d\n");
+  }
+  for (int i = 0; i < 5; ++i) {
+    sq[i] = i * i;
+  }
+  if (sq[3] == 9 && sq[4] == 16) {
+    printf("PASS fill_sq\n");
+  }
+  if (*px == 42) {
+    printf("PASS ptr_deref\n");
+  }
   printf("ALL PASS\n");
   return 0;
 }
 
-/* Lowering diagnostics: 2 event(s) (structured-cstyle-body=2) */
+/* Lowering diagnostics: 1 event(s) (structured-cstyle-body=1) */
 /* - array_sum: structured-cstyle-body (raw-body 4 line(s)) */
-/* - main: structured-cstyle-body (arrays-pointers-suite-runtime) */

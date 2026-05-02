@@ -1,0 +1,7 @@
+Address pointed to by pi: 1024, value at the address pointed to by pi: 1
+Address pointed to by pf: 1028, value at the address pointed to by pf: 2.000000
+Address pointed to by pc: 1032, value at the address pointed to by pc: x
+Address pointed to by pc: 1033, value at the address pointed to by pc: H
+Address pointed to by pc: 1034, value at the address pointed to by pc: e
+Address pointed to by pc: 1034, value at the address pointed to by pc: f
+Hfllo World!

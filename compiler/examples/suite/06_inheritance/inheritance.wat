@@ -25,32 +25,12 @@
   ;; global __stack_ptr
   (global $__stack_ptr (mut i32) (i32.const 1024))
 
-  (data (i32.const 16) "PASS rect_area\0a\00")
-  (data (i32.const 32) "PASS rect_perimeter\0a\00")
-  (data (i32.const 56) "PASS rect_width\0a\00")
-  (data (i32.const 76) "PASS circle_area_range\0a\00")
-  (data (i32.const 100) "PASS sq_area\0a\00")
-  (data (i32.const 116) "PASS sq_perimeter\0a\00")
-  (data (i32.const 136) "PASS sq_inherits_width\0a\00")
-  (data (i32.const 160) "PASS virt_total_area\0a\00")
-  (data (i32.const 184) "PASS virt_name_rect\0a\00")
-  (data (i32.const 208) "PASS virt_name_circle\0a\00")
-  (data (i32.const 232) "PASS virt_name_square\0a\00")
-  (data (i32.const 256) "PASS virt_dog\0a\00")
-  (data (i32.const 272) "PASS virt_cat\0a\00")
-  (data (i32.const 288) "PASS virt_base\0a\00")
-  (data (i32.const 304) "PASS nvirt_dog_direct\0a\00")
-  (data (i32.const 328) "PASS nvirt_dog_via_base\0a\00")
-  (data (i32.const 356) "PASS upcast_area\0a\00")
-  (data (i32.const 376) "PASS downcast_width\0a\00")
-  (data (i32.const 400) "PASS ctor_order\0a\00")
-  (data (i32.const 420) "PASS dtor_order\0a\00")
-  (data (i32.const 440) "ALL PASS\0a\00")
+  (data (i32.const 16) "ALL PASS\0a\00")
 
   (elem (table $fn_table) (i32.const 0) func $Shape_init $Shape_destroy $Rectangle_init__dd $Rectangle_destroy $Rectangle_area $Circle_init__d $Circle_destroy $Circle_area $main)
 
   ;; function Shape_init
-  (func $Shape_init (param $self i32) (result i32)
+  (func $Shape_init (param $self i32)
     (local $__frame i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
@@ -73,16 +53,10 @@
     i32.add
     i32.load
     drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
   )
 
   ;; function Shape_destroy
-  (func $Shape_destroy (param $self i32) (result i32)
+  (func $Shape_destroy (param $self i32)
     (local $__frame i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
@@ -105,16 +79,89 @@
     i32.add
     i32.load
     drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
   )
 
   ;; function Rectangle_init__dd
-  (func $Rectangle_init__dd (param $self i32) (param $w f64) (param $h f64) (result i32)
+  (func $Rectangle_init__dd (param $self i32) (param $w f64) (param $h f64)
+    (local $__frame i32)
+    (local $__tmp_f64 f64)
+    (local $__parent_frame i32)
+    global.get $__frame_ptr
+    local.set $__parent_frame
+    global.get $__stack_ptr
+    local.set $__frame
+    local.get $__frame
+    global.set $__frame_ptr
+    global.get $__stack_ptr
+    i32.const 40
+    i32.add
+    global.set $__stack_ptr
+    local.get $__frame
+    i32.const 0
+    i32.add
+    local.get $self
+    i32.store
+    local.get $__frame
+    i32.const 24
+    i32.add
+    local.get $w
+    f64.store
+    local.get $__frame
+    i32.const 32
+    i32.add
+    local.get $h
+    f64.store
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.load
+    drop
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.load
+    i32.const 8
+    i32.add
+    local.get $__frame
+    i32.const 24
+    i32.add
+    f64.load
+    local.set $__tmp_f64
+    local.get $__tmp_f64
+    f64.store
+    local.get $__tmp_f64
+    drop
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.load
+    i32.const 16
+    i32.add
+    local.get $__frame
+    i32.const 32
+    i32.add
+    f64.load
+    local.set $__tmp_f64
+    local.get $__tmp_f64
+    f64.store
+    local.get $__tmp_f64
+    drop
+    local.get $__frame
+    i32.const 24
+    i32.add
+    f64.load
+    i32.trunc_f64_s
+    drop
+    local.get $__frame
+    i32.const 32
+    i32.add
+    f64.load
+    i32.trunc_f64_s
+    drop
+  )
+
+  ;; function Rectangle_destroy
+  (func $Rectangle_destroy (param $self i32)
     (local $__frame i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
@@ -133,74 +180,14 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 8
-    i32.add
-    local.get $w
-    f64.store
-    local.get $__frame
-    i32.const 16
-    i32.add
-    local.get $h
-    f64.store
-    local.get $__frame
     i32.const 0
     i32.add
     i32.load
     drop
-    local.get $__frame
-    i32.const 8
-    i32.add
-    f64.load
-    i32.trunc_f64_s
-    drop
-    local.get $__frame
-    i32.const 16
-    i32.add
-    f64.load
-    i32.trunc_f64_s
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Rectangle_destroy
-  (func $Rectangle_destroy (param $self i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 8
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
   )
 
   ;; function Rectangle_area
-  (func $Rectangle_area (param $self i32) (result i32)
+  (func $Rectangle_area (param $self i32) (result f64)
     (local $__frame i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
@@ -210,7 +197,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 8
+    i32.const 24
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -223,13 +210,27 @@
     i32.add
     i32.load
     drop
+    local.get $__frame
     i32.const 0
+    i32.add
+    i32.load
+    i32.const 8
+    i32.add
+    f64.load
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.load
+    i32.const 16
+    i32.add
+    f64.load
+    f64.mul
     local.get $__parent_frame
     global.set $__frame_ptr
     local.get $__frame
     global.set $__stack_ptr
     return
-    i32.const 0
+    f64.const 0
     local.get $__parent_frame
     global.set $__frame_ptr
     local.get $__frame
@@ -238,7 +239,7 @@
   )
 
   ;; function Circle_init__d
-  (func $Circle_init__d (param $self i32) (param $r f64) (result i32)
+  (func $Circle_init__d (param $self i32) (param $r f64)
     (local $__frame i32)
     (local $__tmp_f64 f64)
     (local $__parent_frame i32)
@@ -249,7 +250,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 16
+    i32.const 24
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -258,7 +259,7 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 8
+    i32.const 16
     i32.add
     local.get $r
     f64.store
@@ -274,7 +275,7 @@
     i32.const 8
     i32.add
     local.get $__frame
-    i32.const 8
+    i32.const 16
     i32.add
     f64.load
     local.set $__tmp_f64
@@ -282,16 +283,10 @@
     f64.store
     local.get $__tmp_f64
     drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
   )
 
   ;; function Circle_destroy
-  (func $Circle_destroy (param $self i32) (result i32)
+  (func $Circle_destroy (param $self i32)
     (local $__frame i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
@@ -301,7 +296,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 8
+    i32.const 16
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -314,16 +309,10 @@
     i32.add
     i32.load
     drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
   )
 
   ;; function Circle_area
-  (func $Circle_area (param $self i32) (result i32)
+  (func $Circle_area (param $self i32) (result f64)
     (local $__frame i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
@@ -333,7 +322,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 8
+    i32.const 16
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -347,12 +336,13 @@
     i32.load
     drop
     i32.const 0
+    f64.convert_i32_s
     local.get $__parent_frame
     global.set $__frame_ptr
     local.get $__frame
     global.set $__stack_ptr
     return
-    i32.const 0
+    f64.const 0
     local.get $__parent_frame
     global.set $__frame_ptr
     local.get $__frame
@@ -362,6 +352,25 @@
 
   ;; function main
   (func $main (result i32)
+    (local $__frame i32)
+    (local $rect i32)
+    (local $__parent_frame i32)
+    global.get $__frame_ptr
+    local.set $__parent_frame
+    global.get $__stack_ptr
+    local.set $__frame
+    local.get $__frame
+    global.set $__frame_ptr
+    global.get $__stack_ptr
+    i32.const 24
+    i32.add
+    global.set $__stack_ptr
+    local.get $__frame
+    i32.const 0
+    i32.add
+    f64.const 4
+    f64.const 3
+    call $Rectangle_init__dd
     i32.const 16
     f64.convert_i32_s
     f64.const 0
@@ -373,229 +382,17 @@
     f64.const 0
     call $imp_printf
     drop
-    i32.const 32
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 56
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 76
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 100
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 116
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 136
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 160
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 184
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 208
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 232
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 256
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 272
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 288
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 304
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 328
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 356
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 376
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 400
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 420
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 440
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
     i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
     return
     i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
     return
   )
 

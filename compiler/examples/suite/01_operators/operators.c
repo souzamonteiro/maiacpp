@@ -211,6 +211,7 @@ int test_float(void) {
 
 int main(void) {
   int total = 0;
+
   total += test_arithmetic();
   total += test_relational();
   total += test_logical();
@@ -223,7 +224,7 @@ int main(void) {
   return 0;
 }
 
-/* Lowering diagnostics: 9 event(s) (structured-cstyle-body=9) */
+/* Lowering diagnostics: 8 event(s) (structured-cstyle-body=8) */
 /* - test_arithmetic: structured-cstyle-body (8 stmt(s)) */
 /* - test_relational: structured-cstyle-body (9 stmt(s)) */
 /* - test_logical: structured-cstyle-body (6 stmt(s)) */
@@ -232,4 +233,3 @@ int main(void) {
 /* - test_prepost: structured-cstyle-body (9 stmt(s)) */
 /* - test_ternary: structured-cstyle-body (5 stmt(s)) */
 /* - test_float: structured-cstyle-body (7 stmt(s)) */
-/* - main: structured-cstyle-body (11 stmt(s)) */

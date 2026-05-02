@@ -1,0 +1,20 @@
+{
+  "generatedAt": "2026-05-02T16:44:17.548Z",
+  "input": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/programming_in_cpp_course_en/09_pointers/pointers_v2.c",
+  "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/programming_in_cpp_course_en/09_pointers/dist",
+  "appName": "pointers_v2",
+  "artifacts": {
+    "wasm": "pointers_v2.wasm",
+    "wrapper": "pointers_v2.js",
+    "wat": "pointers_v2.wat",
+    "browserRunner": "browser-runner.html",
+    "browserMemoryFileStore": "browser-memory-file-store.js",
+    "nodeRunner": "node-runner.js",
+    "nodeRunnerShell": "node-runner.sh"
+  },
+  "linkedLibraries": [],
+  "copiedLibraries": [],
+  "runtimeProvidedHeaders": [],
+  "missingLibraries": [],
+  "sourceBytes": 1601
+}

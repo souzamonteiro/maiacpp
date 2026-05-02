@@ -1,0 +1,20 @@
+{
+  "generatedAt": "2026-05-02T16:44:27.790Z",
+  "input": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/programming_in_cpp_course_en/10_strings/vowels_with_pointers.c",
+  "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/programming_in_cpp_course_en/10_strings/dist",
+  "appName": "vowels_with_pointers",
+  "artifacts": {
+    "wasm": "vowels_with_pointers.wasm",
+    "wrapper": "vowels_with_pointers.js",
+    "wat": "vowels_with_pointers.wat",
+    "browserRunner": "browser-runner.html",
+    "browserMemoryFileStore": "browser-memory-file-store.js",
+    "nodeRunner": "node-runner.js",
+    "nodeRunnerShell": "node-runner.sh"
+  },
+  "linkedLibraries": [],
+  "copiedLibraries": [],
+  "runtimeProvidedHeaders": [],
+  "missingLibraries": [],
+  "sourceBytes": 2618
+}

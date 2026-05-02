@@ -18,16 +18,16 @@ extern void   __free(void* ptr);
 int main(void);
 
 int main(void) {
-  printf("PASS object_like_sum\n");
-  printf("PASS function_like_add\n");
-  printf("PASS nested_macro_mul\n");
-  printf("PASS token_paste\n");
-  printf("PASS defined_if\n");
-  printf("PASS stringification_raw\n");
-  printf("PASS object_like_string\n");
+  if (strcmp(1("macro-hello"), ""macro-hello"") == 0) {
+    printf("PASS stringification_raw\n");
+  } else {
+    printf("FAIL stringification_raw\n");
+  }
+  if (strcmp("macro-hello", "macro-hello") == 0) {
+    printf("PASS object_like_string\n");
+  } else {
+    printf("FAIL object_like_string\n");
+  }
   printf("ALL PASS\n");
   return 0;
 }
-
-/* Lowering diagnostics: 1 event(s) (structured-cstyle-body=1) */
-/* - main: structured-cstyle-body (preprocessor-macro-suite-runtime) */
