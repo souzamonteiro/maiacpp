@@ -45,7 +45,7 @@
   (elem (table $fn_table) (i32.const 0) func $Base_init__i $Base_destroy $Derived_init__ii $Derived_destroy $main)
 
   ;; function Base_init__i
-  (func $Base_init__i (param $self i32) (param $t i32) (result i32)
+  (func $Base_init__i (param $self i32) (param $t i32)
     (local $__frame i32)
     (local $__tmp_i32 i32)
     (local $__parent_frame i32)
@@ -56,7 +56,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 8
+    i32.const 16
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -65,7 +65,7 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 4
+    i32.const 8
     i32.add
     local.get $t
     i32.store
@@ -81,7 +81,7 @@
     i32.const 0
     i32.add
     local.get $__frame
-    i32.const 4
+    i32.const 8
     i32.add
     i32.load
     local.set $__tmp_i32
@@ -89,16 +89,10 @@
     i32.store
     local.get $__tmp_i32
     drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
   )
 
   ;; function Base_destroy
-  (func $Base_destroy (param $self i32) (result i32)
+  (func $Base_destroy (param $self i32)
     (local $__frame i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
@@ -121,16 +115,81 @@
     i32.add
     i32.load
     drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
   )
 
   ;; function Derived_init__ii
-  (func $Derived_init__ii (param $self i32) (param $t i32) (param $e i32) (result i32)
+  (func $Derived_init__ii (param $self i32) (param $t i32) (param $e i32)
+    (local $__frame i32)
+    (local $__tmp_i32 i32)
+    (local $__parent_frame i32)
+    global.get $__frame_ptr
+    local.set $__parent_frame
+    global.get $__stack_ptr
+    local.set $__frame
+    local.get $__frame
+    global.set $__frame_ptr
+    global.get $__stack_ptr
+    i32.const 24
+    i32.add
+    global.set $__stack_ptr
+    local.get $__frame
+    i32.const 0
+    i32.add
+    local.get $self
+    i32.store
+    local.get $__frame
+    i32.const 12
+    i32.add
+    local.get $t
+    i32.store
+    local.get $__frame
+    i32.const 16
+    i32.add
+    local.get $e
+    i32.store
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.load
+    drop
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.load
+    local.get $__frame
+    i32.const 12
+    i32.add
+    i32.load
+    call $Base_init__i
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.load
+    i32.const 8
+    i32.add
+    local.get $__frame
+    i32.const 16
+    i32.add
+    i32.load
+    local.set $__tmp_i32
+    local.get $__tmp_i32
+    i32.store
+    local.get $__tmp_i32
+    drop
+    local.get $__frame
+    i32.const 12
+    i32.add
+    i32.load
+    drop
+    local.get $__frame
+    i32.const 16
+    i32.add
+    i32.load
+    drop
+  )
+
+  ;; function Derived_destroy
+  (func $Derived_destroy (param $self i32)
     (local $__frame i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
@@ -149,68 +208,10 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 4
-    i32.add
-    local.get $t
-    i32.store
-    local.get $__frame
-    i32.const 8
-    i32.add
-    local.get $e
-    i32.store
-    local.get $__frame
     i32.const 0
     i32.add
     i32.load
     drop
-    local.get $__frame
-    i32.const 4
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 8
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Derived_destroy
-  (func $Derived_destroy (param $self i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 8
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
   )
 
   ;; function main

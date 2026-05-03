@@ -13,13 +13,12 @@
   (import "env" "__exc_matches" (func $imp___exc_matches (param i32 i32) (result i32)))
   (import "env" "__malloc" (func $imp___malloc (param i32) (result i32)))
   (import "env" "__free" (func $imp___free (param i32)))
-  (import "env" "sprintf" (func $imp_sprintf (param f64 f64 f64 f64 f64 f64 f64 f64 f64) (result i32)))
   (import "env" "printf" (func $imp_printf (param f64 f64 f64 f64 f64 f64 f64 f64) (result i32)))
   (import "env" "scanf" (func $imp_scanf (param i32 i32 i32 i32 i32 i32 i32 i32) (result i32)))
 
   (memory $mem 1)
 
-  (table $fn_table 5 funcref)
+  (table $fn_table 6 funcref)
 
   ;; global __frame_ptr
   (global $__frame_ptr (mut i32) (i32.const 0))
@@ -28,12 +27,11 @@
   (global $__stack_ptr (mut i32) (i32.const 1024))
 
   (data (i32.const 16) " %d\00")
-  (data (i32.const 20) "How many terms would you like to display? \00")
-  (data (i32.const 64) "%d\00")
-  (data (i32.const 68) "\0a\00")
-  (data (i32.const 72) "%s\00")
+  (data (i32.const 20) "\0a\00")
+  (data (i32.const 24) "How many terms would you like to display? \00")
+  (data (i32.const 68) "%d\00")
 
-  (elem (table $fn_table) (i32.const 0) func $Fibonacci_init $Fibonacci_destroy $Fibonacci_nFibonacci__i $Fibonacci_createSeries__i $main)
+  (elem (table $fn_table) (i32.const 0) func $Fibonacci_init $Fibonacci_destroy $Fibonacci_nFibonacci__i $Fibonacci_createSeries__i $fib__i $main)
 
   ;; function Fibonacci_init
   (func $Fibonacci_init (param $self i32)
@@ -120,44 +118,7 @@
     i32.const 4
     i32.add
     i32.load
-    i32.const 1
-    i32.le_s
-    i32.eqz
-    i32.eqz
-    if
-      local.get $__frame
-      i32.const 4
-      i32.add
-      i32.load
-      local.get $__parent_frame
-      global.set $__frame_ptr
-      local.get $__frame
-      global.set $__stack_ptr
-      return
-    end
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    local.get $__frame
-    i32.const 4
-    i32.add
-    i32.load
-    i32.const 1
-    i32.sub
-    call $Fibonacci_nFibonacci__i
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    local.get $__frame
-    i32.const 4
-    i32.add
-    i32.load
-    i32.const 2
-    i32.sub
-    call $Fibonacci_nFibonacci__i
-    i32.add
+    call $fib__i
     local.get $__parent_frame
     global.set $__frame_ptr
     local.get $__frame
@@ -177,14 +138,12 @@
   )
 
   ;; function Fibonacci_createSeries__i
-  (func $Fibonacci_createSeries__i (param $self i32) (param $n i32) (result i32)
+  (func $Fibonacci_createSeries__i (param $self i32) (param $n i32)
     (local $__frame i32)
-    (local $__fib_buf i32)
-    (local $__off i32)
     (local $i i32)
-    (local $__tmp_i8 i32)
     (local $__tmp_i32 i32)
     (local $__tmp_addr i32)
+    (local $__tmp_old_i32 i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
     local.set $__parent_frame
@@ -193,7 +152,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 2064
+    i32.const 16
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -212,25 +171,7 @@
     i32.load
     drop
     local.get $__frame
-    i32.const 2056
-    i32.add
-    i32.const 0
-    i32.store
-    local.get $__frame
     i32.const 8
-    i32.add
-    i32.const 0
-    i32.const 1
-    i32.mul
-    i32.add
-    i32.const 0
-    local.set $__tmp_i8
-    local.get $__tmp_i8
-    i32.store8
-    local.get $__tmp_i8
-    drop
-    local.get $__frame
-    i32.const 2060
     i32.add
     i32.const 1
     local.set $__tmp_i32
@@ -241,7 +182,7 @@
     block $Fibonacci_createSeries__i_for_exit_0
       loop $Fibonacci_createSeries__i_for_loop_2
         local.get $__frame
-        i32.const 2060
+        i32.const 8
         i32.add
         i32.load
         local.get $__frame
@@ -254,35 +195,13 @@
         i32.eqz
         br_if $Fibonacci_createSeries__i_for_exit_0
         block $Fibonacci_createSeries__i_for_continue_1
-          local.get $__frame
-          i32.const 2056
-          i32.add
-          local.get $__frame
-          i32.const 2056
-          i32.add
-          i32.load
-          local.get $__frame
-          i32.const 8
-          i32.add
-          local.get $__frame
-          i32.const 2056
-          i32.add
-          i32.load
-          i32.const 1
-          i32.mul
-          i32.add
-          f64.convert_i32_s
           i32.const 16
           f64.convert_i32_s
           local.get $__frame
-          i32.const 0
+          i32.const 8
           i32.add
           i32.load
-          local.get $__frame
-          i32.const 2060
-          i32.add
-          i32.load
-          call $Fibonacci_nFibonacci__i
+          call $fib__i
           f64.convert_i32_s
           f64.const 0
           f64.const 0
@@ -290,55 +209,73 @@
           f64.const 0
           f64.const 0
           f64.const 0
-          call $imp_sprintf
-          i32.add
-          local.set $__tmp_i32
-          local.get $__tmp_i32
-          i32.store
-          local.get $__tmp_i32
+          call $imp_printf
           drop
         end
         local.get $__frame
-        i32.const 2060
+        i32.const 8
         i32.add
         local.tee $__tmp_addr
         i32.load
+        local.tee $__tmp_old_i32
         i32.const 1
         i32.add
         local.set $__tmp_i32
         local.get $__tmp_addr
         local.get $__tmp_i32
         i32.store
-        local.get $__tmp_i32
+        local.get $__tmp_old_i32
         drop
         br $Fibonacci_createSeries__i_for_loop_2
       end
     end
-    local.get $__frame
-    i32.const 8
-    i32.add
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
+    i32.const 20
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
     local.get $__frame
     i32.const 4
     i32.add
     i32.load
     drop
+  )
+
+  ;; function fib__i
+  (func $fib__i (param $n i32) (result i32)
+    local.get $n
+    i32.const 1
+    i32.le_s
+    i32.eqz
+    i32.eqz
+    if
+      local.get $n
+      return
+    end
+    local.get $n
+    i32.const 1
+    i32.sub
+    call $fib__i
+    local.get $n
+    i32.const 2
+    i32.sub
+    call $fib__i
+    i32.add
+    return
     i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
     return
   )
 
   ;; function main
   (func $main (result i32)
     (local $__frame i32)
-    (local $fib i32)
+    (local $fib_obj i32)
     (local $n i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
@@ -356,7 +293,7 @@
     i32.add
     i32.const 0
     i32.store
-    i32.const 20
+    i32.const 24
     f64.convert_i32_s
     f64.const 0
     f64.const 0
@@ -367,7 +304,7 @@
     f64.const 0
     call $imp_printf
     drop
-    i32.const 64
+    i32.const 68
     local.get $__frame
     i32.const 4
     i32.add
@@ -379,7 +316,7 @@
     i32.const 0
     call $imp_scanf
     drop
-    i32.const 68
+    i32.const 20
     f64.convert_i32_s
     f64.const 0
     f64.const 0
@@ -390,8 +327,6 @@
     f64.const 0
     call $imp_printf
     drop
-    i32.const 72
-    f64.convert_i32_s
     local.get $__frame
     i32.const 0
     i32.add
@@ -400,26 +335,6 @@
     i32.add
     i32.load
     call $Fibonacci_createSeries__i
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 68
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
     i32.const 0
     local.get $__parent_frame
     global.set $__frame_ptr
@@ -438,6 +353,7 @@
   (export "Fibonacci_destroy" (func $Fibonacci_destroy))
   (export "Fibonacci_nFibonacci__i" (func $Fibonacci_nFibonacci__i))
   (export "Fibonacci_createSeries__i" (func $Fibonacci_createSeries__i))
+  (export "fib__i" (func $fib__i))
   (export "main" (func $main))
   (export "memory" (memory $mem))
   (export "__frame_ptr" (global $__frame_ptr))

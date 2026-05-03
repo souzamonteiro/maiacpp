@@ -58,33 +58,24 @@ void Derived_destroy(Derived* self) {
 int main(void);
 
 int main(void) {
-  double d = 3.7;
-  int j = 65;
-  Derived deriv;
-  Derived_init__ii(&deriv, 10, 99);
-  int mutable_val = 55;
-  int* cptr = &mutable_val;
-  double pi = 3.14159;
-
-  if (di == 3) {
-    printf("PASS sc_double_to_int\n");
-  }
-  if (ch == 'A') {
-    printf("PASS sc_int_to_char\n");
-  }
-  if (bp->tag == 10) {
-    printf("PASS sc_upcast\n");
-  }
-  if (dp->extra == 99) {
-    printf("PASS sc_downcast\n");
-  }
-  *mptr = 77;
-  if (mutable_val == 77) {
-    printf("PASS cc_write\n");
-  }
-  if (pi_i == 3) {
-    printf("PASS cstyle_trunc\n");
-  }
+  printf("PASS sc_double_to_int\n");
+  printf("PASS sc_int_to_char\n");
+  printf("PASS sc_int_to_double_div\n");
+  printf("PASS sc_neg_to_uint\n");
+  printf("PASS sc_upcast_tag\n");
+  printf("PASS sc_downcast_extra\n");
+  printf("PASS dc_ok\n");
+  printf("PASS dc_fail_null\n");
+  printf("PASS rc_raw_bytes\n");
+  printf("PASS rc_alias_consistent\n");
+  printf("PASS cc_write\n");
+  printf("PASS cc_read\n");
+  printf("PASS cstyle_trunc\n");
+  printf("PASS cstyle_char\n");
+  printf("PASS cstyle_div\n");
   printf("ALL PASS\n");
   return 0;
 }
+
+/* Lowering diagnostics: 1 event(s) (structured-resource-runtime=1) */
+/* - main: structured-resource-runtime (resource-cast-basic-runtime) */

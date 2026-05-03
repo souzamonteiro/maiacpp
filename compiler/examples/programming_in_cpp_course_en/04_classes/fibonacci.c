@@ -17,13 +17,13 @@ extern void   __free(void* ptr);
 #define EXC_Fibonacci 1
 
 typedef struct Fibonacci {
-  int series;
+  int __dummy;
 } Fibonacci;
 
 void Fibonacci_init(Fibonacci* self);
 void Fibonacci_destroy(Fibonacci* self);
 int Fibonacci_nFibonacci__i(Fibonacci* self, int n);
-char* Fibonacci_createSeries__i(Fibonacci* self, int n);
+void Fibonacci_createSeries__i(Fibonacci* self, int n);
 
 void Fibonacci_init(Fibonacci* self) {
   (void)self;
@@ -35,37 +35,41 @@ void Fibonacci_destroy(Fibonacci* self) {
 
 int Fibonacci_nFibonacci__i(Fibonacci* self, int n) {
   (void)self;
-  if (n <= 1) return n;
-  return Fibonacci_nFibonacci__i(self, n - 1) + Fibonacci_nFibonacci__i(self, n - 2);
+  return fib__i(n);
   (void)n;
 }
 
-char* Fibonacci_createSeries__i(Fibonacci* self, int n) {
+void Fibonacci_createSeries__i(Fibonacci* self, int n) {
   (void)self;
-  {
-    static char __fib_buf[2048];
-    int __off = 0;
-    int i;
-    __fib_buf[0] = 0;
-    for (i = 1; i <= n; ++i) {
-      __off += sprintf(__fib_buf + __off, " %d", Fibonacci_nFibonacci__i(self, i));
-    }
-    return __fib_buf;
+  int i;
+  for (i = 1; i <= n; i++) {
+    printf(" %d", fib__i(i));
   }
+  printf("\n");
   (void)n;
 }
 
 /* Global functions */
+int fib__i(int n);
 int main(void);
 
+int fib__i(int n) {
+  if (n <= 1) {
+    return n;
+  }
+  return fib__i(n - 1) + fib__i(n - 2);
+}
+
 int main(void) {
-  Fibonacci fib;
+  Fibonacci fib_obj;
   int n = 0;
 
   printf("How many terms would you like to display? ");
   scanf("%d", &n);
   printf("\n");
-  printf("%s", Fibonacci_createSeries__i(&fib, n));
-  printf("\n");
+  Fibonacci_createSeries__i(&fib_obj, n);
   return 0;
 }
+
+/* Lowering diagnostics: 1 event(s) (structured-cstyle-body=1) */
+/* - fib: structured-cstyle-body (2 stmt(s)) */

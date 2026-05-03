@@ -91,6 +91,7 @@
     (local $i i32)
     (local $__tmp_i32 i32)
     (local $__tmp_addr i32)
+    (local $__tmp_old_i32 i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
     local.set $__parent_frame
@@ -173,13 +174,14 @@
         i32.add
         local.tee $__tmp_addr
         i32.load
+        local.tee $__tmp_old_i32
         i32.const 1
         i32.add
         local.set $__tmp_i32
         local.get $__tmp_addr
         local.get $__tmp_i32
         i32.store
-        local.get $__tmp_i32
+        local.get $__tmp_old_i32
         drop
         br $MultiplicationTable_createTable__i_for_loop_2
       end

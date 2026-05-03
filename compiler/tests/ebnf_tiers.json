@@ -510,6 +510,36 @@
         ]
       },
       {
+        "id": "tier1_semantic_compare_class_method_guarded_setter_patterns",
+        "family": "class_method_semantic_equivalence",
+        "matrixFamily": "classSpecifier / classHead / baseClause",
+        "command": [
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
+          "--file",
+          "./compiler/tests/equivalence/439_class_method_guarded_setter_patterns.cpp"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] native C++ output matches MaiaCpp pipeline output"
+        ]
+      },
+      {
+        "id": "tier1_semantic_compare_class_method_string_literal_compare",
+        "family": "class_method_semantic_equivalence",
+        "matrixFamily": "classSpecifier / classHead / baseClause",
+        "command": [
+          "node",
+          "./compiler/tests/compare_cpp_vs_pipeline.js",
+          "--file",
+          "./compiler/tests/equivalence/440_class_method_string_literal_compare.cpp"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "[ok] native C++ output matches MaiaCpp pipeline output"
+        ]
+      },
+      {
         "id": "tier1_stdio_sscanf_dist_run_smoke",
         "family": "stdio_runtime_sscanf",
         "matrixFamily": "runtime host integration (printf in Node/browser)",

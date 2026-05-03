@@ -39,10 +39,11 @@ const PROJECTS_ROOT = path.resolve(REPO_ROOT, '..');
 const COMPILER_JS  = path.join(REPO_ROOT, 'compiler', 'cpp-compiler.js');
 
 function resolveWebcJs() {
-  const sibling = path.join(PROJECTS_ROOT, 'maiac', 'tools', 'webc.js');
-  if (fs.existsSync(sibling)) return sibling;
+  // Prefer the submodule (REPO_ROOT/maiac) over the sibling workspace at the projects root.
   const vendored = path.join(REPO_ROOT, 'maiac', 'tools', 'webc.js');
   if (fs.existsSync(vendored)) return vendored;
+  const sibling = path.join(PROJECTS_ROOT, 'maiac', 'tools', 'webc.js');
+  if (fs.existsSync(sibling)) return sibling;
   return null;
 }
 

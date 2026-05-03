@@ -25,7 +25,8 @@
   ;; global __stack_ptr
   (global $__stack_ptr (mut i32) (i32.const 1024))
 
-  (data (i32.const 16) "ALL PASS\0a\00")
+  (data (i32.const 16) "PASS rect_area\0a\00")
+  (data (i32.const 32) "ALL PASS\0a\00")
 
   (elem (table $fn_table) (i32.const 0) func $Shape_init $Shape_destroy $Rectangle_init__dd $Rectangle_destroy $Rectangle_area $Circle_init__d $Circle_destroy $Circle_area $main)
 
@@ -335,8 +336,23 @@
     i32.add
     i32.load
     drop
+    f64.const 3.14159
+    local.get $__frame
     i32.const 0
-    f64.convert_i32_s
+    i32.add
+    i32.load
+    i32.const 8
+    i32.add
+    f64.load
+    f64.mul
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.load
+    i32.const 8
+    i32.add
+    f64.load
+    f64.mul
     local.get $__parent_frame
     global.set $__frame_ptr
     local.get $__frame
@@ -371,7 +387,28 @@
     f64.const 4
     f64.const 3
     call $Rectangle_init__dd
-    i32.const 16
+    local.get $__frame
+    i32.const 0
+    i32.add
+    call $Rectangle_area
+    f64.const 12
+    f64.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 16
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
+    i32.const 32
     f64.convert_i32_s
     f64.const 0
     f64.const 0

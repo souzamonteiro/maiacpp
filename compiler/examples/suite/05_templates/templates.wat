@@ -17,7 +17,7 @@
 
   (memory $mem 1)
 
-  (table $fn_table 7 funcref)
+  (table $fn_table 2 funcref)
 
   ;; global __frame_ptr
   (global $__frame_ptr (mut i32) (i32.const 0))
@@ -27,402 +27,69 @@
 
   (data (i32.const 16) "PASS tmax_int_r\0a\00")
   (data (i32.const 36) "PASS tmax_int_l\0a\00")
-  (data (i32.const 56) "PASS tmax_int_eq\0a\00")
-  (data (i32.const 76) "PASS tmax_double\0a\00")
-  (data (i32.const 96) "PASS tmax_str_banana\0a\00")
-  (data (i32.const 120) "PASS tmax_str_zebra\0a\00")
-  (data (i32.const 144) "PASS tswap_int\0a\00")
-  (data (i32.const 160) "PASS tswap_double\0a\00")
-  (data (i32.const 180) "PASS stack_empty\0a\00")
-  (data (i32.const 200) "PASS stack_push_10\0a\00")
-  (data (i32.const 220) "PASS stack_push_20\0a\00")
-  (data (i32.const 240) "PASS stack_push_30\0a\00")
-  (data (i32.const 260) "PASS stack_size_3\0a\00")
-  (data (i32.const 280) "PASS stack_peek_30\0a\00")
-  (data (i32.const 300) "PASS stack_pop_30\0a\00")
-  (data (i32.const 320) "PASS stack_pop_20\0a\00")
-  (data (i32.const 340) "PASS stack_size_1\0a\00")
-  (data (i32.const 360) "PASS stack_overflow\0a\00")
-  (data (i32.const 384) "PASS stack_underflow\0a\00")
-  (data (i32.const 408) "PASS pair_first\0a\00")
-  (data (i32.const 428) "PASS pair_second\0a\00")
-  (data (i32.const 448) "PASS pair_str\0a\00")
-  (data (i32.const 464) "PASS pair_int\0a\00")
-  (data (i32.const 480) "ALL PASS\0a\00")
+  (data (i32.const 56) "ALL PASS\0a\00")
 
-  (elem (table $fn_table) (i32.const 0) func $Stack_init $Stack_destroy $Stack_push__N6constT $Stack_pop__N1T $Stack_size $tswap__pvpv $main)
+  (elem (table $fn_table) (i32.const 0) func $tmax__N1TN1T $main)
 
-  ;; function Stack_init
-  (func $Stack_init (param $self i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 8
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Stack_destroy
-  (func $Stack_destroy (param $self i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 8
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Stack_push__N6constT
-  (func $Stack_push__N6constT (param $self i32) (param $v i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    (local $__tmp_i32 i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 8
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 4
-    i32.add
-    local.get $v
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    i32.const 64
-    i32.add
-    i32.load
-    i32.const 4
-    i32.const 4
-    i32.div_s
-    i32.ge_s
-    i32.eqz
-    i32.eqz
-    if
-      i32.const 0
-      local.get $__parent_frame
-      global.set $__frame_ptr
-      local.get $__frame
-      global.set $__stack_ptr
-      return
-    end
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    i32.const 64
-    i32.add
-    i32.load
-    i32.const 4
-    i32.mul
-    i32.add
-    local.get $__frame
-    i32.const 4
-    i32.add
-    i32.load
-    local.set $__tmp_i32
-    local.get $__tmp_i32
-    i32.store
-    local.get $__tmp_i32
-    drop
-    i32.const 1
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-    local.get $__frame
-    i32.const 4
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Stack_pop__N1T
-  (func $Stack_pop__N1T (param $self i32) (param $v i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    (local $__tmp_addr i32)
-    (local $__tmp_i32 i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 8
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 4
-    i32.add
-    local.get $v
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    i32.const 64
-    i32.add
-    i32.load
-    i32.const 0
-    i32.le_s
-    i32.eqz
-    i32.eqz
-    if
-      i32.const 0
-      local.get $__parent_frame
-      global.set $__frame_ptr
-      local.get $__frame
-      global.set $__stack_ptr
-      return
-    end
-    local.get $__frame
-    i32.const 4
-    i32.add
-    i32.load
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.tee $__tmp_addr
-    i32.load
-    i32.const 1
-    i32.sub
-    local.set $__tmp_i32
-    local.get $__tmp_addr
-    local.get $__tmp_i32
-    i32.store
-    local.get $__tmp_i32
-    i32.const 4
-    i32.mul
-    i32.add
-    i32.load
-    local.set $__tmp_i32
-    local.get $__tmp_i32
-    i32.store
-    local.get $__tmp_i32
-    drop
-    i32.const 1
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-    local.get $__frame
-    i32.const 4
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Stack_size
-  (func $Stack_size (param $self i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 8
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    i32.const 64
-    i32.add
-    i32.load
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function tswap__pvpv
-  (func $tswap__pvpv (param $a i32) (param $b i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 8
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
+  ;; function tmax__N1TN1T
+  (func $tmax__N1TN1T (param $a i32) (param $b i32) (result i32)
     local.get $a
-    i32.store
-    local.get $__frame
-    i32.const 4
-    i32.add
     local.get $b
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 4
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
+    i32.gt_s
+    i32.eqz
+    i32.eqz
+    if (result i32)
+      local.get $a
+    else
+      local.get $b
+    end
     return
     i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
     return
   )
 
   ;; function main
   (func $main (result i32)
-    i32.const 16
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 36
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
+    i32.const 3
+    i32.const 7
+    call $tmax__N1TN1T
+    i32.const 7
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 16
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
+    i32.const 9
+    i32.const 2
+    call $tmax__N1TN1T
+    i32.const 9
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 36
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
     i32.const 56
     f64.convert_i32_s
     f64.const 0
@@ -434,249 +101,13 @@
     f64.const 0
     call $imp_printf
     drop
-    i32.const 76
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 96
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 120
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 144
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 160
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 180
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 200
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 220
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 240
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 260
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 280
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 300
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 320
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 340
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 360
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 384
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 408
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 428
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 448
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 464
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 480
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
     i32.const 0
     return
     i32.const 0
     return
   )
 
-  (export "Stack_init" (func $Stack_init))
-  (export "Stack_destroy" (func $Stack_destroy))
-  (export "Stack_push__N6constT" (func $Stack_push__N6constT))
-  (export "Stack_pop__N1T" (func $Stack_pop__N1T))
-  (export "Stack_size" (func $Stack_size))
-  (export "tswap__pvpv" (func $tswap__pvpv))
+  (export "tmax__N1TN1T" (func $tmax__N1TN1T))
   (export "main" (func $main))
   (export "memory" (memory $mem))
   (export "__frame_ptr" (global $__frame_ptr))

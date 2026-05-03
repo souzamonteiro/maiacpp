@@ -86,6 +86,8 @@ int LifeForm_getStrength(LifeForm* self) {
 
 typedef struct Human {
   LifeForm __base;
+  char* personResponse;
+  char* myResponse;
   void* __vptr;
 } Human;
 
@@ -94,11 +96,6 @@ void Human_init__pv(Human* self, char* n);
 void Human_destroy(Human* self);
 void Human_say__pv(Human* self, char* s);
 char* Human_respond__pv(Human* self, char* s);
-int Human_if__N13s_How_are_you(Human* self, void* p1);
-int Human_if__N1sN7and_you(Human* self, void* Fine, void* p2);
-int Human_if__N9s_Goodbye(Human* self, void* p1);
-int Human_if__N5s_Bye(Human* self, void* p1);
-int Human_converse__N13ClassTemplatepv(Human* self, void* person, char* s);
 
 void Human_init(Human* self) {
   (void)self;
@@ -124,38 +121,6 @@ char* Human_respond__pv(Human* self, char* s) {
   (void)self;
   (void)s;
   return (char*)0;
-}
-
-int Human_if__N13s_How_are_you(Human* self, void* p1) {
-  (void)self;
-  (void)p1;
-  return (int)0;
-}
-
-int Human_if__N1sN7and_you(Human* self, void* Fine, void* p2) {
-  (void)self;
-  (void)Fine;
-  (void)p2;
-  return (int)0;
-}
-
-int Human_if__N9s_Goodbye(Human* self, void* p1) {
-  (void)self;
-  (void)p1;
-  return (int)0;
-}
-
-int Human_if__N5s_Bye(Human* self, void* p1) {
-  (void)self;
-  (void)p1;
-  return (int)0;
-}
-
-int Human_converse__N13ClassTemplatepv(Human* self, void* person, char* s) {
-  (void)self;
-  (void)person;
-  (void)s;
-  return (int)0;
 }
 
 typedef struct Wizard {
@@ -243,10 +208,6 @@ int Knight_getBravery(Knight* self);
 void Knight_setArmor__i(Knight* self, int a);
 int Knight_getArmor(Knight* self);
 char* Knight_respond__pv(Knight* self, char* s);
-int Knight_if__N13s_How_are_you(Knight* self, void* p1);
-int Knight_if__N1sN7and_you(Knight* self, void* Fine, void* p2);
-int Knight_if__N9s_Goodbye(Knight* self, void* p1);
-int Knight_if__N5s_Bye(Knight* self, void* p1);
 
 void Knight_init(Knight* self) {
   (void)self;
@@ -288,31 +249,6 @@ char* Knight_respond__pv(Knight* self, char* s) {
   return (char*)0;
 }
 
-int Knight_if__N13s_How_are_you(Knight* self, void* p1) {
-  (void)self;
-  (void)p1;
-  return (int)0;
-}
-
-int Knight_if__N1sN7and_you(Knight* self, void* Fine, void* p2) {
-  (void)self;
-  (void)Fine;
-  (void)p2;
-  return (int)0;
-}
-
-int Knight_if__N9s_Goodbye(Knight* self, void* p1) {
-  (void)self;
-  (void)p1;
-  return (int)0;
-}
-
-int Knight_if__N5s_Bye(Knight* self, void* p1) {
-  (void)self;
-  (void)p1;
-  return (int)0;
-}
-
 typedef struct Princess {
   Human __base;
   int intelligence;
@@ -330,11 +266,6 @@ int Princess_getBeauty(Princess* self);
 void Princess_setWealth__i(Princess* self, int d);
 int Princess_getWealth(Princess* self);
 char* Princess_respond__pv(Princess* self, char* s);
-int Princess_if__N5s_I_mN7and_you(Princess* self, void* good, void* p2);
-int Princess_if__N23s_None_of_your_business(Princess* self, void* p1);
-int Princess_if__N17s_Get_out_of_here(Princess* self, void* p1);
-int Princess_if__N10s_Get_lost(Princess* self, void* p1);
-int Princess_if__N17s_You_re_done_for(Princess* self, void* p1);
 
 void Princess_init(Princess* self) {
   (void)self;
@@ -386,37 +317,6 @@ char* Princess_respond__pv(Princess* self, char* s) {
   return (char*)0;
 }
 
-int Princess_if__N5s_I_mN7and_you(Princess* self, void* good, void* p2) {
-  (void)self;
-  (void)good;
-  (void)p2;
-  return (int)0;
-}
-
-int Princess_if__N23s_None_of_your_business(Princess* self, void* p1) {
-  (void)self;
-  (void)p1;
-  return (int)0;
-}
-
-int Princess_if__N17s_Get_out_of_here(Princess* self, void* p1) {
-  (void)self;
-  (void)p1;
-  return (int)0;
-}
-
-int Princess_if__N10s_Get_lost(Princess* self, void* p1) {
-  (void)self;
-  (void)p1;
-  return (int)0;
-}
-
-int Princess_if__N17s_You_re_done_for(Princess* self, void* p1) {
-  (void)self;
-  (void)p1;
-  return (int)0;
-}
-
 typedef struct Villager {
   Human __base;
   int loyalty;
@@ -431,12 +331,6 @@ int Villager_getLoyalty(Villager* self);
 void Villager_setHonesty__i(Villager* self, int h);
 int Villager_getHonesty(Villager* self);
 char* Villager_respond__pv(Villager* self, char* s);
-int Villager_if__N13s_How_are_you(Villager* self, void* p1);
-int Villager_if__N1sN7and_you(Villager* self, void* Fine, void* p2);
-int Villager_if__N11s_I_m_great(Villager* self, void* p1);
-int Villager_if__N21s_I_ll_call_my_father(Villager* self, void* p1);
-int Villager_if__N9s_Goodbye(Villager* self, void* p1);
-int Villager_if__N5s_Bye(Villager* self, void* p1);
 
 void Villager_init(Villager* self) {
   (void)self;
@@ -476,43 +370,6 @@ char* Villager_respond__pv(Villager* self, char* s) {
   (void)self;
   (void)s;
   return (char*)0;
-}
-
-int Villager_if__N13s_How_are_you(Villager* self, void* p1) {
-  (void)self;
-  (void)p1;
-  return (int)0;
-}
-
-int Villager_if__N1sN7and_you(Villager* self, void* Fine, void* p2) {
-  (void)self;
-  (void)Fine;
-  (void)p2;
-  return (int)0;
-}
-
-int Villager_if__N11s_I_m_great(Villager* self, void* p1) {
-  (void)self;
-  (void)p1;
-  return (int)0;
-}
-
-int Villager_if__N21s_I_ll_call_my_father(Villager* self, void* p1) {
-  (void)self;
-  (void)p1;
-  return (int)0;
-}
-
-int Villager_if__N9s_Goodbye(Villager* self, void* p1) {
-  (void)self;
-  (void)p1;
-  return (int)0;
-}
-
-int Villager_if__N5s_Bye(Villager* self, void* p1) {
-  (void)self;
-  (void)p1;
-  return (int)0;
 }
 
 typedef struct Monster {
@@ -638,9 +495,3 @@ int main(void) {
   }
   return 0;
 }
-
-/* Lowering diagnostics: 4 event(s) (structured-cstyle-body=4) */
-/* - introduction: structured-cstyle-body (interactive-continue-bool-runtime) */
-/* - chapter1: structured-cstyle-body (chapter-bool-runtime) */
-/* - chapter2: structured-cstyle-body (chapter-bool-runtime) */
-/* - chapter3: structured-cstyle-body (chapter-bool-runtime) */

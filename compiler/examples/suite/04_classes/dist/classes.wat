@@ -17,7 +17,7 @@
 
   (memory $mem 1)
 
-  (table $fn_table 9 funcref)
+  (table $fn_table 7 funcref)
 
   ;; global __frame_ptr
   (global $__frame_ptr (mut i32) (i32.const 0))
@@ -25,9 +25,15 @@
   ;; global __stack_ptr
   (global $__stack_ptr (mut i32) (i32.const 1024))
 
-  (data (i32.const 16) "ALL PASS\0a\00")
+  (data (i32.const 16) "PASS ctor_x\0a\00")
+  (data (i32.const 32) "PASS ctor_y\0a\00")
+  (data (i32.const 48) "PASS copy_ctor\0a\00")
+  (data (i32.const 64) "PASS assign_op\0a\00")
+  (data (i32.const 80) "PASS dot_x_axis\0a\00")
+  (data (i32.const 100) "PASS length_sq\0a\00")
+  (data (i32.const 116) "ALL PASS\0a\00")
 
-  (elem (table $fn_table) (i32.const 0) func $Vec2_init__dd $Vec2_init__pv $Vec2_destroy $Vec2_operator_assign__N9constVec2 $Vec2_operator_add__N9constVec2 $Vec2_operator_eq__N9constVec2 $Vec2_dot__pv $Vec2_lengthSq $main)
+  (elem (table $fn_table) (i32.const 0) func $Vec2_init__dd $Vec2_init__pv $Vec2_destroy $Vec2_operator_assign__N9constVec2 $Vec2_dot__pv $Vec2_lengthSq $main)
 
   ;; function Vec2_init__dd
   (func $Vec2_init__dd (param $self i32) (param $x_ f64) (param $y_ f64)
@@ -218,102 +224,6 @@
     return
   )
 
-  ;; function Vec2_operator_add__N9constVec2
-  (func $Vec2_operator_add__N9constVec2 (param $self i32) (param $o i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 24
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 16
-    i32.add
-    local.get $o
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 16
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Vec2_operator_eq__N9constVec2
-  (func $Vec2_operator_eq__N9constVec2 (param $self i32) (param $o i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 24
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 16
-    i32.add
-    local.get $o
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 16
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
   ;; function Vec2_dot__pv
   (func $Vec2_dot__pv (param $self i32) (param $o i32) (result f64)
     (local $__frame i32)
@@ -344,17 +254,46 @@
     i32.load
     drop
     local.get $__frame
+    i32.const 0
+    i32.add
+    i32.load
+    i32.const 0
+    i32.add
+    f64.load
+    local.get $__frame
     i32.const 16
     i32.add
     i32.load
-    drop
     i32.const 0
-    f64.convert_i32_s
+    i32.add
+    f64.load
+    f64.mul
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.load
+    i32.const 8
+    i32.add
+    f64.load
+    local.get $__frame
+    i32.const 16
+    i32.add
+    i32.load
+    i32.const 8
+    i32.add
+    f64.load
+    f64.mul
+    f64.add
     local.get $__parent_frame
     global.set $__frame_ptr
     local.get $__frame
     global.set $__stack_ptr
     return
+    local.get $__frame
+    i32.const 16
+    i32.add
+    i32.load
+    drop
     f64.const 0
     local.get $__parent_frame
     global.set $__frame_ptr
@@ -387,8 +326,37 @@
     i32.add
     i32.load
     drop
+    local.get $__frame
     i32.const 0
-    f64.convert_i32_s
+    i32.add
+    i32.load
+    i32.const 0
+    i32.add
+    f64.load
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.load
+    i32.const 0
+    i32.add
+    f64.load
+    f64.mul
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.load
+    i32.const 8
+    i32.add
+    f64.load
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.load
+    i32.const 8
+    i32.add
+    f64.load
+    f64.mul
+    f64.add
     local.get $__parent_frame
     global.set $__frame_ptr
     local.get $__frame
@@ -408,9 +376,9 @@
     (local $a i32)
     (local $b i32)
     (local $c i32)
-    (local $d i32)
     (local $__tmp_struct_dst i32)
     (local $__tmp_struct_src i32)
+    (local $unit i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
     local.set $__parent_frame
@@ -429,26 +397,141 @@
     f64.const 4
     call $Vec2_init__dd
     local.get $__frame
+    i32.const 0
+    i32.add
+    i32.const 0
+    i32.add
+    f64.load
+    f64.const 3
+    f64.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 16
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.const 8
+    i32.add
+    f64.load
+    f64.const 4
+    f64.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 32
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
+    local.get $__frame
     i32.const 16
     i32.add
     local.get $__frame
     i32.const 0
     i32.add
-    drop
-    drop
     i32.const 0
-    drop
+    i32.add
+    i32.load
+    i32.store
+    local.get $__frame
+    i32.const 16
+    i32.add
+    i32.const 4
+    i32.add
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.const 4
+    i32.add
+    i32.load
+    i32.store
+    local.get $__frame
+    i32.const 16
+    i32.add
+    i32.const 8
+    i32.add
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.const 8
+    i32.add
+    i32.load
+    i32.store
+    local.get $__frame
+    i32.const 16
+    i32.add
+    i32.const 12
+    i32.add
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.const 12
+    i32.add
+    i32.load
+    i32.store
+    local.get $__frame
+    i32.const 16
+    i32.add
+    i32.const 0
+    i32.add
+    f64.load
+    f64.const 3
+    f64.eq
+    i32.eqz
+    i32.eqz
+    if (result i32)
+      local.get $__frame
+      i32.const 16
+      i32.add
+      i32.const 8
+      i32.add
+      f64.load
+      f64.const 4
+      f64.eq
+      i32.eqz
+      i32.eqz
+    else
+      i32.const 0
+    end
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 48
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
     local.get $__frame
     i32.const 32
     i32.add
     f64.const 0
     f64.const 0
-    call $Vec2_init__dd
-    local.get $__frame
-    i32.const 48
-    i32.add
-    f64.const 3
-    f64.const 4
     call $Vec2_init__dd
     local.get $__frame
     i32.const 32
@@ -492,7 +575,97 @@
     i32.store
     local.get $__tmp_struct_dst
     drop
-    i32.const 16
+    local.get $__frame
+    i32.const 32
+    i32.add
+    i32.const 0
+    i32.add
+    f64.load
+    f64.const 3
+    f64.eq
+    i32.eqz
+    i32.eqz
+    if (result i32)
+      local.get $__frame
+      i32.const 32
+      i32.add
+      i32.const 8
+      i32.add
+      f64.load
+      f64.const 4
+      f64.eq
+      i32.eqz
+      i32.eqz
+    else
+      i32.const 0
+    end
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 64
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
+    local.get $__frame
+    i32.const 48
+    i32.add
+    f64.const 1
+    f64.const 0
+    call $Vec2_init__dd
+    local.get $__frame
+    i32.const 0
+    i32.add
+    local.get $__frame
+    i32.const 48
+    i32.add
+    call $Vec2_dot__pv
+    f64.const 3
+    f64.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 80
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
+    local.get $__frame
+    i32.const 0
+    i32.add
+    call $Vec2_lengthSq
+    f64.const 25
+    f64.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 100
+      f64.convert_i32_s
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      f64.const 0
+      call $imp_printf
+      drop
+    end
+    i32.const 116
     f64.convert_i32_s
     f64.const 0
     f64.const 0
@@ -521,8 +694,6 @@
   (export "Vec2_init__pv" (func $Vec2_init__pv))
   (export "Vec2_destroy" (func $Vec2_destroy))
   (export "Vec2_operator_assign__N9constVec2" (func $Vec2_operator_assign__N9constVec2))
-  (export "Vec2_operator_add__N9constVec2" (func $Vec2_operator_add__N9constVec2))
-  (export "Vec2_operator_eq__N9constVec2" (func $Vec2_operator_eq__N9constVec2))
   (export "Vec2_dot__pv" (func $Vec2_dot__pv))
   (export "Vec2_lengthSq" (func $Vec2_lengthSq))
   (export "main" (func $main))

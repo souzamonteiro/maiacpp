@@ -23,8 +23,8 @@ resolve_repo_tool() {
 	return 1
 }
 
-# Prefer the sibling MaiaC workspace when available; fall back to vendored copy.
-MAIAC_WEBC_JS="$(resolve_repo_tool "$PROJECTS_ROOT/maiac/tools/webc.js" "$REPO_ROOT/maiac/tools/webc.js" || true)"
+# Prefer the submodule MaiaC (maiacpp/maiac) over the sibling workspace at the projects root.
+MAIAC_WEBC_JS="$(resolve_repo_tool "$REPO_ROOT/maiac/tools/webc.js" "$PROJECTS_ROOT/maiac/tools/webc.js" || true)"
 MAIAC_ROOT=""
 if [[ -n "$MAIAC_WEBC_JS" ]]; then
 	MAIAC_ROOT="$(cd "$(dirname "$MAIAC_WEBC_JS")/.." && pwd -P)"

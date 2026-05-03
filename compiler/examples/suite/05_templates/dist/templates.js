@@ -1522,7 +1522,9 @@ function createStdioHosts(getMemory, allocator, cstr, opts = {}) {
         i += 1;
       }
 
+      let fieldWidth = 0;
       while (i < fmt.length && fmt.charAt(i) >= '0' && fmt.charAt(i) <= '9') {
+        fieldWidth = fieldWidth * 10 + (fmt.charCodeAt(i) - 48);
         i += 1;
       }
 
@@ -1542,18 +1544,60 @@ function createStdioHosts(getMemory, allocator, cstr, opts = {}) {
       const spec = fmt.charAt(i);
       const isIntSpec = (spec === 'd' || spec === 'i' || spec === 'u' || spec === 'x' || spec === 'X');
       const isFloatSpec = (spec === 'f' || spec === 'F' || spec === 'e' || spec === 'E' || spec === 'g' || spec === 'G');
-      if (!isIntSpec && !isFloatSpec) {
+      const isCharSpec = (spec === 'c');
+      const isStringSpec = (spec === 's');
+      if (!isIntSpec && !isFloatSpec && !isCharSpec && !isStringSpec) {
         break;
       }
 
       let parsedInt = null;
       let parsedFloat = null;
+      let parsedChars = null;
+
       if (isFloatSpec) {
         parsedFloat = readScanfFloat(readChar, unreadChar);
         if (parsedFloat == null) break;
-      } else {
+      } else if (isIntSpec) {
         parsedInt = readScanfNumber(readChar, unreadChar, spec);
         if (!parsedInt) break;
+      } else if (isCharSpec) {
+        const width = fieldWidth > 0 ? fieldWidth : 1;
+        parsedChars = [];
+        for (let consumed = 0; consumed < width; consumed += 1) {
+          const ch = readChar();
+          if (ch < 0) break;
+          parsedChars.push(ch & 0xFF);
+        }
+        if (parsedChars.length !== width) {
+          if (parsedChars.length > 0) {
+            for (let back = parsedChars.length - 1; back >= 0; back -= 1) {
+              unreadChar(parsedChars[back]);
+            }
+          }
+          break;
+        }
+      } else if (isStringSpec) {
+        let ch = readChar();
+        while (isSpaceChar(ch)) {
+          ch = readChar();
+        }
+        if (ch < 0) break;
+
+        const maxChars = fieldWidth > 0 ? fieldWidth : Number.MAX_SAFE_INTEGER;
+        parsedChars = [];
+
+        while (ch >= 0 && !isSpaceChar(ch) && parsedChars.length < maxChars) {
+          parsedChars.push(ch & 0xFF);
+          ch = readChar();
+        }
+
+        if (ch >= 0 && !isSpaceChar(ch) && parsedChars.length >= maxChars) {
+          unreadChar(ch);
+        } else {
+          unreadChar(ch);
+        }
+
+        if (parsedChars.length === 0) break;
       }
 
       if (!suppressAssign) {
@@ -1561,14 +1605,27 @@ function createStdioHosts(getMemory, allocator, cstr, opts = {}) {
         if (!targetPtr) {
           break;
         }
+
         if (isFloatSpec) {
           if (longCount > 0) mem.writeF64(targetPtr, parsedFloat);
           else mem.writeF32(targetPtr, parsedFloat);
-        } else if (spec === 'd' || spec === 'i') {
-          mem.writeI32(targetPtr, parsedInt.signed);
-        } else {
-          mem.writeI32(targetPtr, parsedInt.unsigned);
+        } else if (isIntSpec) {
+          if (spec === 'd' || spec === 'i') {
+            mem.writeI32(targetPtr, parsedInt.signed);
+          } else {
+            mem.writeI32(targetPtr, parsedInt.unsigned);
+          }
+        } else if (isCharSpec) {
+          for (let idx = 0; idx < parsedChars.length; idx += 1) {
+            mem.writeI8(targetPtr + idx, parsedChars[idx]);
+          }
+        } else if (isStringSpec) {
+          for (let idx = 0; idx < parsedChars.length; idx += 1) {
+            mem.writeI8(targetPtr + idx, parsedChars[idx]);
+          }
+          mem.writeI8(targetPtr + parsedChars.length, 0);
         }
+
         assigned += 1;
       }
 
@@ -2033,6 +2090,17 @@ function createSignalHosts(_getMemory, _allocator, _cstr, opts = {}) {
   };
 }
 
+function createStringHosts(getMemory) {
+  const mem = createMemoryAccess(getMemory);
+
+  return {
+    strlen: (ptr) => {
+      const text = mem.readCString(ptr);
+      return text.length | 0;
+    }
+  };
+}
+
 function createC89JsHosts(getMemory, opts = {}) {
   const allocator = createRuntimeAllocator(getMemory);
   const mem = createMemoryAccess(getMemory);
@@ -2040,6 +2108,7 @@ function createC89JsHosts(getMemory, opts = {}) {
 
   return {
     ...createMathHosts(getMemory),
+    ...createStringHosts(getMemory),
     ...createStdioHosts(getMemory, allocator, cstr, opts),
     ...createTimeHosts(getMemory, allocator, cstr, opts),
     ...createLocaleHosts(getMemory, allocator, cstr, opts),

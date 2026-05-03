@@ -89,7 +89,7 @@ void Triangle_destroy(Triangle* self) {
 
 int Triangle_calcArea(Triangle* self) {
   (void)self;
-  return self->__base.width * self->__base.height / 2;
+  return width * height / 2;
 }
 
 /* Global functions */

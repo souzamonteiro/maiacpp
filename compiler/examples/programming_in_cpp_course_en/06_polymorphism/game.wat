@@ -17,7 +17,7 @@
 
   (memory $mem 1)
 
-  (table $fn_table 85 funcref)
+  (table $fn_table 65 funcref)
 
   ;; global __frame_ptr
   (global $__frame_ptr (mut i32) (i32.const 0))
@@ -30,7 +30,7 @@
   (data (i32.const 44) "Game over!\00")
   (data (i32.const 56) "Congratulations! You win!\00")
 
-  (elem (table $fn_table) (i32.const 0) func $LifeForm_init $LifeForm_init__pv $LifeForm_destroy $LifeForm_setName__pv $LifeForm_getName $LifeForm_setLife__i $LifeForm_getLife $LifeForm_setStrength__i $LifeForm_getStrength $Human_init $Human_init__pv $Human_destroy $Human_say__pv $Human_respond__pv $Human_if__N13s_How_are_you $Human_if__N1sN7and_you $Human_if__N9s_Goodbye $Human_if__N5s_Bye $Human_converse__N13ClassTemplatepv $Wizard_init $Wizard_init__pv $Wizard_destroy $Wizard_setMagic__i $Wizard_getMagic $Witch_init $Witch_init__pv $Witch_destroy $Witch_setMagic__i $Witch_getMagic $Knight_init $Knight_init__pv $Knight_destroy $Knight_setBravery__i $Knight_getBravery $Knight_setArmor__i $Knight_getArmor $Knight_respond__pv $Knight_if__N13s_How_are_you $Knight_if__N1sN7and_you $Knight_if__N9s_Goodbye $Knight_if__N5s_Bye $Princess_init $Princess_init__pv $Princess_destroy $Princess_setIntelligence__i $Princess_getIntelligence $Princess_setBeauty__i $Princess_getBeauty $Princess_setWealth__i $Princess_getWealth $Princess_respond__pv $Princess_if__N5s_I_mN7and_you $Princess_if__N23s_None_of_your_business $Princess_if__N17s_Get_out_of_here $Princess_if__N10s_Get_lost $Princess_if__N17s_You_re_done_for $Villager_init $Villager_init__pv $Villager_destroy $Villager_setLoyalty__i $Villager_getLoyalty $Villager_setHonesty__i $Villager_getHonesty $Villager_respond__pv $Villager_if__N13s_How_are_you $Villager_if__N1sN7and_you $Villager_if__N11s_I_m_great $Villager_if__N21s_I_ll_call_my_father $Villager_if__N9s_Goodbye $Villager_if__N5s_Bye $Monster_init $Monster_init__pv $Monster_destroy $Monster_setSympathy__i $Monster_getSympathy $Dragon_init $Dragon_init__pv $Dragon_destroy $Dragon_setFire__i $Dragon_getFire $introduction $chapter1 $chapter2 $chapter3 $main)
+  (elem (table $fn_table) (i32.const 0) func $LifeForm_init $LifeForm_init__pv $LifeForm_destroy $LifeForm_setName__pv $LifeForm_getName $LifeForm_setLife__i $LifeForm_getLife $LifeForm_setStrength__i $LifeForm_getStrength $Human_init $Human_init__pv $Human_destroy $Human_say__pv $Human_respond__pv $Wizard_init $Wizard_init__pv $Wizard_destroy $Wizard_setMagic__i $Wizard_getMagic $Witch_init $Witch_init__pv $Witch_destroy $Witch_setMagic__i $Witch_getMagic $Knight_init $Knight_init__pv $Knight_destroy $Knight_setBravery__i $Knight_getBravery $Knight_setArmor__i $Knight_getArmor $Knight_respond__pv $Princess_init $Princess_init__pv $Princess_destroy $Princess_setIntelligence__i $Princess_getIntelligence $Princess_setBeauty__i $Princess_getBeauty $Princess_setWealth__i $Princess_getWealth $Princess_respond__pv $Villager_init $Villager_init__pv $Villager_destroy $Villager_setLoyalty__i $Villager_getLoyalty $Villager_setHonesty__i $Villager_getHonesty $Villager_respond__pv $Monster_init $Monster_init__pv $Monster_destroy $Monster_setSympathy__i $Monster_getSympathy $Dragon_init $Dragon_init__pv $Dragon_destroy $Dragon_setFire__i $Dragon_getFire $introduction $chapter1 $chapter2 $chapter3 $main)
 
   ;; function LifeForm_init
   (func $LifeForm_init (param $self i32)
@@ -387,7 +387,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 16
+    i32.const 24
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -418,7 +418,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 24
+    i32.const 32
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -427,7 +427,7 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 16
+    i32.const 24
     i32.add
     local.get $n
     i32.store
@@ -441,7 +441,7 @@
     i32.add
     i32.load
     local.get $__frame
-    i32.const 16
+    i32.const 24
     i32.add
     i32.load
     call $LifeForm_init__pv
@@ -458,7 +458,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 16
+    i32.const 24
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -484,7 +484,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 24
+    i32.const 32
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -493,7 +493,7 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 16
+    i32.const 24
     i32.add
     local.get $s
     i32.store
@@ -514,7 +514,7 @@
     i32.const 34
     f64.convert_i32_s
     local.get $__frame
-    i32.const 16
+    i32.const 24
     i32.add
     i32.load
     f64.convert_i32_s
@@ -526,7 +526,7 @@
     call $imp_printf
     drop
     local.get $__frame
-    i32.const 16
+    i32.const 24
     i32.add
     i32.load
     drop
@@ -543,7 +543,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 24
+    i32.const 32
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -552,7 +552,7 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 16
+    i32.const 24
     i32.add
     local.get $s
     i32.store
@@ -562,267 +562,7 @@
     i32.load
     drop
     local.get $__frame
-    i32.const 16
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Human_if__N13s_How_are_you
-  (func $Human_if__N13s_How_are_you (param $self i32) (param $p1 i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
     i32.const 24
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 16
-    i32.add
-    local.get $p1
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 16
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Human_if__N1sN7and_you
-  (func $Human_if__N1sN7and_you (param $self i32) (param $Fine i32) (param $p2 i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 24
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 16
-    i32.add
-    local.get $Fine
-    i32.store
-    local.get $__frame
-    i32.const 20
-    i32.add
-    local.get $p2
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 16
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 20
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Human_if__N9s_Goodbye
-  (func $Human_if__N9s_Goodbye (param $self i32) (param $p1 i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 24
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 16
-    i32.add
-    local.get $p1
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 16
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Human_if__N5s_Bye
-  (func $Human_if__N5s_Bye (param $self i32) (param $p1 i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 24
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 16
-    i32.add
-    local.get $p1
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 16
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Human_converse__N13ClassTemplatepv
-  (func $Human_converse__N13ClassTemplatepv (param $self i32) (param $person i32) (param $s i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 24
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 16
-    i32.add
-    local.get $person
-    i32.store
-    local.get $__frame
-    i32.const 20
-    i32.add
-    local.get $s
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 16
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 20
     i32.add
     i32.load
     drop
@@ -851,7 +591,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 24
+    i32.const 32
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -882,7 +622,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 24
+    i32.const 32
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -891,7 +631,7 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 20
+    i32.const 28
     i32.add
     local.get $n
     i32.store
@@ -905,7 +645,7 @@
     i32.add
     i32.load
     local.get $__frame
-    i32.const 20
+    i32.const 28
     i32.add
     i32.load
     call $Human_init__pv
@@ -922,7 +662,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 24
+    i32.const 32
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -948,7 +688,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 24
+    i32.const 32
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -957,7 +697,7 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 20
+    i32.const 28
     i32.add
     local.get $m
     i32.store
@@ -967,7 +707,7 @@
     i32.load
     drop
     local.get $__frame
-    i32.const 20
+    i32.const 28
     i32.add
     i32.load
     drop
@@ -984,7 +724,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 24
+    i32.const 32
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -1001,7 +741,7 @@
     i32.const 0
     i32.add
     i32.load
-    i32.const 16
+    i32.const 24
     i32.add
     i32.load
     local.get $__parent_frame
@@ -1028,7 +768,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 24
+    i32.const 32
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -1059,7 +799,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 24
+    i32.const 32
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -1068,7 +808,7 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 20
+    i32.const 28
     i32.add
     local.get $n
     i32.store
@@ -1082,7 +822,7 @@
     i32.add
     i32.load
     local.get $__frame
-    i32.const 20
+    i32.const 28
     i32.add
     i32.load
     call $Human_init__pv
@@ -1099,7 +839,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 24
+    i32.const 32
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -1125,7 +865,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 24
+    i32.const 32
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -1134,7 +874,7 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 20
+    i32.const 28
     i32.add
     local.get $m
     i32.store
@@ -1144,7 +884,7 @@
     i32.load
     drop
     local.get $__frame
-    i32.const 20
+    i32.const 28
     i32.add
     i32.load
     drop
@@ -1161,7 +901,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 24
+    i32.const 32
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -1178,7 +918,7 @@
     i32.const 0
     i32.add
     i32.load
-    i32.const 16
+    i32.const 24
     i32.add
     i32.load
     local.get $__parent_frame
@@ -1205,7 +945,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 32
+    i32.const 40
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -1236,7 +976,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 32
+    i32.const 40
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -1245,7 +985,7 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 28
+    i32.const 36
     i32.add
     local.get $n
     i32.store
@@ -1259,7 +999,7 @@
     i32.add
     i32.load
     local.get $__frame
-    i32.const 28
+    i32.const 36
     i32.add
     i32.load
     call $Human_init__pv
@@ -1276,7 +1016,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 32
+    i32.const 40
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -1302,7 +1042,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 32
+    i32.const 40
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -1311,7 +1051,7 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 28
+    i32.const 36
     i32.add
     local.get $c
     i32.store
@@ -1321,7 +1061,7 @@
     i32.load
     drop
     local.get $__frame
-    i32.const 28
+    i32.const 36
     i32.add
     i32.load
     drop
@@ -1338,7 +1078,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 32
+    i32.const 40
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -1355,7 +1095,7 @@
     i32.const 0
     i32.add
     i32.load
-    i32.const 16
+    i32.const 24
     i32.add
     i32.load
     local.get $__parent_frame
@@ -1382,7 +1122,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 32
+    i32.const 40
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -1391,7 +1131,7 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 28
+    i32.const 36
     i32.add
     local.get $a
     i32.store
@@ -1401,7 +1141,7 @@
     i32.load
     drop
     local.get $__frame
-    i32.const 28
+    i32.const 36
     i32.add
     i32.load
     drop
@@ -1418,7 +1158,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 32
+    i32.const 40
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -1435,7 +1175,7 @@
     i32.const 0
     i32.add
     i32.load
-    i32.const 20
+    i32.const 28
     i32.add
     i32.load
     local.get $__parent_frame
@@ -1462,102 +1202,6 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 32
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 28
-    i32.add
-    local.get $s
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 28
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Knight_if__N13s_How_are_you
-  (func $Knight_if__N13s_How_are_you (param $self i32) (param $p1 i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 32
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 28
-    i32.add
-    local.get $p1
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 28
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Knight_if__N1sN7and_you
-  (func $Knight_if__N1sN7and_you (param $self i32) (param $Fine i32) (param $p2 i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
     i32.const 40
     i32.add
     global.set $__stack_ptr
@@ -1567,14 +1211,9 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 28
+    i32.const 36
     i32.add
-    local.get $Fine
-    i32.store
-    local.get $__frame
-    i32.const 32
-    i32.add
-    local.get $p2
+    local.get $s
     i32.store
     local.get $__frame
     i32.const 0
@@ -1582,108 +1221,7 @@
     i32.load
     drop
     local.get $__frame
-    i32.const 28
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 32
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Knight_if__N9s_Goodbye
-  (func $Knight_if__N9s_Goodbye (param $self i32) (param $p1 i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 32
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 28
-    i32.add
-    local.get $p1
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 28
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Knight_if__N5s_Bye
-  (func $Knight_if__N5s_Bye (param $self i32) (param $p1 i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 32
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 28
-    i32.add
-    local.get $p1
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 28
+    i32.const 36
     i32.add
     i32.load
     drop
@@ -1712,7 +1250,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 32
+    i32.const 40
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -1743,7 +1281,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 32
+    i32.const 40
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -1752,7 +1290,7 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 28
+    i32.const 36
     i32.add
     local.get $n
     i32.store
@@ -1766,7 +1304,7 @@
     i32.add
     i32.load
     local.get $__frame
-    i32.const 28
+    i32.const 36
     i32.add
     i32.load
     call $Human_init__pv
@@ -1783,7 +1321,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 32
+    i32.const 40
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -1809,7 +1347,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 32
+    i32.const 40
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -1818,7 +1356,7 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 28
+    i32.const 36
     i32.add
     local.get $i
     i32.store
@@ -1828,7 +1366,7 @@
     i32.load
     drop
     local.get $__frame
-    i32.const 28
+    i32.const 36
     i32.add
     i32.load
     drop
@@ -1845,167 +1383,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 32
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    i32.const 16
-    i32.add
-    i32.load
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Princess_setBeauty__i
-  (func $Princess_setBeauty__i (param $self i32) (param $b i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 32
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 28
-    i32.add
-    local.get $b
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 28
-    i32.add
-    i32.load
-    drop
-  )
-
-  ;; function Princess_getBeauty
-  (func $Princess_getBeauty (param $self i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 32
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    i32.const 20
-    i32.add
-    i32.load
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Princess_setWealth__i
-  (func $Princess_setWealth__i (param $self i32) (param $d i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 32
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 28
-    i32.add
-    local.get $d
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 28
-    i32.add
-    i32.load
-    drop
-  )
-
-  ;; function Princess_getWealth
-  (func $Princess_getWealth (param $self i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 32
+    i32.const 40
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -2038,56 +1416,8 @@
     return
   )
 
-  ;; function Princess_respond__pv
-  (func $Princess_respond__pv (param $self i32) (param $s i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 32
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 28
-    i32.add
-    local.get $s
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 28
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Princess_if__N5s_I_mN7and_you
-  (func $Princess_if__N5s_I_mN7and_you (param $self i32) (param $good i32) (param $p2 i32) (result i32)
+  ;; function Princess_setBeauty__i
+  (func $Princess_setBeauty__i (param $self i32) (param $b i32)
     (local $__frame i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
@@ -2106,14 +1436,9 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 28
+    i32.const 36
     i32.add
-    local.get $good
-    i32.store
-    local.get $__frame
-    i32.const 32
-    i32.add
-    local.get $p2
+    local.get $b
     i32.store
     local.get $__frame
     i32.const 0
@@ -2121,16 +1446,43 @@
     i32.load
     drop
     local.get $__frame
-    i32.const 28
+    i32.const 36
+    i32.add
+    i32.load
+    drop
+  )
+
+  ;; function Princess_getBeauty
+  (func $Princess_getBeauty (param $self i32) (result i32)
+    (local $__frame i32)
+    (local $__parent_frame i32)
+    global.get $__frame_ptr
+    local.set $__parent_frame
+    global.get $__stack_ptr
+    local.set $__frame
+    local.get $__frame
+    global.set $__frame_ptr
+    global.get $__stack_ptr
+    i32.const 40
+    i32.add
+    global.set $__stack_ptr
+    local.get $__frame
+    i32.const 0
+    i32.add
+    local.get $self
+    i32.store
+    local.get $__frame
+    i32.const 0
     i32.add
     i32.load
     drop
     local.get $__frame
-    i32.const 32
+    i32.const 0
     i32.add
     i32.load
-    drop
-    i32.const 0
+    i32.const 28
+    i32.add
+    i32.load
     local.get $__parent_frame
     global.set $__frame_ptr
     local.get $__frame
@@ -2144,8 +1496,8 @@
     return
   )
 
-  ;; function Princess_if__N23s_None_of_your_business
-  (func $Princess_if__N23s_None_of_your_business (param $self i32) (param $p1 i32) (result i32)
+  ;; function Princess_setWealth__i
+  (func $Princess_setWealth__i (param $self i32) (param $d i32)
     (local $__frame i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
@@ -2155,7 +1507,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 32
+    i32.const 40
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -2164,9 +1516,9 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 28
+    i32.const 36
     i32.add
-    local.get $p1
+    local.get $d
     i32.store
     local.get $__frame
     i32.const 0
@@ -2174,11 +1526,43 @@
     i32.load
     drop
     local.get $__frame
-    i32.const 28
+    i32.const 36
     i32.add
     i32.load
     drop
+  )
+
+  ;; function Princess_getWealth
+  (func $Princess_getWealth (param $self i32) (result i32)
+    (local $__frame i32)
+    (local $__parent_frame i32)
+    global.get $__frame_ptr
+    local.set $__parent_frame
+    global.get $__stack_ptr
+    local.set $__frame
+    local.get $__frame
+    global.set $__frame_ptr
+    global.get $__stack_ptr
+    i32.const 40
+    i32.add
+    global.set $__stack_ptr
+    local.get $__frame
     i32.const 0
+    i32.add
+    local.get $self
+    i32.store
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.load
+    drop
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.load
+    i32.const 32
+    i32.add
+    i32.load
     local.get $__parent_frame
     global.set $__frame_ptr
     local.get $__frame
@@ -2192,8 +1576,8 @@
     return
   )
 
-  ;; function Princess_if__N17s_Get_out_of_here
-  (func $Princess_if__N17s_Get_out_of_here (param $self i32) (param $p1 i32) (result i32)
+  ;; function Princess_respond__pv
+  (func $Princess_respond__pv (param $self i32) (param $s i32) (result i32)
     (local $__frame i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
@@ -2203,7 +1587,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 32
+    i32.const 40
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -2212,9 +1596,9 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 28
+    i32.const 36
     i32.add
-    local.get $p1
+    local.get $s
     i32.store
     local.get $__frame
     i32.const 0
@@ -2222,103 +1606,7 @@
     i32.load
     drop
     local.get $__frame
-    i32.const 28
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Princess_if__N10s_Get_lost
-  (func $Princess_if__N10s_Get_lost (param $self i32) (param $p1 i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 32
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 28
-    i32.add
-    local.get $p1
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 28
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Princess_if__N17s_You_re_done_for
-  (func $Princess_if__N17s_You_re_done_for (param $self i32) (param $p1 i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 32
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 28
-    i32.add
-    local.get $p1
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 28
+    i32.const 36
     i32.add
     i32.load
     drop
@@ -2347,7 +1635,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 24
+    i32.const 32
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -2378,7 +1666,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 32
+    i32.const 40
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -2387,7 +1675,7 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 24
+    i32.const 32
     i32.add
     local.get $n
     i32.store
@@ -2401,7 +1689,7 @@
     i32.add
     i32.load
     local.get $__frame
-    i32.const 24
+    i32.const 32
     i32.add
     i32.load
     call $Human_init__pv
@@ -2418,7 +1706,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 24
+    i32.const 32
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -2444,7 +1732,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 32
+    i32.const 40
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -2453,7 +1741,7 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 24
+    i32.const 32
     i32.add
     local.get $l
     i32.store
@@ -2463,7 +1751,7 @@
     i32.load
     drop
     local.get $__frame
-    i32.const 24
+    i32.const 32
     i32.add
     i32.load
     drop
@@ -2480,7 +1768,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 24
+    i32.const 32
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -2497,7 +1785,7 @@
     i32.const 0
     i32.add
     i32.load
-    i32.const 16
+    i32.const 24
     i32.add
     i32.load
     local.get $__parent_frame
@@ -2524,7 +1812,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 32
+    i32.const 40
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -2533,7 +1821,7 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 24
+    i32.const 32
     i32.add
     local.get $h
     i32.store
@@ -2543,7 +1831,7 @@
     i32.load
     drop
     local.get $__frame
-    i32.const 24
+    i32.const 32
     i32.add
     i32.load
     drop
@@ -2560,7 +1848,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 24
+    i32.const 32
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -2577,7 +1865,7 @@
     i32.const 0
     i32.add
     i32.load
-    i32.const 20
+    i32.const 28
     i32.add
     i32.load
     local.get $__parent_frame
@@ -2604,7 +1892,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 32
+    i32.const 40
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -2613,7 +1901,7 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 24
+    i32.const 32
     i32.add
     local.get $s
     i32.store
@@ -2623,305 +1911,7 @@
     i32.load
     drop
     local.get $__frame
-    i32.const 24
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Villager_if__N13s_How_are_you
-  (func $Villager_if__N13s_How_are_you (param $self i32) (param $p1 i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
     i32.const 32
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 24
-    i32.add
-    local.get $p1
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 24
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Villager_if__N1sN7and_you
-  (func $Villager_if__N1sN7and_you (param $self i32) (param $Fine i32) (param $p2 i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 32
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 24
-    i32.add
-    local.get $Fine
-    i32.store
-    local.get $__frame
-    i32.const 28
-    i32.add
-    local.get $p2
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 24
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 28
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Villager_if__N11s_I_m_great
-  (func $Villager_if__N11s_I_m_great (param $self i32) (param $p1 i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 32
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 24
-    i32.add
-    local.get $p1
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 24
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Villager_if__N21s_I_ll_call_my_father
-  (func $Villager_if__N21s_I_ll_call_my_father (param $self i32) (param $p1 i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 32
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 24
-    i32.add
-    local.get $p1
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 24
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Villager_if__N9s_Goodbye
-  (func $Villager_if__N9s_Goodbye (param $self i32) (param $p1 i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 32
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 24
-    i32.add
-    local.get $p1
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 24
-    i32.add
-    i32.load
-    drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-  )
-
-  ;; function Villager_if__N5s_Bye
-  (func $Villager_if__N5s_Bye (param $self i32) (param $p1 i32) (result i32)
-    (local $__frame i32)
-    (local $__parent_frame i32)
-    global.get $__frame_ptr
-    local.set $__parent_frame
-    global.get $__stack_ptr
-    local.set $__frame
-    local.get $__frame
-    global.set $__frame_ptr
-    global.get $__stack_ptr
-    i32.const 32
-    i32.add
-    global.set $__stack_ptr
-    local.get $__frame
-    i32.const 0
-    i32.add
-    local.get $self
-    i32.store
-    local.get $__frame
-    i32.const 24
-    i32.add
-    local.get $p1
-    i32.store
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.load
-    drop
-    local.get $__frame
-    i32.const 24
     i32.add
     i32.load
     drop
@@ -3468,11 +2458,6 @@
   (export "Human_destroy" (func $Human_destroy))
   (export "Human_say__pv" (func $Human_say__pv))
   (export "Human_respond__pv" (func $Human_respond__pv))
-  (export "Human_if__N13s_How_are_you" (func $Human_if__N13s_How_are_you))
-  (export "Human_if__N1sN7and_you" (func $Human_if__N1sN7and_you))
-  (export "Human_if__N9s_Goodbye" (func $Human_if__N9s_Goodbye))
-  (export "Human_if__N5s_Bye" (func $Human_if__N5s_Bye))
-  (export "Human_converse__N13ClassTemplatepv" (func $Human_converse__N13ClassTemplatepv))
   (export "Wizard_init" (func $Wizard_init))
   (export "Wizard_init__pv" (func $Wizard_init__pv))
   (export "Wizard_destroy" (func $Wizard_destroy))
@@ -3491,10 +2476,6 @@
   (export "Knight_setArmor__i" (func $Knight_setArmor__i))
   (export "Knight_getArmor" (func $Knight_getArmor))
   (export "Knight_respond__pv" (func $Knight_respond__pv))
-  (export "Knight_if__N13s_How_are_you" (func $Knight_if__N13s_How_are_you))
-  (export "Knight_if__N1sN7and_you" (func $Knight_if__N1sN7and_you))
-  (export "Knight_if__N9s_Goodbye" (func $Knight_if__N9s_Goodbye))
-  (export "Knight_if__N5s_Bye" (func $Knight_if__N5s_Bye))
   (export "Princess_init" (func $Princess_init))
   (export "Princess_init__pv" (func $Princess_init__pv))
   (export "Princess_destroy" (func $Princess_destroy))
@@ -3505,11 +2486,6 @@
   (export "Princess_setWealth__i" (func $Princess_setWealth__i))
   (export "Princess_getWealth" (func $Princess_getWealth))
   (export "Princess_respond__pv" (func $Princess_respond__pv))
-  (export "Princess_if__N5s_I_mN7and_you" (func $Princess_if__N5s_I_mN7and_you))
-  (export "Princess_if__N23s_None_of_your_business" (func $Princess_if__N23s_None_of_your_business))
-  (export "Princess_if__N17s_Get_out_of_here" (func $Princess_if__N17s_Get_out_of_here))
-  (export "Princess_if__N10s_Get_lost" (func $Princess_if__N10s_Get_lost))
-  (export "Princess_if__N17s_You_re_done_for" (func $Princess_if__N17s_You_re_done_for))
   (export "Villager_init" (func $Villager_init))
   (export "Villager_init__pv" (func $Villager_init__pv))
   (export "Villager_destroy" (func $Villager_destroy))
@@ -3518,12 +2494,6 @@
   (export "Villager_setHonesty__i" (func $Villager_setHonesty__i))
   (export "Villager_getHonesty" (func $Villager_getHonesty))
   (export "Villager_respond__pv" (func $Villager_respond__pv))
-  (export "Villager_if__N13s_How_are_you" (func $Villager_if__N13s_How_are_you))
-  (export "Villager_if__N1sN7and_you" (func $Villager_if__N1sN7and_you))
-  (export "Villager_if__N11s_I_m_great" (func $Villager_if__N11s_I_m_great))
-  (export "Villager_if__N21s_I_ll_call_my_father" (func $Villager_if__N21s_I_ll_call_my_father))
-  (export "Villager_if__N9s_Goodbye" (func $Villager_if__N9s_Goodbye))
-  (export "Villager_if__N5s_Bye" (func $Villager_if__N5s_Bye))
   (export "Monster_init" (func $Monster_init))
   (export "Monster_init__pv" (func $Monster_init__pv))
   (export "Monster_destroy" (func $Monster_destroy))

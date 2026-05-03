@@ -3,7 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const app = require('./polymorphism.js');
+const app = require('./game.js');
 
 function createMachineAwareBridgeResolver(runtimeBridgeEntries, availableBridgeSymbols) {
   const pointerToBridge = new Map();
@@ -69,7 +69,7 @@ async function main() {
 
   const wasmPath = process.argv[2]
     ? path.resolve(process.argv[2])
-    : path.join(__dirname, 'polymorphism.wasm');
+    : path.join(__dirname, 'game.wasm');
   const exitCode = await app.run(wasmPath, { resolveResumeExportName });
   process.stdout.write('\n[node-runner] program returned: ' + exitCode + '\n');
   process.exitCode = Number.isInteger(exitCode) ? exitCode : 0;
