@@ -611,6 +611,29 @@
         ]
       },
       {
+        "id": "tier2_fixture_subset_ast_strict_no_legacy_function_hints",
+        "family": "ast_strict_no_legacy_function_hints_lane",
+        "matrixFamily": "source-hint merge reduction lane",
+        "command": [
+          "node",
+          "./compiler/tests/run_fixtures.js",
+          "--fixtures-dir",
+          "./compiler/tests/fixtures",
+          "--parser",
+          "./compiler/cpp-compiler.js",
+          "--mode",
+          "compiler",
+          "--parser-extra-arg=--ast-strict",
+          "--parser-extra-arg=--no-legacy-function-hints",
+          "--cases",
+          "011_namespace_global_function,017_overload_type_resolution,031_wat_simple_if_return,038_enum_semantic_use"
+        ],
+        "expectExitCode": 0,
+        "stdoutContains": [
+          "All fixtures passed: 4"
+        ]
+      },
+      {
         "id": "tier2_fixture_subset_no_legacy_function_hints",
         "family": "legacy_function_hints_reduction_lane",
         "matrixFamily": "source-hint merge reduction lane",
