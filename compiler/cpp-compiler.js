@@ -9346,7 +9346,9 @@ class Cpp98Compiler {
     this.options = options;
     this.parseProbeTimeoutMs = Number.isFinite(options.parseProbeTimeoutMs)
       ? Math.max(250, Math.floor(options.parseProbeTimeoutMs))
-      : 5000;
+            : (process.env.MAIACPP_PARSE_PROBE_TIMEOUT_MS 
+              ? Math.max(250, Number.parseInt(process.env.MAIACPP_PARSE_PROBE_TIMEOUT_MS, 10) || 180000)
+              : 180000);
     this.parseProbeMinSourceLength = Number.isFinite(options.parseProbeMinSourceLength)
       ? Math.max(0, Math.floor(options.parseProbeMinSourceLength))
       : 0;

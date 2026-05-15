@@ -690,7 +690,8 @@ UniversalCharacterName ::= #x5C 'u' [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA
 StringLiteral ::= '"' SChar* '"'
 
 SChar ::= EscapeSequence
-        | [#x21-#x5B]
+        | [#x21-#x21]
+        | [#x23-#x5B]
         | [#x5D-#x7E]
         | #x20
         | #x9
