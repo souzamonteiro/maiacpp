@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 PROJECTS_ROOT="$(cd "$REPO_ROOT/.." && pwd -P)"
+WORKSPACE_ROOT="$(cd "$PROJECTS_ROOT/.." && pwd -P)"
 
 COMPILER_JS="$REPO_ROOT/compiler/cpp-compiler.js"
 PARSER_JS="$REPO_ROOT/compiler/cpp-parser.js"
@@ -23,8 +24,14 @@ resolve_repo_tool() {
 	return 1
 }
 
-# Prefer the submodule MaiaC (maiacpp/maiac) over the sibling workspace at the projects root.
-MAIAC_WEBC_JS="$(resolve_repo_tool "$REPO_ROOT/maiac/tools/webc.js" "$PROJECTS_ROOT/maiac/tools/webc.js" || true)"
+# Prefer external sibling MaiaC workspace (../maiac) when available,
+# then fall back to in-repo maiajs/maiac, then embedded maiajs/maiacpp/maiac.
+MAIAC_WEBC_JS=""
+if [[ -f "$WORKSPACE_ROOT/maiac/tools/webc.js" ]]; then
+	MAIAC_WEBC_JS="$WORKSPACE_ROOT/maiac/tools/webc.js"
+else
+	MAIAC_WEBC_JS="$(resolve_repo_tool "$PROJECTS_ROOT/maiac/tools/webc.js" "$REPO_ROOT/maiac/tools/webc.js" || true)"
+fi
 MAIAC_ROOT=""
 if [[ -n "$MAIAC_WEBC_JS" ]]; then
 	MAIAC_ROOT="$(cd "$(dirname "$MAIAC_WEBC_JS")/.." && pwd -P)"
