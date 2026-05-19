@@ -88,13 +88,13 @@ resolve_repo_root() {
     return 1
   fi
 
-  if [[ -d "$sibling" ]]; then
-    cd "$sibling" && pwd -P
+  if [[ -d "$submodule" ]]; then
+    cd "$submodule" && pwd -P
     return 0
   fi
 
-  if [[ -d "$submodule" ]]; then
-    cd "$submodule" && pwd -P
+  if [[ -d "$sibling" ]]; then
+    cd "$sibling" && pwd -P
     return 0
   fi
 

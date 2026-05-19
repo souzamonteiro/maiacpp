@@ -12,26 +12,14 @@ COLLECTOR_JS="$REPO_ROOT/compiler/parse-tree-collector.js"
 
 resolve_repo_tool() {
 	local local_path="$1"
-	local sibling_path="$2"
 	if [[ -f "$local_path" ]]; then
 		echo "$local_path"
-		return 0
-	fi
-	if [[ -f "$sibling_path" ]]; then
-		echo "$sibling_path"
 		return 0
 	fi
 	return 1
 }
 
-# Prefer external sibling MaiaC workspace (../maiac) when available,
-# then fall back to in-repo maiajs/maiac, then embedded maiajs/maiacpp/maiac.
-MAIAC_WEBC_JS=""
-if [[ -f "$WORKSPACE_ROOT/maiac/tools/webc.js" ]]; then
-	MAIAC_WEBC_JS="$WORKSPACE_ROOT/maiac/tools/webc.js"
-else
-	MAIAC_WEBC_JS="$(resolve_repo_tool "$PROJECTS_ROOT/maiac/tools/webc.js" "$REPO_ROOT/maiac/tools/webc.js" || true)"
-fi
+MAIAC_WEBC_JS="$(resolve_repo_tool "$REPO_ROOT/maiac/tools/webc.js" || true)"
 MAIAC_ROOT=""
 if [[ -n "$MAIAC_WEBC_JS" ]]; then
 	MAIAC_ROOT="$(cd "$(dirname "$MAIAC_WEBC_JS")/.." && pwd -P)"
@@ -298,11 +286,11 @@ fi
 [[ -f "$INPUT_FILE" ]] || err "input file not found: $INPUT_FILE"
 
 if [[ -n "$WAT_OUT" || -n "$WASM_OUT" ]]; then
-	[[ -f "$MAIAC_WEBC_JS" ]] || err "MaiaC webc not found: $MAIAC_WEBC_JS"
+	[[ -f "$MAIAC_WEBC_JS" ]] || err "MaiaC webc not found in required submodule path: $REPO_ROOT/maiac/tools/webc.js"
 fi
 
 if [[ "$WEBC_WAT" -eq 1 || "$WEBC_VALIDATE" -eq 0 || "$WEBC_RESOLVE_SYSTEM_INCLUDES" -eq 1 || "$WEBC_DIST" -eq 1 || "$WEBC_DIST_RUN" -eq 1 || -n "$WEBC_DIST_NAME" || -n "$WEBC_OUT_BASE" || "$WEBC_RUN" -eq 1 || -n "$JS_OUT" ]]; then
-	[[ -f "$MAIAC_WEBC_JS" ]] || err "MaiaC webc not found: $MAIAC_WEBC_JS"
+	[[ -f "$MAIAC_WEBC_JS" ]] || err "MaiaC webc not found in required submodule path: $REPO_ROOT/maiac/tools/webc.js"
 fi
 
 INPUT_FILE="$(cd "$(dirname "$INPUT_FILE")" && pwd -P)/$(basename "$INPUT_FILE")"
