@@ -851,8 +851,12 @@ function inferResourceDeterministicReturnHintFromBody(bodyText, params) {
   const clean = cleanFunctionBodyText(bodyText);
   if (!clean) return false;
 
-  const hasGuardedIf = /\bif\s*\(/.test(clean);
-  const hasResourceOps = /\bnew\b|\bdelete\b|\bdynamic_cast\b|\bstatic_cast\b|~\s*[A-Za-z_][A-Za-z0-9_]*\s*\(|\bsizeof\s*\(/.test(clean);
+  const cleanSansLiterals = String(clean || '')
+    .replace(/"(?:[^"\\]|\\.)*"/g, '""')
+    .replace(/'(?:[^'\\]|\\.)*'/g, "''");
+
+  const hasGuardedIf = /\bif\s*\(/.test(cleanSansLiterals);
+  const hasResourceOps = /\bnew\b|\bdelete\b|\bdynamic_cast\b|\bstatic_cast\b|~\s*[A-Za-z_][A-Za-z0-9_]*\s*\(|\bsizeof\s*\(/.test(cleanSansLiterals);
   return hasGuardedIf && hasResourceOps;
 }
 
@@ -8496,12 +8500,15 @@ class CppToCTranspiler {
     }
 
     // Keep this lowering conservative to avoid emitting non-C constructs.
-    if (/\b(template|try|catch|throw|class|namespace|operator\s*\(|reinterpret_cast|dynamic_cast|const_cast|static_cast)\b|std::cout|std::cin|std::endl/.test(rawBody)) {
+    const rawBodySansLiterals = String(rawBody || '')
+      .replace(/"(?:[^"\\]|\\.)*"/g, '""')
+      .replace(/'(?:[^'\\]|\\.)*'/g, "''");
+    if (/\b(template|try|catch|throw|class|namespace|operator\s*\(|reinterpret_cast|dynamic_cast|const_cast|static_cast)\b|std::cout|std::cin|std::endl/.test(rawBodySansLiterals)) {
       return null;
     }
 
     // Bail out when body still contains common C++-only statement forms.
-    if (/\bPP_[A-Za-z0-9_]+\s*\(/.test(rawBody)) {
+    if (/\bPP_[A-Za-z0-9_]+\s*\(/.test(rawBodySansLiterals)) {
       return null;
     }
     
@@ -8961,10 +8968,23 @@ class CppToCTranspiler {
 
     const lowerRawBody = () => {
       const rewritten = rewriteCalls(normalizedBodyText);
-      const rawLines = rewritten
+
+      const normalizeCollapsedLine = (line) => {
+        let out = String(line || '').trim();
+        if (!out) return out;
+
+        out = out.replace(/^const(?=(?:void|int|double|float|char|short|long|unsigned|bool)\b)/, 'const ');
+        out = out.replace(/^((?:const\s+)?(?:void|int|double|float|char|short|long|unsigned|bool)\*?)([A-Za-z_])/, '$1 $2');
+        return out;
+      };
+
+      const rawLines = String(rewritten || '')
+        .replace(/([{}])/g, '\n$1\n')
+        .replace(/;/g, ';\n')
         .split('\n')
-        .map((line) => line.trim())
+        .map((line) => normalizeCollapsedLine(line))
         .filter((line) => line.length > 0);
+
       const normalizedLines = normalizeForDeclsToC89(rawLines);
       if (normalizedLines.length === 0) return null;
       if (fn.returnType !== 'void' && !normalizedLines.some((line) => /^return\b/.test(line))) {
