@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-04-29T22:25:43.076Z",
-  "input": "/var/folders/6p/871hys095mq5mm7078sqplx40000gn/T/tmp.l1RikTLIxQ/test.c",
-  "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/dist",
+  "generatedAt": "2026-05-20T22:21:52.567Z",
+  "input": "/var/folders/6p/871hys095mq5mm7078sqplx40000gn/T/tmp.nvPGTNh6f8/test.c",
+  "outDir": "/Volumes/External_SSD/Documentos/Projects/maiajs/maiacpp/compiler/examples/dist",
   "appName": "test",
   "artifacts": {
     "wasm": "test.wasm",
@@ -21,5 +21,5 @@
   ],
   "runtimeProvidedHeaders": [],
   "missingLibraries": [],
-  "sourceBytes": 12415
+  "sourceBytes": 13539
 }

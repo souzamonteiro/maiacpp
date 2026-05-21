@@ -7,12 +7,11 @@
   (import "env" "__exc_pop" (func $imp___exc_pop))
   (import "env" "__exc_active" (func $imp___exc_active (result i32)))
   (import "env" "__exc_type" (func $imp___exc_type (result i32)))
-  (import "env" "__exc_data" (func $imp___exc_data))
   (import "env" "__exc_throw" (func $imp___exc_throw (param i32 i32)))
   (import "env" "__exc_clear" (func $imp___exc_clear))
   (import "env" "__exc_matches" (func $imp___exc_matches (param i32 i32) (result i32)))
-  (import "env" "__malloc" (func $imp___malloc (param i32) (result i32)))
   (import "env" "__free" (func $imp___free (param i32)))
+  (import "env" "__malloc" (func $imp___malloc (param i32) (result i32)))
   (import "env" "printf" (func $imp_printf (param f64 f64 f64 f64 f64 f64 f64 f64) (result i32)))
 
   (memory $mem 1)
@@ -134,6 +133,7 @@
     i32.add
     i32.load
     call $imp___free
+    i32.const 0
     local.get $__frame
     i32.const 4
     i32.add
@@ -269,6 +269,7 @@
     i32.add
     i32.load
     call $imp___free
+    i32.const 0
     local.get $__frame
     i32.const 8
     i32.add
@@ -342,6 +343,7 @@
     i32.add
     i32.load
     call $imp___free
+    i32.const 0
     i32.const 132
     f64.convert_i32_s
     f64.const 0

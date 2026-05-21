@@ -7,11 +7,9 @@
   (import "env" "__exc_pop" (func $imp___exc_pop))
   (import "env" "__exc_active" (func $imp___exc_active (result i32)))
   (import "env" "__exc_type" (func $imp___exc_type (result i32)))
-  (import "env" "__exc_data" (func $imp___exc_data))
   (import "env" "__exc_throw" (func $imp___exc_throw (param i32 i32)))
   (import "env" "__exc_clear" (func $imp___exc_clear))
   (import "env" "__exc_matches" (func $imp___exc_matches (param i32 i32) (result i32)))
-  (import "env" "__malloc" (func $imp___malloc (param i32) (result i32)))
   (import "env" "__free" (func $imp___free (param i32)))
   (import "env" "printf" (func $imp_printf (param f64 f64 f64 f64 f64 f64 f64 f64) (result i32)))
 
@@ -25,31 +23,35 @@
   ;; global __stack_ptr
   (global $__stack_ptr (mut i32) (i32.const 1024))
 
-  (data (i32.const 16) "PASS object_like_sum\0a\00")
-  (data (i32.const 40) "PASS function_like_add\0a\00")
-  (data (i32.const 64) "PASS nested_macro_mul\0a\00")
-  (data (i32.const 88) "PASS token_paste\0a\00")
-  (data (i32.const 108) "PASS defined_if\0a\00")
-  (data (i32.const 128) "PASS stringification_raw\0a\00")
-  (data (i32.const 156) "PASS object_like_string\0a\00")
-  (data (i32.const 184) "ALL PASS\0a\00")
+  (data (i32.const 16) "PASS %s\0a\00")
+  (data (i32.const 28) "object_like_sum\00")
+  (data (i32.const 44) "function_like_add\00")
+  (data (i32.const 64) "nested_macro_mul\00")
+  (data (i32.const 84) "token_paste\00")
+  (data (i32.const 96) "defined_if\00")
+  (data (i32.const 108) "PASS stringification_raw\0a\00")
+  (data (i32.const 136) "PASS object_like_string\0a\00")
+  (data (i32.const 164) "ALL PASS\0a\00")
 
   (elem (table $fn_table) (i32.const 0) func $main)
 
   ;; function main
   (func $main (result i32)
+    (local $joined_value i32)
+    (local $nested_value i32)
+    (local $squared_value i32)
+    (local $local_var i32)
+    i32.const 42
+    local.set $joined_value
+    i32.const 18
+    local.set $nested_value
+    i32.const 9
+    local.set $squared_value
+    i32.const 22
+    local.set $local_var
     i32.const 16
     f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 40
+    i32.const 28
     f64.convert_i32_s
     f64.const 0
     f64.const 0
@@ -57,9 +59,22 @@
     f64.const 0
     f64.const 0
     f64.const 0
+    call $imp_printf
+    drop
+    i32.const 16
+    f64.convert_i32_s
+    i32.const 44
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
     f64.const 0
     call $imp_printf
     drop
+    i32.const 16
+    f64.convert_i32_s
     i32.const 64
     f64.convert_i32_s
     f64.const 0
@@ -68,12 +83,24 @@
     f64.const 0
     f64.const 0
     f64.const 0
+    call $imp_printf
+    drop
+    i32.const 16
+    f64.convert_i32_s
+    i32.const 84
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
     f64.const 0
     call $imp_printf
     drop
-    i32.const 88
+    i32.const 16
     f64.convert_i32_s
-    f64.const 0
+    i32.const 96
+    f64.convert_i32_s
     f64.const 0
     f64.const 0
     f64.const 0
@@ -93,7 +120,7 @@
     f64.const 0
     call $imp_printf
     drop
-    i32.const 128
+    i32.const 136
     f64.convert_i32_s
     f64.const 0
     f64.const 0
@@ -104,18 +131,7 @@
     f64.const 0
     call $imp_printf
     drop
-    i32.const 156
-    f64.convert_i32_s
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
-    i32.const 184
+    i32.const 164
     f64.convert_i32_s
     f64.const 0
     f64.const 0

@@ -7,11 +7,9 @@
   (import "env" "__exc_pop" (func $imp___exc_pop))
   (import "env" "__exc_active" (func $imp___exc_active (result i32)))
   (import "env" "__exc_type" (func $imp___exc_type (result i32)))
-  (import "env" "__exc_data" (func $imp___exc_data))
   (import "env" "__exc_throw" (func $imp___exc_throw (param i32 i32)))
   (import "env" "__exc_clear" (func $imp___exc_clear))
   (import "env" "__exc_matches" (func $imp___exc_matches (param i32 i32) (result i32)))
-  (import "env" "__malloc" (func $imp___malloc (param i32) (result i32)))
   (import "env" "__free" (func $imp___free (param i32)))
   (import "env" "printf" (func $imp_printf (param f64 f64 f64 f64 f64 f64 f64 f64) (result i32)))
 
@@ -30,8 +28,9 @@
 
   (data (i32.const 16) "PI number: \00")
   (data (i32.const 28) "%g\00")
-  (data (i32.const 32) "\0a\00")
-  (data (i32.const 36) "PI number: %0.7f\00")
+  (data (i32.const 32) "\c7\0eI@")
+  (data (i32.const 36) "\0a\00")
+  (data (i32.const 40) "PI number: %0.7f\00")
 
   (elem (table $fn_table) (i32.const 0) func $main)
 
@@ -50,19 +49,9 @@
     drop
     i32.const 28
     f64.convert_i32_s
-    global.get $pi
-    f64.promote_f32
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
     i32.const 32
-    f64.convert_i32_s
-    f64.const 0
+    f32.load
+    f64.promote_f32
     f64.const 0
     f64.const 0
     f64.const 0
@@ -73,7 +62,19 @@
     drop
     i32.const 36
     f64.convert_i32_s
-    global.get $pi
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 40
+    f64.convert_i32_s
+    i32.const 32
+    f32.load
     f64.promote_f32
     f64.const 0
     f64.const 0

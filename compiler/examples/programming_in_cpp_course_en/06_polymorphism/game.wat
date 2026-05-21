@@ -7,13 +7,12 @@
   (import "env" "__exc_pop" (func $imp___exc_pop))
   (import "env" "__exc_active" (func $imp___exc_active (result i32)))
   (import "env" "__exc_type" (func $imp___exc_type (result i32)))
-  (import "env" "__exc_data" (func $imp___exc_data))
   (import "env" "__exc_throw" (func $imp___exc_throw (param i32 i32)))
   (import "env" "__exc_clear" (func $imp___exc_clear))
   (import "env" "__exc_matches" (func $imp___exc_matches (param i32 i32) (result i32)))
-  (import "env" "__malloc" (func $imp___malloc (param i32) (result i32)))
   (import "env" "__free" (func $imp___free (param i32)))
   (import "env" "printf" (func $imp_printf (param f64 f64 f64 f64 f64 f64 f64 f64) (result i32)))
+  (import "env" "strcmp" (func $imp_strcmp (param i32 i32) (result i32)))
 
   (memory $mem 1)
 
@@ -26,9 +25,30 @@
   (global $__stack_ptr (mut i32) (i32.const 1024))
 
   (data (i32.const 16) "%s said %c%s%c.\0a\00")
-  (data (i32.const 36) "clear\00")
-  (data (i32.const 44) "Game over!\00")
-  (data (i32.const 56) "Congratulations! You win!\00")
+  (data (i32.const 36) "Hello!\00")
+  (data (i32.const 44) "How are you?\00")
+  (data (i32.const 60) "Fine, and you?\00")
+  (data (i32.const 76) "I'm doing great!\00")
+  (data (i32.const 96) "Goodbye!\00")
+  (data (i32.const 108) "See you!\00")
+  (data (i32.const 120) "Bye!\00")
+  (data (i32.const 128) "I don't know.\00")
+  (data (i32.const 144) "How do you do, noble person?\00")
+  (data (i32.const 176) "Fine, and how is Your Lordship?\00")
+  (data (i32.const 208) "I am doing splendidly well!\00")
+  (data (i32.const 236) "Until next time!\00")
+  (data (i32.const 256) "I'm good, and you?\00")
+  (data (i32.const 276) "I'm great!\00")
+  (data (i32.const 288) "None of your business!\00")
+  (data (i32.const 312) "How rude!\00")
+  (data (i32.const 324) "Get out of here!\00")
+  (data (i32.const 344) "I'll call my father!\00")
+  (data (i32.const 368) "Get lost!\00")
+  (data (i32.const 380) "You're done for!\00")
+  (data (i32.const 400) "I don't care!\00")
+  (data (i32.const 416) "clear\00")
+  (data (i32.const 424) "Game over!\00")
+  (data (i32.const 436) "Congratulations! You win!\00")
 
   (elem (table $fn_table) (i32.const 0) func $LifeForm_init $LifeForm_init__pv $LifeForm_destroy $LifeForm_setName__pv $LifeForm_getName $LifeForm_setLife__i $LifeForm_getLife $LifeForm_setStrength__i $LifeForm_getStrength $Human_init $Human_init__pv $Human_destroy $Human_say__pv $Human_respond__pv $Wizard_init $Wizard_init__pv $Wizard_destroy $Wizard_setMagic__i $Wizard_getMagic $Witch_init $Witch_init__pv $Witch_destroy $Witch_setMagic__i $Witch_getMagic $Knight_init $Knight_init__pv $Knight_destroy $Knight_setBravery__i $Knight_getBravery $Knight_setArmor__i $Knight_getArmor $Knight_respond__pv $Princess_init $Princess_init__pv $Princess_destroy $Princess_setIntelligence__i $Princess_getIntelligence $Princess_setBeauty__i $Princess_getBeauty $Princess_setWealth__i $Princess_getWealth $Princess_respond__pv $Villager_init $Villager_init__pv $Villager_destroy $Villager_setLoyalty__i $Villager_getLoyalty $Villager_setHonesty__i $Villager_getHonesty $Villager_respond__pv $Monster_init $Monster_init__pv $Monster_destroy $Monster_setSympathy__i $Monster_getSympathy $Dragon_init $Dragon_init__pv $Dragon_destroy $Dragon_setFire__i $Dragon_getFire $introduction $chapter1 $chapter2 $chapter3 $main)
 
@@ -219,6 +239,7 @@
   ;; function LifeForm_setLife__i
   (func $LifeForm_setLife__i (param $self i32) (param $v i32)
     (local $__frame i32)
+    (local $__tmp_i32 i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
     local.set $__parent_frame
@@ -245,6 +266,45 @@
     i32.add
     i32.load
     drop
+    local.get $__frame
+    i32.const 12
+    i32.add
+    i32.load
+    i32.const 0
+    i32.ge_s
+    i32.eqz
+    i32.eqz
+    if (result i32)
+      local.get $__frame
+      i32.const 12
+      i32.add
+      i32.load
+      i32.const 100
+      i32.le_s
+      i32.eqz
+      i32.eqz
+    else
+      i32.const 0
+    end
+    i32.eqz
+    i32.eqz
+    if
+      local.get $__frame
+      i32.const 0
+      i32.add
+      i32.load
+      i32.const 4
+      i32.add
+      local.get $__frame
+      i32.const 12
+      i32.add
+      i32.load
+      local.set $__tmp_i32
+      local.get $__tmp_i32
+      i32.store
+      local.get $__tmp_i32
+      drop
+    end
     local.get $__frame
     i32.const 12
     i32.add
@@ -299,6 +359,7 @@
   ;; function LifeForm_setStrength__i
   (func $LifeForm_setStrength__i (param $self i32) (param $f i32)
     (local $__frame i32)
+    (local $__tmp_i32 i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
     local.set $__parent_frame
@@ -325,6 +386,45 @@
     i32.add
     i32.load
     drop
+    local.get $__frame
+    i32.const 12
+    i32.add
+    i32.load
+    i32.const 0
+    i32.ge_s
+    i32.eqz
+    i32.eqz
+    if (result i32)
+      local.get $__frame
+      i32.const 12
+      i32.add
+      i32.load
+      i32.const 100
+      i32.le_s
+      i32.eqz
+      i32.eqz
+    else
+      i32.const 0
+    end
+    i32.eqz
+    i32.eqz
+    if
+      local.get $__frame
+      i32.const 0
+      i32.add
+      i32.load
+      i32.const 8
+      i32.add
+      local.get $__frame
+      i32.const 12
+      i32.add
+      i32.load
+      local.set $__tmp_i32
+      local.get $__tmp_i32
+      i32.store
+      local.get $__tmp_i32
+      drop
+    end
     local.get $__frame
     i32.const 12
     i32.add
@@ -405,6 +505,7 @@
     i32.add
     i32.load
     call $LifeForm_init
+    i32.const 0
   )
 
   ;; function Human_init__pv
@@ -445,6 +546,7 @@
     i32.add
     i32.load
     call $LifeForm_init__pv
+    i32.const 0
   )
 
   ;; function Human_destroy
@@ -565,13 +667,108 @@
     i32.const 24
     i32.add
     i32.load
-    drop
+    i32.const 36
+    call $imp_strcmp
     i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 44
+      local.get $__parent_frame
+      global.set $__frame_ptr
+      local.get $__frame
+      global.set $__stack_ptr
+      return
+    else
+      local.get $__frame
+      i32.const 24
+      i32.add
+      i32.load
+      i32.const 44
+      call $imp_strcmp
+      i32.const 0
+      i32.eq
+      i32.eqz
+      i32.eqz
+      if
+        i32.const 60
+        local.get $__parent_frame
+        global.set $__frame_ptr
+        local.get $__frame
+        global.set $__stack_ptr
+        return
+      else
+        local.get $__frame
+        i32.const 24
+        i32.add
+        i32.load
+        i32.const 60
+        call $imp_strcmp
+        i32.const 0
+        i32.eq
+        i32.eqz
+        i32.eqz
+        if
+          i32.const 76
+          local.get $__parent_frame
+          global.set $__frame_ptr
+          local.get $__frame
+          global.set $__stack_ptr
+          return
+        else
+          local.get $__frame
+          i32.const 24
+          i32.add
+          i32.load
+          i32.const 96
+          call $imp_strcmp
+          i32.const 0
+          i32.eq
+          i32.eqz
+          i32.eqz
+          if
+            i32.const 108
+            local.get $__parent_frame
+            global.set $__frame_ptr
+            local.get $__frame
+            global.set $__stack_ptr
+            return
+          else
+            local.get $__frame
+            i32.const 24
+            i32.add
+            i32.load
+            i32.const 120
+            call $imp_strcmp
+            i32.const 0
+            i32.eq
+            i32.eqz
+            i32.eqz
+            if
+              i32.const 108
+              local.get $__parent_frame
+              global.set $__frame_ptr
+              local.get $__frame
+              global.set $__stack_ptr
+              return
+            else
+              i32.const 128
+              local.get $__parent_frame
+              global.set $__frame_ptr
+              local.get $__frame
+              global.set $__stack_ptr
+              return
+            end
+          end
+        end
+      end
+    end
     local.get $__frame
-    global.set $__stack_ptr
-    return
+    i32.const 24
+    i32.add
+    i32.load
+    drop
     i32.const 0
     local.get $__parent_frame
     global.set $__frame_ptr
@@ -609,6 +806,7 @@
     i32.add
     i32.load
     call $Human_init
+    i32.const 0
   )
 
   ;; function Wizard_init__pv
@@ -649,6 +847,7 @@
     i32.add
     i32.load
     call $Human_init__pv
+    i32.const 0
   )
 
   ;; function Wizard_destroy
@@ -680,6 +879,7 @@
   ;; function Wizard_setMagic__i
   (func $Wizard_setMagic__i (param $self i32) (param $m i32)
     (local $__frame i32)
+    (local $__tmp_i32 i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
     local.set $__parent_frame
@@ -706,6 +906,45 @@
     i32.add
     i32.load
     drop
+    local.get $__frame
+    i32.const 28
+    i32.add
+    i32.load
+    i32.const 0
+    i32.ge_s
+    i32.eqz
+    i32.eqz
+    if (result i32)
+      local.get $__frame
+      i32.const 28
+      i32.add
+      i32.load
+      i32.const 100
+      i32.le_s
+      i32.eqz
+      i32.eqz
+    else
+      i32.const 0
+    end
+    i32.eqz
+    i32.eqz
+    if
+      local.get $__frame
+      i32.const 0
+      i32.add
+      i32.load
+      i32.const 24
+      i32.add
+      local.get $__frame
+      i32.const 28
+      i32.add
+      i32.load
+      local.set $__tmp_i32
+      local.get $__tmp_i32
+      i32.store
+      local.get $__tmp_i32
+      drop
+    end
     local.get $__frame
     i32.const 28
     i32.add
@@ -786,6 +1025,7 @@
     i32.add
     i32.load
     call $Human_init
+    i32.const 0
   )
 
   ;; function Witch_init__pv
@@ -826,6 +1066,7 @@
     i32.add
     i32.load
     call $Human_init__pv
+    i32.const 0
   )
 
   ;; function Witch_destroy
@@ -857,6 +1098,7 @@
   ;; function Witch_setMagic__i
   (func $Witch_setMagic__i (param $self i32) (param $m i32)
     (local $__frame i32)
+    (local $__tmp_i32 i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
     local.set $__parent_frame
@@ -883,6 +1125,45 @@
     i32.add
     i32.load
     drop
+    local.get $__frame
+    i32.const 28
+    i32.add
+    i32.load
+    i32.const 0
+    i32.ge_s
+    i32.eqz
+    i32.eqz
+    if (result i32)
+      local.get $__frame
+      i32.const 28
+      i32.add
+      i32.load
+      i32.const 100
+      i32.le_s
+      i32.eqz
+      i32.eqz
+    else
+      i32.const 0
+    end
+    i32.eqz
+    i32.eqz
+    if
+      local.get $__frame
+      i32.const 0
+      i32.add
+      i32.load
+      i32.const 24
+      i32.add
+      local.get $__frame
+      i32.const 28
+      i32.add
+      i32.load
+      local.set $__tmp_i32
+      local.get $__tmp_i32
+      i32.store
+      local.get $__tmp_i32
+      drop
+    end
     local.get $__frame
     i32.const 28
     i32.add
@@ -963,6 +1244,7 @@
     i32.add
     i32.load
     call $Human_init
+    i32.const 0
   )
 
   ;; function Knight_init__pv
@@ -1003,6 +1285,7 @@
     i32.add
     i32.load
     call $Human_init__pv
+    i32.const 0
   )
 
   ;; function Knight_destroy
@@ -1034,6 +1317,7 @@
   ;; function Knight_setBravery__i
   (func $Knight_setBravery__i (param $self i32) (param $c i32)
     (local $__frame i32)
+    (local $__tmp_i32 i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
     local.set $__parent_frame
@@ -1060,6 +1344,45 @@
     i32.add
     i32.load
     drop
+    local.get $__frame
+    i32.const 36
+    i32.add
+    i32.load
+    i32.const 0
+    i32.ge_s
+    i32.eqz
+    i32.eqz
+    if (result i32)
+      local.get $__frame
+      i32.const 36
+      i32.add
+      i32.load
+      i32.const 100
+      i32.le_s
+      i32.eqz
+      i32.eqz
+    else
+      i32.const 0
+    end
+    i32.eqz
+    i32.eqz
+    if
+      local.get $__frame
+      i32.const 0
+      i32.add
+      i32.load
+      i32.const 24
+      i32.add
+      local.get $__frame
+      i32.const 36
+      i32.add
+      i32.load
+      local.set $__tmp_i32
+      local.get $__tmp_i32
+      i32.store
+      local.get $__tmp_i32
+      drop
+    end
     local.get $__frame
     i32.const 36
     i32.add
@@ -1114,6 +1437,7 @@
   ;; function Knight_setArmor__i
   (func $Knight_setArmor__i (param $self i32) (param $a i32)
     (local $__frame i32)
+    (local $__tmp_i32 i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
     local.set $__parent_frame
@@ -1140,6 +1464,45 @@
     i32.add
     i32.load
     drop
+    local.get $__frame
+    i32.const 36
+    i32.add
+    i32.load
+    i32.const 0
+    i32.ge_s
+    i32.eqz
+    i32.eqz
+    if (result i32)
+      local.get $__frame
+      i32.const 36
+      i32.add
+      i32.load
+      i32.const 100
+      i32.le_s
+      i32.eqz
+      i32.eqz
+    else
+      i32.const 0
+    end
+    i32.eqz
+    i32.eqz
+    if
+      local.get $__frame
+      i32.const 0
+      i32.add
+      i32.load
+      i32.const 28
+      i32.add
+      local.get $__frame
+      i32.const 36
+      i32.add
+      i32.load
+      local.set $__tmp_i32
+      local.get $__tmp_i32
+      i32.store
+      local.get $__tmp_i32
+      drop
+    end
     local.get $__frame
     i32.const 36
     i32.add
@@ -1224,13 +1587,108 @@
     i32.const 36
     i32.add
     i32.load
-    drop
+    i32.const 36
+    call $imp_strcmp
     i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 144
+      local.get $__parent_frame
+      global.set $__frame_ptr
+      local.get $__frame
+      global.set $__stack_ptr
+      return
+    else
+      local.get $__frame
+      i32.const 36
+      i32.add
+      i32.load
+      i32.const 44
+      call $imp_strcmp
+      i32.const 0
+      i32.eq
+      i32.eqz
+      i32.eqz
+      if
+        i32.const 176
+        local.get $__parent_frame
+        global.set $__frame_ptr
+        local.get $__frame
+        global.set $__stack_ptr
+        return
+      else
+        local.get $__frame
+        i32.const 36
+        i32.add
+        i32.load
+        i32.const 60
+        call $imp_strcmp
+        i32.const 0
+        i32.eq
+        i32.eqz
+        i32.eqz
+        if
+          i32.const 208
+          local.get $__parent_frame
+          global.set $__frame_ptr
+          local.get $__frame
+          global.set $__stack_ptr
+          return
+        else
+          local.get $__frame
+          i32.const 36
+          i32.add
+          i32.load
+          i32.const 96
+          call $imp_strcmp
+          i32.const 0
+          i32.eq
+          i32.eqz
+          i32.eqz
+          if
+            i32.const 236
+            local.get $__parent_frame
+            global.set $__frame_ptr
+            local.get $__frame
+            global.set $__stack_ptr
+            return
+          else
+            local.get $__frame
+            i32.const 36
+            i32.add
+            i32.load
+            i32.const 120
+            call $imp_strcmp
+            i32.const 0
+            i32.eq
+            i32.eqz
+            i32.eqz
+            if
+              i32.const 236
+              local.get $__parent_frame
+              global.set $__frame_ptr
+              local.get $__frame
+              global.set $__stack_ptr
+              return
+            else
+              i32.const 128
+              local.get $__parent_frame
+              global.set $__frame_ptr
+              local.get $__frame
+              global.set $__stack_ptr
+              return
+            end
+          end
+        end
+      end
+    end
     local.get $__frame
-    global.set $__stack_ptr
-    return
+    i32.const 36
+    i32.add
+    i32.load
+    drop
     i32.const 0
     local.get $__parent_frame
     global.set $__frame_ptr
@@ -1268,6 +1726,7 @@
     i32.add
     i32.load
     call $Human_init
+    i32.const 0
   )
 
   ;; function Princess_init__pv
@@ -1308,6 +1767,7 @@
     i32.add
     i32.load
     call $Human_init__pv
+    i32.const 0
   )
 
   ;; function Princess_destroy
@@ -1339,6 +1799,7 @@
   ;; function Princess_setIntelligence__i
   (func $Princess_setIntelligence__i (param $self i32) (param $i i32)
     (local $__frame i32)
+    (local $__tmp_i32 i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
     local.set $__parent_frame
@@ -1365,6 +1826,45 @@
     i32.add
     i32.load
     drop
+    local.get $__frame
+    i32.const 36
+    i32.add
+    i32.load
+    i32.const 0
+    i32.ge_s
+    i32.eqz
+    i32.eqz
+    if (result i32)
+      local.get $__frame
+      i32.const 36
+      i32.add
+      i32.load
+      i32.const 100
+      i32.le_s
+      i32.eqz
+      i32.eqz
+    else
+      i32.const 0
+    end
+    i32.eqz
+    i32.eqz
+    if
+      local.get $__frame
+      i32.const 0
+      i32.add
+      i32.load
+      i32.const 24
+      i32.add
+      local.get $__frame
+      i32.const 36
+      i32.add
+      i32.load
+      local.set $__tmp_i32
+      local.get $__tmp_i32
+      i32.store
+      local.get $__tmp_i32
+      drop
+    end
     local.get $__frame
     i32.const 36
     i32.add
@@ -1419,6 +1919,7 @@
   ;; function Princess_setBeauty__i
   (func $Princess_setBeauty__i (param $self i32) (param $b i32)
     (local $__frame i32)
+    (local $__tmp_i32 i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
     local.set $__parent_frame
@@ -1445,6 +1946,45 @@
     i32.add
     i32.load
     drop
+    local.get $__frame
+    i32.const 36
+    i32.add
+    i32.load
+    i32.const 0
+    i32.ge_s
+    i32.eqz
+    i32.eqz
+    if (result i32)
+      local.get $__frame
+      i32.const 36
+      i32.add
+      i32.load
+      i32.const 100
+      i32.le_s
+      i32.eqz
+      i32.eqz
+    else
+      i32.const 0
+    end
+    i32.eqz
+    i32.eqz
+    if
+      local.get $__frame
+      i32.const 0
+      i32.add
+      i32.load
+      i32.const 28
+      i32.add
+      local.get $__frame
+      i32.const 36
+      i32.add
+      i32.load
+      local.set $__tmp_i32
+      local.get $__tmp_i32
+      i32.store
+      local.get $__tmp_i32
+      drop
+    end
     local.get $__frame
     i32.const 36
     i32.add
@@ -1499,6 +2039,7 @@
   ;; function Princess_setWealth__i
   (func $Princess_setWealth__i (param $self i32) (param $d i32)
     (local $__frame i32)
+    (local $__tmp_i32 i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
     local.set $__parent_frame
@@ -1525,6 +2066,45 @@
     i32.add
     i32.load
     drop
+    local.get $__frame
+    i32.const 36
+    i32.add
+    i32.load
+    i32.const 0
+    i32.ge_s
+    i32.eqz
+    i32.eqz
+    if (result i32)
+      local.get $__frame
+      i32.const 36
+      i32.add
+      i32.load
+      i32.const 100
+      i32.le_s
+      i32.eqz
+      i32.eqz
+    else
+      i32.const 0
+    end
+    i32.eqz
+    i32.eqz
+    if
+      local.get $__frame
+      i32.const 0
+      i32.add
+      i32.load
+      i32.const 32
+      i32.add
+      local.get $__frame
+      i32.const 36
+      i32.add
+      i32.load
+      local.set $__tmp_i32
+      local.get $__tmp_i32
+      i32.store
+      local.get $__tmp_i32
+      drop
+    end
     local.get $__frame
     i32.const 36
     i32.add
@@ -1609,13 +2189,127 @@
     i32.const 36
     i32.add
     i32.load
-    drop
+    i32.const 36
+    call $imp_strcmp
     i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 256
+      local.get $__parent_frame
+      global.set $__frame_ptr
+      local.get $__frame
+      global.set $__stack_ptr
+      return
+    else
+      local.get $__frame
+      i32.const 36
+      i32.add
+      i32.load
+      i32.const 256
+      call $imp_strcmp
+      i32.const 0
+      i32.eq
+      i32.eqz
+      i32.eqz
+      if
+        i32.const 276
+        local.get $__parent_frame
+        global.set $__frame_ptr
+        local.get $__frame
+        global.set $__stack_ptr
+        return
+      else
+        local.get $__frame
+        i32.const 36
+        i32.add
+        i32.load
+        i32.const 288
+        call $imp_strcmp
+        i32.const 0
+        i32.eq
+        i32.eqz
+        i32.eqz
+        if
+          i32.const 312
+          local.get $__parent_frame
+          global.set $__frame_ptr
+          local.get $__frame
+          global.set $__stack_ptr
+          return
+        else
+          local.get $__frame
+          i32.const 36
+          i32.add
+          i32.load
+          i32.const 324
+          call $imp_strcmp
+          i32.const 0
+          i32.eq
+          i32.eqz
+          i32.eqz
+          if
+            i32.const 344
+            local.get $__parent_frame
+            global.set $__frame_ptr
+            local.get $__frame
+            global.set $__stack_ptr
+            return
+          else
+            local.get $__frame
+            i32.const 36
+            i32.add
+            i32.load
+            i32.const 368
+            call $imp_strcmp
+            i32.const 0
+            i32.eq
+            i32.eqz
+            i32.eqz
+            if
+              i32.const 380
+              local.get $__parent_frame
+              global.set $__frame_ptr
+              local.get $__frame
+              global.set $__stack_ptr
+              return
+            else
+              local.get $__frame
+              i32.const 36
+              i32.add
+              i32.load
+              i32.const 380
+              call $imp_strcmp
+              i32.const 0
+              i32.eq
+              i32.eqz
+              i32.eqz
+              if
+                i32.const 400
+                local.get $__parent_frame
+                global.set $__frame_ptr
+                local.get $__frame
+                global.set $__stack_ptr
+                return
+              else
+                i32.const 128
+                local.get $__parent_frame
+                global.set $__frame_ptr
+                local.get $__frame
+                global.set $__stack_ptr
+                return
+              end
+            end
+          end
+        end
+      end
+    end
     local.get $__frame
-    global.set $__stack_ptr
-    return
+    i32.const 36
+    i32.add
+    i32.load
+    drop
     i32.const 0
     local.get $__parent_frame
     global.set $__frame_ptr
@@ -1653,6 +2347,7 @@
     i32.add
     i32.load
     call $Human_init
+    i32.const 0
   )
 
   ;; function Villager_init__pv
@@ -1693,6 +2388,7 @@
     i32.add
     i32.load
     call $Human_init__pv
+    i32.const 0
   )
 
   ;; function Villager_destroy
@@ -1724,6 +2420,7 @@
   ;; function Villager_setLoyalty__i
   (func $Villager_setLoyalty__i (param $self i32) (param $l i32)
     (local $__frame i32)
+    (local $__tmp_i32 i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
     local.set $__parent_frame
@@ -1750,6 +2447,45 @@
     i32.add
     i32.load
     drop
+    local.get $__frame
+    i32.const 32
+    i32.add
+    i32.load
+    i32.const 0
+    i32.ge_s
+    i32.eqz
+    i32.eqz
+    if (result i32)
+      local.get $__frame
+      i32.const 32
+      i32.add
+      i32.load
+      i32.const 100
+      i32.le_s
+      i32.eqz
+      i32.eqz
+    else
+      i32.const 0
+    end
+    i32.eqz
+    i32.eqz
+    if
+      local.get $__frame
+      i32.const 0
+      i32.add
+      i32.load
+      i32.const 24
+      i32.add
+      local.get $__frame
+      i32.const 32
+      i32.add
+      i32.load
+      local.set $__tmp_i32
+      local.get $__tmp_i32
+      i32.store
+      local.get $__tmp_i32
+      drop
+    end
     local.get $__frame
     i32.const 32
     i32.add
@@ -1804,6 +2540,7 @@
   ;; function Villager_setHonesty__i
   (func $Villager_setHonesty__i (param $self i32) (param $h i32)
     (local $__frame i32)
+    (local $__tmp_i32 i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
     local.set $__parent_frame
@@ -1830,6 +2567,45 @@
     i32.add
     i32.load
     drop
+    local.get $__frame
+    i32.const 32
+    i32.add
+    i32.load
+    i32.const 0
+    i32.ge_s
+    i32.eqz
+    i32.eqz
+    if (result i32)
+      local.get $__frame
+      i32.const 32
+      i32.add
+      i32.load
+      i32.const 100
+      i32.le_s
+      i32.eqz
+      i32.eqz
+    else
+      i32.const 0
+    end
+    i32.eqz
+    i32.eqz
+    if
+      local.get $__frame
+      i32.const 0
+      i32.add
+      i32.load
+      i32.const 28
+      i32.add
+      local.get $__frame
+      i32.const 32
+      i32.add
+      i32.load
+      local.set $__tmp_i32
+      local.get $__tmp_i32
+      i32.store
+      local.get $__tmp_i32
+      drop
+    end
     local.get $__frame
     i32.const 32
     i32.add
@@ -1914,13 +2690,146 @@
     i32.const 32
     i32.add
     i32.load
-    drop
+    i32.const 36
+    call $imp_strcmp
     i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
+    i32.eq
+    i32.eqz
+    i32.eqz
+    if
+      i32.const 256
+      local.get $__parent_frame
+      global.set $__frame_ptr
+      local.get $__frame
+      global.set $__stack_ptr
+      return
+    else
+      local.get $__frame
+      i32.const 32
+      i32.add
+      i32.load
+      i32.const 44
+      call $imp_strcmp
+      i32.const 0
+      i32.eq
+      i32.eqz
+      i32.eqz
+      if
+        i32.const 288
+        local.get $__parent_frame
+        global.set $__frame_ptr
+        local.get $__frame
+        global.set $__stack_ptr
+        return
+      else
+        local.get $__frame
+        i32.const 32
+        i32.add
+        i32.load
+        i32.const 60
+        call $imp_strcmp
+        i32.const 0
+        i32.eq
+        i32.eqz
+        i32.eqz
+        if
+          i32.const 324
+          local.get $__parent_frame
+          global.set $__frame_ptr
+          local.get $__frame
+          global.set $__stack_ptr
+          return
+        else
+          local.get $__frame
+          i32.const 32
+          i32.add
+          i32.load
+          i32.const 276
+          call $imp_strcmp
+          i32.const 0
+          i32.eq
+          i32.eqz
+          i32.eqz
+          if
+            i32.const 324
+            local.get $__parent_frame
+            global.set $__frame_ptr
+            local.get $__frame
+            global.set $__stack_ptr
+            return
+          else
+            local.get $__frame
+            i32.const 32
+            i32.add
+            i32.load
+            i32.const 344
+            call $imp_strcmp
+            i32.const 0
+            i32.eq
+            i32.eqz
+            i32.eqz
+            if
+              i32.const 400
+              local.get $__parent_frame
+              global.set $__frame_ptr
+              local.get $__frame
+              global.set $__stack_ptr
+              return
+            else
+              local.get $__frame
+              i32.const 32
+              i32.add
+              i32.load
+              i32.const 96
+              call $imp_strcmp
+              i32.const 0
+              i32.eq
+              i32.eqz
+              i32.eqz
+              if
+                i32.const 368
+                local.get $__parent_frame
+                global.set $__frame_ptr
+                local.get $__frame
+                global.set $__stack_ptr
+                return
+              else
+                local.get $__frame
+                i32.const 32
+                i32.add
+                i32.load
+                i32.const 120
+                call $imp_strcmp
+                i32.const 0
+                i32.eq
+                i32.eqz
+                i32.eqz
+                if
+                  i32.const 400
+                  local.get $__parent_frame
+                  global.set $__frame_ptr
+                  local.get $__frame
+                  global.set $__stack_ptr
+                  return
+                else
+                  i32.const 128
+                  local.get $__parent_frame
+                  global.set $__frame_ptr
+                  local.get $__frame
+                  global.set $__stack_ptr
+                  return
+                end
+              end
+            end
+          end
+        end
+      end
+    end
     local.get $__frame
-    global.set $__stack_ptr
-    return
+    i32.const 32
+    i32.add
+    i32.load
+    drop
     i32.const 0
     local.get $__parent_frame
     global.set $__frame_ptr
@@ -1958,6 +2867,7 @@
     i32.add
     i32.load
     call $LifeForm_init
+    i32.const 0
   )
 
   ;; function Monster_init__pv
@@ -1998,6 +2908,7 @@
     i32.add
     i32.load
     call $LifeForm_init__pv
+    i32.const 0
   )
 
   ;; function Monster_destroy
@@ -2029,6 +2940,7 @@
   ;; function Monster_setSympathy__i
   (func $Monster_setSympathy__i (param $self i32) (param $s i32)
     (local $__frame i32)
+    (local $__tmp_i32 i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
     local.set $__parent_frame
@@ -2055,6 +2967,45 @@
     i32.add
     i32.load
     drop
+    local.get $__frame
+    i32.const 16
+    i32.add
+    i32.load
+    i32.const 0
+    i32.ge_s
+    i32.eqz
+    i32.eqz
+    if (result i32)
+      local.get $__frame
+      i32.const 16
+      i32.add
+      i32.load
+      i32.const 100
+      i32.le_s
+      i32.eqz
+      i32.eqz
+    else
+      i32.const 0
+    end
+    i32.eqz
+    i32.eqz
+    if
+      local.get $__frame
+      i32.const 0
+      i32.add
+      i32.load
+      i32.const 12
+      i32.add
+      local.get $__frame
+      i32.const 16
+      i32.add
+      i32.load
+      local.set $__tmp_i32
+      local.get $__tmp_i32
+      i32.store
+      local.get $__tmp_i32
+      drop
+    end
     local.get $__frame
     i32.const 16
     i32.add
@@ -2135,6 +3086,7 @@
     i32.add
     i32.load
     call $Monster_init
+    i32.const 0
   )
 
   ;; function Dragon_init__pv
@@ -2175,6 +3127,7 @@
     i32.add
     i32.load
     call $Monster_init__pv
+    i32.const 0
   )
 
   ;; function Dragon_destroy
@@ -2206,6 +3159,7 @@
   ;; function Dragon_setFire__i
   (func $Dragon_setFire__i (param $self i32) (param $f i32)
     (local $__frame i32)
+    (local $__tmp_i32 i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
     local.set $__parent_frame
@@ -2232,6 +3186,45 @@
     i32.add
     i32.load
     drop
+    local.get $__frame
+    i32.const 20
+    i32.add
+    i32.load
+    i32.const 0
+    i32.ge_s
+    i32.eqz
+    i32.eqz
+    if (result i32)
+      local.get $__frame
+      i32.const 20
+      i32.add
+      i32.load
+      i32.const 100
+      i32.le_s
+      i32.eqz
+      i32.eqz
+    else
+      i32.const 0
+    end
+    i32.eqz
+    i32.eqz
+    if
+      local.get $__frame
+      i32.const 0
+      i32.add
+      i32.load
+      i32.const 16
+      i32.add
+      local.get $__frame
+      i32.const 20
+      i32.add
+      i32.load
+      local.set $__tmp_i32
+      local.get $__tmp_i32
+      i32.store
+      local.get $__tmp_i32
+      drop
+    end
     local.get $__frame
     i32.const 20
     i32.add
@@ -2324,11 +3317,11 @@
     i32.eqz
     i32.eqz
     if
-      i32.const 36
+      i32.const 416
       drop
       i32.const 0
       drop
-      i32.const 44
+      i32.const 424
       f64.convert_i32_s
       f64.const 0
       f64.const 0
@@ -2349,11 +3342,11 @@
       i32.eqz
       i32.eqz
       if
-        i32.const 36
+        i32.const 416
         drop
         i32.const 0
         drop
-        i32.const 44
+        i32.const 424
         f64.convert_i32_s
         f64.const 0
         f64.const 0
@@ -2374,11 +3367,11 @@
         i32.eqz
         i32.eqz
         if
-          i32.const 36
+          i32.const 416
           drop
           i32.const 0
           drop
-          i32.const 44
+          i32.const 424
           f64.convert_i32_s
           f64.const 0
           f64.const 0
@@ -2399,11 +3392,11 @@
           i32.eqz
           i32.eqz
           if
-            i32.const 36
+            i32.const 416
             drop
             i32.const 0
             drop
-            i32.const 44
+            i32.const 424
             f64.convert_i32_s
             f64.const 0
             f64.const 0
@@ -2417,11 +3410,11 @@
             i32.const 0
             return
           else
-            i32.const 36
+            i32.const 416
             drop
             i32.const 0
             drop
-            i32.const 56
+            i32.const 436
             f64.convert_i32_s
             f64.const 0
             f64.const 0

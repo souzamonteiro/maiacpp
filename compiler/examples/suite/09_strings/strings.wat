@@ -7,14 +7,15 @@
   (import "env" "__exc_pop" (func $imp___exc_pop))
   (import "env" "__exc_active" (func $imp___exc_active (result i32)))
   (import "env" "__exc_type" (func $imp___exc_type (result i32)))
-  (import "env" "__exc_data" (func $imp___exc_data))
   (import "env" "__exc_throw" (func $imp___exc_throw (param i32 i32)))
   (import "env" "__exc_clear" (func $imp___exc_clear))
   (import "env" "__exc_matches" (func $imp___exc_matches (param i32 i32) (result i32)))
-  (import "env" "__malloc" (func $imp___malloc (param i32) (result i32)))
   (import "env" "__free" (func $imp___free (param i32)))
   (import "env" "strlen" (func $imp_strlen (param i32) (result i32)))
   (import "env" "printf" (func $imp_printf (param f64 f64 f64 f64 f64 f64 f64 f64) (result i32)))
+  (import "env" "strcmp" (func $imp_strcmp (param i32 i32) (result i32)))
+  (import "env" "strcpy" (func $imp_strcpy (param i32 i32) (result i32)))
+  (import "env" "strcat" (func $imp_strcat (param i32 i32) (result i32)))
 
   (memory $mem 1)
 
@@ -30,15 +31,14 @@
   (data (i32.const 20) "PASS strlen_empty\0a\00")
   (data (i32.const 40) "hello\00")
   (data (i32.const 48) "PASS strlen_5\0a\00")
-  (data (i32.const 64) "abc\00")
-  (data (i32.const 68) "PASS strcmp_eq\0a\00")
-  (data (i32.const 84) "mississippi\00")
-  (data (i32.const 96) "PASS char_count\0a\00")
-  (data (i32.const 116) "foo\00")
-  (data (i32.const 120) "bar\00")
-  (data (i32.const 124) "foobar\00")
-  (data (i32.const 132) "PASS strcat\0a\00")
-  (data (i32.const 148) "ALL PASS\0a\00")
+  (data (i32.const 64) "PASS strcmp_eq\0a\00")
+  (data (i32.const 80) "mississippi\00")
+  (data (i32.const 92) "PASS char_count\0a\00")
+  (data (i32.const 112) "foo\00")
+  (data (i32.const 116) "bar\00")
+  (data (i32.const 120) "foobar\00")
+  (data (i32.const 128) "PASS strcat\0a\00")
+  (data (i32.const 144) "ALL PASS\0a\00")
 
   (elem (table $fn_table) (i32.const 0) func $char_count__pvc $main)
 
@@ -199,38 +199,25 @@
       drop
     end
     i32.const 64
-    i32.const 64
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
     drop
-    drop
-    i32.const 0
-    i32.const 0
-    i32.eq
-    i32.eqz
-    i32.eqz
-    if
-      i32.const 68
-      f64.convert_i32_s
-      f64.const 0
-      f64.const 0
-      f64.const 0
-      f64.const 0
-      f64.const 0
-      f64.const 0
-      f64.const 0
-      call $imp_printf
-      drop
-    end
-    i32.const 84
-    i32.const 84
-    drop
-    drop
-    i32.const 0
+    i32.const 80
+    i32.const 80
+    call $imp_strcmp
     i32.const 0
     i32.eq
     i32.eqz
     i32.eqz
     if (result i32)
-      i32.const 84
+      i32.const 80
       i32.const 115
       call $char_count__pvc
       i32.const 4
@@ -243,7 +230,7 @@
     i32.eqz
     i32.eqz
     if
-      i32.const 96
+      i32.const 92
       f64.convert_i32_s
       f64.const 0
       f64.const 0
@@ -258,32 +245,26 @@
     local.get $__frame
     i32.const 0
     i32.add
-    i32.const 116
+    i32.const 112
+    call $imp_strcpy
     drop
-    drop
+    local.get $__frame
     i32.const 0
+    i32.add
+    i32.const 116
+    call $imp_strcat
     drop
     local.get $__frame
     i32.const 0
     i32.add
     i32.const 120
-    drop
-    drop
-    i32.const 0
-    drop
-    local.get $__frame
-    i32.const 0
-    i32.add
-    i32.const 124
-    drop
-    drop
-    i32.const 0
+    call $imp_strcmp
     i32.const 0
     i32.eq
     i32.eqz
     i32.eqz
     if
-      i32.const 132
+      i32.const 128
       f64.convert_i32_s
       f64.const 0
       f64.const 0
@@ -295,7 +276,7 @@
       call $imp_printf
       drop
     end
-    i32.const 148
+    i32.const 144
     f64.convert_i32_s
     f64.const 0
     f64.const 0

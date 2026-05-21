@@ -69,7 +69,7 @@ void Dinosaur_init(Dinosaur* self) {
 
 void Dinosaur_init__pv(Dinosaur* self, char* n) {
   (void)self;
-  self->__base.name = n;
+  self->0 = n;
 }
 
 void Dinosaur_destroy(Dinosaur* self) {
@@ -79,7 +79,7 @@ void Dinosaur_destroy(Dinosaur* self) {
 int Dinosaur_eat__N1T(Dinosaur* self, void* other) {
   (void)self;
   LifeForm* __lf_other = (LifeForm*)other;
-  printf("%s ate %s.\n", self->__base.name, __lf_other->name);
+  printf("%s ate %s.\n", self->0, __lf_other->name);
   (void)other;
 }
 
@@ -144,9 +144,9 @@ int main(void) {
   Tyrannosaurus rex;
   Tyrannosaurus_init__pv(&rex, "Rex");
 
-  printf("The name of dinosaur dino is %s.\n", dino.__base.__base.name);
-  printf("The name of dinosaur peter is %s.\n", peter.__base.__base.name);
-  printf("The name of dinosaur rex is %s.\n", rex.__base.__base.name);
+  printf("The name of dinosaur dino is %s.\n", 0);
+  printf("The name of dinosaur peter is %s.\n", 0);
+  printf("The name of dinosaur rex is %s.\n", 0);
   Dinosaur_eat__N1T((Dinosaur*)&dino, &plant);
   Dinosaur_eat__N1T((Dinosaur*)&rex, &dino);
   return 0;

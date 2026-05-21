@@ -20,29 +20,21 @@ int main(void);
 int main(void) {
   int a = 1;
   int b = 255;
+  int c[3];
   int d[3] = {4, 5, 6};
   int* p = 0;
   int i = 0;
 
+  c[0] = 1;
+  c[1] = 2;
+  c[2] = 3;
   p = &a;
-  printf("Value pointed to by p: ");
-  printf("%c", *p);
-  printf(".\n");
   printf("The memory address pointed to by p is %ld.\n", p);
   p = &b;
-  printf("Value pointed to by p: ");
-  printf("%c", *p);
-  printf(".\n");
   printf("The memory address pointed to by p is %ld.\n", p);
   p = d;
-  printf("Value pointed to by p: ");
-  printf("%c", *p);
-  printf(".\n");
   printf("The memory address pointed to by p is %ld.\n", p);
   p++;
-  printf("Value pointed to by p: ");
-  printf("%c", *p);
-  printf(".\n");
   printf("The memory address pointed to by p is %ld.\n", p);
   *p = 7;
   for (i = 0; i < (sizeof(d) / sizeof(int)); i++) {

@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-02T23:36:10.777Z",
-  "input": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/suite/02_control_flow/control_flow.c",
-  "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/suite/02_control_flow/dist",
+  "generatedAt": "2026-05-21T14:14:22.974Z",
+  "input": "/Volumes/External_SSD/Documentos/Projects/maiajs/maiacpp/compiler/examples/suite/02_control_flow/control_flow.c",
+  "outDir": "/Volumes/External_SSD/Documentos/Projects/maiajs/maiacpp/compiler/examples/suite/02_control_flow/dist",
   "appName": "control_flow",
   "artifacts": {
     "wasm": "control_flow.wasm",
@@ -13,7 +13,12 @@
     "nodeRunnerShell": "node-runner.sh"
   },
   "linkedLibraries": [],
-  "copiedLibraries": [],
+  "copiedLibraries": [
+    "ctype",
+    "setjmp",
+    "stdlib",
+    "string"
+  ],
   "runtimeProvidedHeaders": [],
   "missingLibraries": [],
   "sourceBytes": 3113

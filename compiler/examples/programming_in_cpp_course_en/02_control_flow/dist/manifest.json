@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-02T16:43:55.585Z",
-  "input": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/programming_in_cpp_course_en/02_control_flow/loop_structures.c",
-  "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/programming_in_cpp_course_en/02_control_flow/dist",
+  "generatedAt": "2026-05-21T14:14:41.870Z",
+  "input": "/Volumes/External_SSD/Documentos/Projects/maiajs/maiacpp/compiler/examples/programming_in_cpp_course_en/02_control_flow/loop_structures.c",
+  "outDir": "/Volumes/External_SSD/Documentos/Projects/maiajs/maiacpp/compiler/examples/programming_in_cpp_course_en/02_control_flow/dist",
   "appName": "loop_structures",
   "artifacts": {
     "wasm": "loop_structures.wasm",

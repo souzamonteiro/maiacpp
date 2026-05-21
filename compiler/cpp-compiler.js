@@ -3770,6 +3770,20 @@ class CppToCTranspiler {
     const text = String(expr || '').trim();
     if (!text) return text;
 
+    // Transform C++ casts to C-casts first
+    let processedText = text;
+    const staticCastRx = /^static_cast\s*<\s*([^>]+)\s*>\s*\((.+)\)$/;
+    const staticCastMatch = processedText.match(staticCastRx);
+    if (staticCastMatch) {
+      const castType = staticCastMatch[1].trim();
+      const castArg = staticCastMatch[2].trim();
+      // Recursively process the argument (it might contain other casts)
+      const processedArg = this.rewriteSimpleInitExprForC(castArg, currentFn, allFns);
+      // Transform to C-style cast
+      processedText = `(${castType})(${processedArg})`;
+      return processedText;
+    }
+
     const splitTopLevelArgs = (argsText) => {
       const out = [];
       let depth = 0;
@@ -3806,7 +3820,7 @@ class CppToCTranspiler {
       return mangle(selected.name, sigTypes, null, selected.namespacePath || []);
     };
 
-    const callMatch = text.match(/^([A-Za-z_][A-Za-z0-9_:]*)\s*\((.*)\)$/);
+    const callMatch = processedText.match(/^([A-Za-z_][A-Za-z0-9_:]*)\s*\((.*)\)$/);
     if (callMatch) {
       const rawCallee = callMatch[1];
       const parts = rawCallee.split('::').filter(Boolean);
@@ -3911,25 +3925,18 @@ class CppToCTranspiler {
       return structuredIo;
     }
 
-    if (/\bdynamic_cast\s*</.test(clean) && /\bstatic_cast\s*<\s*int\s*>/.test(clean)) {
-      return this.lowerResourceCastStaticPattern(clean);
-    }
-
-    if (/static_cast\s*<\s*int\s*>\s*\(\s*d\s*\)/.test(clean)
-      && /static_cast\s*<\s*char\s*>\s*\(\s*j\s*\)/.test(clean)
-      && /const_cast\s*<\s*int\s*\*\s*>\s*\(\s*cptr\s*\)/.test(clean)) {
-      return this.lowerResourceCastBasicPattern(clean);
-    }
-
-    if (/new\s+Widget\s*\(\s*10\s*\)/.test(clean)
-      && /new\s+int\s*\[\s*6\s*\]/.test(clean)
-      && /IntBuf\s+buf2\s*\(\s*6\s*\)/.test(clean)) {
-      return this.lowerResourceWidgetArrayPattern(clean);
-    }
-
-    if (/\bnew\s+int\s*\(/.test(clean) && /\bnew\s*\(/.test(clean) && /~\s*[A-Za-z_][A-Za-z0-9_]*\s*\(/.test(clean)) {
-      return this.lowerResourceNewDeletePattern(clean);
-    }
+    // DISABLED: Resource-pattern stubs (lowerResourceCastStaticPattern, etc.) are only valid
+    // as emergency fallbacks when WASM generation fails, not as primary compilation strategy.
+    // Enabling these stubs unconditionally prevents normal C++ -> C compilation and masks
+    // real compilation/lowering bugs. Let normal compilation attempt these patterns first;
+    // only fall back to stubs if there are genuine compilation errors.
+    // if (/\bdynamic_cast\s*</.test(clean) && /\bstatic_cast\s*<\s*int\s*>/.test(clean)) {
+    //   return this.lowerResourceCastStaticPattern(clean);
+    // }
+    // if (/static_cast\s*<\s*int\s*>\s*\(\s*d\s*\)/.test(clean) ...) {
+    //   return this.lowerResourceCastBasicPattern(clean);
+    // }
+    // ... etc.
 
     return null;
   }
@@ -5768,13 +5775,12 @@ class CppToCTranspiler {
 
     // Prefer C-style lowering (regex-based) for feature-heavy mains that the
     // structured parser still cannot model safely end-to-end.
+    // EXCEPTION: casts (static_cast, const_cast) are now handled via rewriteSimpleInitExprForC,
+    // so we don't reject them automatically. Allow the function to proceed with normal parsing.
     if ((/\bVec2\b/.test(sourceOriginal) && /lengthSq\s*\(/.test(sourceOriginal) && /dot\s*\(/.test(sourceOriginal))
       || (/\btmax\s*\(/.test(sourceOriginal) && /\btswap\s*\(/.test(sourceOriginal) && /Stack\s*<\s*int/.test(sourceOriginal))
       || (/\bRectangle\b/.test(sourceOriginal) && /\bCircle\b/.test(sourceOriginal) && /Shape\s*\*\s*shapes\s*\[/.test(sourceOriginal))
-      || (/PP_DECLARE_AND_SET\s*\(/.test(sourceOriginal) && /PP_CHECK_EQ\s*\(/.test(sourceOriginal) && /PP_GREETING/.test(sourceOriginal))
-      || (/static_cast\s*<\s*int\s*>\s*\(\s*d\s*\)/.test(sourceOriginal)
-        && /static_cast\s*<\s*char\s*>\s*\(\s*j\s*\)/.test(sourceOriginal)
-        && /const_cast\s*<\s*int\s*\*\s*>\s*\(\s*cptr\s*\)/.test(sourceOriginal))) {
+      || (/PP_DECLARE_AND_SET\s*\(/.test(sourceOriginal) && /PP_CHECK_EQ\s*\(/.test(sourceOriginal) && /PP_GREETING/.test(sourceOriginal))) {
       return null;
     }
 
@@ -8503,7 +8509,10 @@ class CppToCTranspiler {
     const rawBodySansLiterals = String(rawBody || '')
       .replace(/"(?:[^"\\]|\\.)*"/g, '""')
       .replace(/'(?:[^'\\]|\\.)*'/g, "''");
-    if (/\b(template|try|catch|throw|class|namespace|operator\s*\(|reinterpret_cast|dynamic_cast|const_cast|static_cast)\b|std::cout|std::cin|std::endl/.test(rawBodySansLiterals)) {
+    // NOTE: static_cast and const_cast are now transformed by rewriteSimpleInitExprForC,
+    // so we allow them here. Reject only reinterpret_cast and dynamic_cast which have
+    // no safe C89 equivalent.
+    if (/\b(template|try|catch|throw|class|namespace|operator\s*\(|reinterpret_cast|dynamic_cast)\b|std::cout|std::cin|std::endl/.test(rawBodySansLiterals)) {
       return null;
     }
 
@@ -8610,6 +8619,19 @@ class CppToCTranspiler {
         if (classVarDecl && classNames.has(classVarDecl[1])) {
           knownTypes.set(classVarDecl[2], classVarDecl[1]);
           linesOut.push(trimmed);
+          continue;
+        }
+
+        // Handle variable declarations with static_cast: int x = static_cast<int>(y);
+        // Transform to C-style cast: int x = (int)(y);
+        const staticCastDecl = trimmed.match(/^(int|char|short|long|float|double)\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*static_cast\s*<\s*([^>]+)\s*>\s*\(([^)]+)\)\s*;\s*$/);
+        if (staticCastDecl) {
+          const baseType = staticCastDecl[1];
+          const varName = staticCastDecl[2];
+          const castType = staticCastDecl[3].trim();
+          const castArg = staticCastDecl[4].trim();
+          knownTypes.set(varName, baseType);
+          linesOut.push(`${baseType} ${varName} = (${castType})(${castArg});`);
           continue;
         }
 
@@ -9445,17 +9467,14 @@ class Cpp98Compiler {
     // C89 has no nullptr literal.
     out = out.replace(/\bnullptr\b/g, '0');
 
-    // Degraded fallback: JS-like property chains on opaque values are not
-    // representable as C89 struct field access in MaiaC.
-    out = out.replace(/\b[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+\b/g, '0');
-    out = out.replace(/\b[A-Za-z_][A-Za-z0-9_]*\([^\n()]*\)\.[A-Za-z_][A-Za-z0-9_]*\b/g, '0');
+    // Member access expressions (a.b, obj.field) are valid in C89 when obj is a struct.
+    // Do NOT collapse these to 0; let MaiaC handle the bridge validation.
+    // Opaque void* member access that MaiaC cannot represent will error during MaiaC compilation,
+    // which is better than silently producing incorrect behavior.
     out = out.replace(/^\s*0\s*=\s*([^;]+);\s*$/gm, '  (void)($1);');
     out = out.replace(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*%=\s*([^;]+);\s*$/gm, '  $1 = ((int)($1) % (int)($2));');
-    out = out.replace(/^\s*__console__log\([^;]*\+[^;]*\);\s*$/gm, '  __console__log(0);');
-    out = out.replace(
-      /^\s*__console__log\(\s*(__arrowFunc\([^;]*\))\s*\);\s*$/gm,
-      '  __console__log(0);'
-    );
+    // Preserve console host call payloads. Rewriting to __console__log(0)
+    // hides runtime diagnostics and masks string-lowering regressions.
     // Some host imports are emitted as `void` declarations but are used in
     // value contexts downstream. MaiaC then lowers call results into stores/
     // comparisons and produces invalid WAT stack shapes. Normalize the

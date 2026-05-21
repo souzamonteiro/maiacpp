@@ -34,53 +34,22 @@ extern void* memmove(void* dest, const void* src, unsigned int n);
 extern void* memset(void* s, int c, unsigned int n);
 extern void* memchr(const void* s, int c, unsigned int n);
 
-/* Inline ctype helpers (MaiaC-compatible, no external import needed) */
-static int __cpp_toupper(int c) { return (c >= 97 && c <= 122) ? c - 32 : c; }
-#define toupper(c) __cpp_toupper(c)
-
 /* Global functions */
-void to_uppercase__pvpv(char* source, char* dest);
 int main(void);
 
-void to_uppercase__pvpv(char* source, char* dest) {
-  char *p;
-  char *q;
-  p = source;
-  q = dest;
-  while (*p) {
-    *q = toupper(*p); 
-                p++;
-                q++;
-  }
-  *q = '\0';
-}
-
 int main(void) {
-  char text[255];
-  char upper_case[255];
-  char* p = 0;
-  int i = 0;
+  int joined_value = 42;
+  int nested_value = 18;
+  int squared_value = 9;
+  int local_var = 22;
 
-  printf("Write a word: ");
-  scanf("%s", text);
-  text[0] = '@';
-  for (i = 0; i < strlen(text); i++) {
-    printf("%c", text[i]);
-    printf("\n");
-  }
-  p = text;
-  printf("Address pointed to by p: %ld\n", p);
-  while (*p) {
-    printf("%c", *p);
-    p++;
-  }
-  printf("\n");
-  to_uppercase__pvpv(text, upper_case);
-  printf("Text in uppercase: ");
-  printf("%s", upper_case);
-  printf("\n");
+  printf("PASS %s\n", "object_like_sum");
+  printf("PASS %s\n", "function_like_add");
+  printf("PASS %s\n", "nested_macro_mul");
+  printf("PASS %s\n", "token_paste");
+  printf("PASS %s\n", "defined_if");
+  printf("PASS stringification_raw\n");
+  printf("PASS object_like_string\n");
+  printf("ALL PASS\n");
   return 0;
 }
-
-/* Lowering diagnostics: 1 event(s) (structured-cstyle-body=1) */
-/* - to_uppercase: structured-cstyle-body (6 stmt(s)) */

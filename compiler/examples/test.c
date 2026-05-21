@@ -1,4 +1,4 @@
-Parsing: /Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/test.cpp
+Parsing: /Volumes/External_SSD/Documentos/Projects/maiajs/maiacpp/compiler/examples/test.cpp
 Parser: ok
 /* Generated from C++98 source */
 /* Target: C89 */
@@ -15,6 +15,26 @@ extern void   __exc_clear(void);
 extern int    __exc_matches(int thrown_type, int catch_type);
 extern void*  __malloc(unsigned long size);
 extern void   __free(void* ptr);
+
+/* String and memory function declarations (MaiaC-compatible, no #include needed) */
+extern unsigned int strlen(const char* s);
+extern int strcmp(const char* s1, const char* s2);
+extern int strncmp(const char* s1, const char* s2, unsigned int n);
+extern char* strcpy(char* dest, const char* src);
+extern char* strncpy(char* dest, const char* src, unsigned int n);
+extern char* strcat(char* dest, const char* src);
+extern char* strncat(char* dest, const char* src, unsigned int n);
+extern char* strstr(const char* haystack, const char* needle);
+extern char* strchr(const char* s, int c);
+extern char* strrchr(const char* s, int c);
+extern unsigned int strspn(const char* s, const char* accept);
+extern unsigned int strcspn(const char* s, const char* reject);
+extern char* strtok(char* str, const char* delim);
+extern int memcmp(const void* s1, const void* s2, unsigned int n);
+extern void* memcpy(void* dest, const void* src, unsigned int n);
+extern void* memmove(void* dest, const void* src, unsigned int n);
+extern void* memset(void* s, int c, unsigned int n);
+extern void* memchr(const void* s, int c, unsigned int n);
 
 typedef int (*BinaryOp)(int, int);
 
@@ -298,7 +318,7 @@ int main(void) {
   printf("%d", result);
   printf("\n");
   result = b % 3;
-  printf("b%3=");
+  printf("b%%3=");
   printf("%d", result);
   printf("\n");
   printf("--- Assignment Operators ---\n");
@@ -323,7 +343,7 @@ int main(void) {
   printf("%d", result);
   printf("\n");
   result = result % 4;
-  printf("result%=4 => ");
+  printf("result%%=4 => ");
   printf("%d", result);
   printf("\n");
   printf("--- Relational Operators ---\n");

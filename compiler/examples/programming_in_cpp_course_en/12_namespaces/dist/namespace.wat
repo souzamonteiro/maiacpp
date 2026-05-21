@@ -7,11 +7,9 @@
   (import "env" "__exc_pop" (func $imp___exc_pop))
   (import "env" "__exc_active" (func $imp___exc_active (result i32)))
   (import "env" "__exc_type" (func $imp___exc_type (result i32)))
-  (import "env" "__exc_data" (func $imp___exc_data))
   (import "env" "__exc_throw" (func $imp___exc_throw (param i32 i32)))
   (import "env" "__exc_clear" (func $imp___exc_clear))
   (import "env" "__exc_matches" (func $imp___exc_matches (param i32 i32) (result i32)))
-  (import "env" "__malloc" (func $imp___malloc (param i32) (result i32)))
   (import "env" "__free" (func $imp___free (param i32)))
   (import "env" "printf" (func $imp_printf (param f64 f64 f64 f64 f64 f64 f64 f64) (result i32)))
 
@@ -33,8 +31,10 @@
 
   (data (i32.const 16) "The golden ratio is \00")
   (data (i32.const 40) "%g\00")
-  (data (i32.const 44) ".\0a\00")
-  (data (i32.const 48) "The number pi is \00")
+  (data (i32.const 44) "\06\81\95?")
+  (data (i32.const 48) ".\0a\00")
+  (data (i32.const 52) "The number pi is \00")
+  (data (i32.const 72) "\f9\0fI@")
 
   (elem (table $fn_table) (i32.const 0) func $main)
 
@@ -53,19 +53,9 @@
     drop
     i32.const 40
     f64.convert_i32_s
-    global.get $golden
-    f64.promote_f32
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    f64.const 0
-    call $imp_printf
-    drop
     i32.const 44
-    f64.convert_i32_s
-    f64.const 0
+    f32.load
+    f64.promote_f32
     f64.const 0
     f64.const 0
     f64.const 0
@@ -85,9 +75,21 @@
     f64.const 0
     call $imp_printf
     drop
+    i32.const 52
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
     i32.const 40
     f64.convert_i32_s
-    global.get $pi
+    i32.const 72
+    f32.load
     f64.promote_f32
     f64.const 0
     f64.const 0
@@ -97,7 +99,7 @@
     f64.const 0
     call $imp_printf
     drop
-    i32.const 44
+    i32.const 48
     f64.convert_i32_s
     f64.const 0
     f64.const 0

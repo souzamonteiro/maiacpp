@@ -614,7 +614,11 @@ function createRuntimeAllocator(getMemory) {
     return ptr;
   }
 
-  return { alloc };
+  function free(_ptr) {
+    // Linear bump allocator currently does not reclaim memory.
+  }
+
+  return { alloc, free };
 }
 
 function createMemoryAccess(getMemory) {
@@ -1522,7 +1526,9 @@ function createStdioHosts(getMemory, allocator, cstr, opts = {}) {
         i += 1;
       }
 
+      let fieldWidth = 0;
       while (i < fmt.length && fmt.charAt(i) >= '0' && fmt.charAt(i) <= '9') {
+        fieldWidth = fieldWidth * 10 + (fmt.charCodeAt(i) - 48);
         i += 1;
       }
 
@@ -1542,18 +1548,60 @@ function createStdioHosts(getMemory, allocator, cstr, opts = {}) {
       const spec = fmt.charAt(i);
       const isIntSpec = (spec === 'd' || spec === 'i' || spec === 'u' || spec === 'x' || spec === 'X');
       const isFloatSpec = (spec === 'f' || spec === 'F' || spec === 'e' || spec === 'E' || spec === 'g' || spec === 'G');
-      if (!isIntSpec && !isFloatSpec) {
+      const isCharSpec = (spec === 'c');
+      const isStringSpec = (spec === 's');
+      if (!isIntSpec && !isFloatSpec && !isCharSpec && !isStringSpec) {
         break;
       }
 
       let parsedInt = null;
       let parsedFloat = null;
+      let parsedChars = null;
+
       if (isFloatSpec) {
         parsedFloat = readScanfFloat(readChar, unreadChar);
         if (parsedFloat == null) break;
-      } else {
+      } else if (isIntSpec) {
         parsedInt = readScanfNumber(readChar, unreadChar, spec);
         if (!parsedInt) break;
+      } else if (isCharSpec) {
+        const width = fieldWidth > 0 ? fieldWidth : 1;
+        parsedChars = [];
+        for (let consumed = 0; consumed < width; consumed += 1) {
+          const ch = readChar();
+          if (ch < 0) break;
+          parsedChars.push(ch & 0xFF);
+        }
+        if (parsedChars.length !== width) {
+          if (parsedChars.length > 0) {
+            for (let back = parsedChars.length - 1; back >= 0; back -= 1) {
+              unreadChar(parsedChars[back]);
+            }
+          }
+          break;
+        }
+      } else if (isStringSpec) {
+        let ch = readChar();
+        while (isSpaceChar(ch)) {
+          ch = readChar();
+        }
+        if (ch < 0) break;
+
+        const maxChars = fieldWidth > 0 ? fieldWidth : Number.MAX_SAFE_INTEGER;
+        parsedChars = [];
+
+        while (ch >= 0 && !isSpaceChar(ch) && parsedChars.length < maxChars) {
+          parsedChars.push(ch & 0xFF);
+          ch = readChar();
+        }
+
+        if (ch >= 0 && !isSpaceChar(ch) && parsedChars.length >= maxChars) {
+          unreadChar(ch);
+        } else {
+          unreadChar(ch);
+        }
+
+        if (parsedChars.length === 0) break;
       }
 
       if (!suppressAssign) {
@@ -1561,14 +1609,27 @@ function createStdioHosts(getMemory, allocator, cstr, opts = {}) {
         if (!targetPtr) {
           break;
         }
+
         if (isFloatSpec) {
           if (longCount > 0) mem.writeF64(targetPtr, parsedFloat);
           else mem.writeF32(targetPtr, parsedFloat);
-        } else if (spec === 'd' || spec === 'i') {
-          mem.writeI32(targetPtr, parsedInt.signed);
-        } else {
-          mem.writeI32(targetPtr, parsedInt.unsigned);
+        } else if (isIntSpec) {
+          if (spec === 'd' || spec === 'i') {
+            mem.writeI32(targetPtr, parsedInt.signed);
+          } else {
+            mem.writeI32(targetPtr, parsedInt.unsigned);
+          }
+        } else if (isCharSpec) {
+          for (let idx = 0; idx < parsedChars.length; idx += 1) {
+            mem.writeI8(targetPtr + idx, parsedChars[idx]);
+          }
+        } else if (isStringSpec) {
+          for (let idx = 0; idx < parsedChars.length; idx += 1) {
+            mem.writeI8(targetPtr + idx, parsedChars[idx]);
+          }
+          mem.writeI8(targetPtr + parsedChars.length, 0);
         }
+
         assigned += 1;
       }
 
@@ -2040,6 +2101,166 @@ function createStringHosts(getMemory) {
     strlen: (ptr) => {
       const text = mem.readCString(ptr);
       return text.length | 0;
+    },
+    strcmp: (p1, p2) => {
+      const s1 = mem.readCString(p1);
+      const s2 = mem.readCString(p2);
+      for (let i = 0; i <= s1.length || i <= s2.length; i++) {
+        const a = s1.charCodeAt(i) || 0;
+        const b = s2.charCodeAt(i) || 0;
+        if (a !== b) return a > b ? 1 : -1;
+        if (a === 0) break;
+      }
+      return 0;
+    },
+    strncmp: (p1, p2, n) => {
+      const s1 = mem.readCString(p1);
+      const s2 = mem.readCString(p2);
+      const len = n >>> 0;
+      for (let i = 0; i < len; i++) {
+        const a = s1.charCodeAt(i) || 0;
+        const b = s2.charCodeAt(i) || 0;
+        if (a !== b) return a > b ? 1 : -1;
+        if (a === 0) break;
+      }
+      return 0;
+    },
+    strcpy: (dst, src) => {
+      const text = mem.readCString(src);
+      mem.writeCString(dst, text);
+      return dst | 0;
+    },
+    strncpy: (dst, src, n) => {
+      const len = n >>> 0;
+      const text = mem.readCString(src).slice(0, len);
+      const bytes = new Uint8Array(getMemory().buffer);
+      for (let i = 0; i < len; i++) {
+        bytes[(dst >>> 0) + i] = i < text.length ? text.charCodeAt(i) : 0;
+      }
+      return dst | 0;
+    },
+    strcat: (dst, src) => {
+      const dstStr = mem.readCString(dst);
+      const srcStr = mem.readCString(src);
+      mem.writeCString(dst, dstStr + srcStr);
+      return dst | 0;
+    },
+    strncat: (dst, src, n) => {
+      const dstStr = mem.readCString(dst);
+      const srcStr = mem.readCString(src).slice(0, n >>> 0);
+      mem.writeCString(dst, dstStr + srcStr);
+      return dst | 0;
+    },
+    strstr: (haystack, needle) => {
+      const h = mem.readCString(haystack);
+      const n = mem.readCString(needle);
+      if (n.length === 0) return haystack | 0;
+      const idx = h.indexOf(n);
+      if (idx < 0) return 0;
+      return (haystack + idx) | 0;
+    },
+    strchr: (s, c) => {
+      const str = mem.readCString(s);
+      const ch = String.fromCharCode(c & 0xff);
+      const idx = str.indexOf(ch);
+      if (idx < 0) {
+        /* check null terminator */
+        return (c & 0xff) === 0 ? (s + str.length) | 0 : 0;
+      }
+      return (s + idx) | 0;
+    },
+    strrchr: (s, c) => {
+      const str = mem.readCString(s);
+      const ch = String.fromCharCode(c & 0xff);
+      const idx = str.lastIndexOf(ch);
+      if (idx < 0) {
+        return (c & 0xff) === 0 ? (s + str.length) | 0 : 0;
+      }
+      return (s + idx) | 0;
+    },
+    strspn: (s, accept) => {
+      const str = mem.readCString(s);
+      const acc = mem.readCString(accept);
+      let i = 0;
+      while (i < str.length && acc.includes(str[i])) i++;
+      return i | 0;
+    },
+    strcspn: (s, reject) => {
+      const str = mem.readCString(s);
+      const rej = mem.readCString(reject);
+      let i = 0;
+      while (i < str.length && !rej.includes(str[i])) i++;
+      return i | 0;
+    },
+    strtok: (() => {
+      let savedPtr = 0;
+      let savedStr = '';
+      let savedOffset = 0;
+      return (s, delim) => {
+        const delimStr = mem.readCString(delim);
+        if ((s >>> 0) !== 0) {
+          savedPtr = s >>> 0;
+          savedStr = mem.readCString(savedPtr);
+          savedOffset = 0;
+        }
+        if (savedOffset >= savedStr.length) return 0;
+        /* skip leading delimiters */
+        while (savedOffset < savedStr.length && delimStr.includes(savedStr[savedOffset])) savedOffset++;
+        if (savedOffset >= savedStr.length) return 0;
+        const start = savedOffset;
+        while (savedOffset < savedStr.length && !delimStr.includes(savedStr[savedOffset])) savedOffset++;
+        const token = savedStr.slice(start, savedOffset);
+        mem.writeCString(savedPtr + start, token);
+        const bytes = new Uint8Array(getMemory().buffer);
+        bytes[(savedPtr + savedOffset) >>> 0] = 0;
+        savedOffset++;
+        return (savedPtr + start) | 0;
+      };
+    })(),
+    memcmp: (p1, p2, n) => {
+      const bytes = new Uint8Array(getMemory().buffer);
+      const len = n >>> 0;
+      for (let i = 0; i < len; i++) {
+        const a = bytes[(p1 >>> 0) + i];
+        const b = bytes[(p2 >>> 0) + i];
+        if (a !== b) return a > b ? 1 : -1;
+      }
+      return 0;
+    },
+    memcpy: (dst, src, n) => {
+      const bytes = new Uint8Array(getMemory().buffer);
+      const len = n >>> 0;
+      const d = dst >>> 0;
+      const s = src >>> 0;
+      for (let i = 0; i < len; i++) bytes[d + i] = bytes[s + i];
+      return dst | 0;
+    },
+    memmove: (dst, src, n) => {
+      const bytes = new Uint8Array(getMemory().buffer);
+      const len = n >>> 0;
+      const d = dst >>> 0;
+      const s = src >>> 0;
+      const tmp = bytes.slice(s, s + len);
+      for (let i = 0; i < len; i++) bytes[d + i] = tmp[i];
+      return dst | 0;
+    },
+    memset: (ptr, c, n) => {
+      const bytes = new Uint8Array(getMemory().buffer);
+      const len = n >>> 0;
+      const p = ptr >>> 0;
+      const val = c & 0xff;
+      for (let i = 0; i < len; i++) bytes[p + i] = val;
+      return ptr | 0;
+    },
+    memchr: (ptr, c, n) => {
+      const bytes = new Uint8Array(getMemory().buffer);
+      const len = n >>> 0;
+      const p = ptr >>> 0;
+      const val = c & 0xff;
+      for (let i = 0; i < len; i++) {
+        if (bytes[p + i] === val) return (p + i) | 0;
+      }
+      return 0;
     }
   };
 }
@@ -2050,6 +2271,11 @@ function createC89JsHosts(getMemory, opts = {}) {
   const cstr = createCStringStore(getMemory, allocator, mem);
 
   return {
+    __malloc: (bytes) => allocator.alloc(bytes, 8),
+    __free: (ptr) => {
+      allocator.free(ptr);
+      return undefined;
+    },
     ...createMathHosts(getMemory),
     ...createStringHosts(getMemory),
     ...createStdioHosts(getMemory, allocator, cstr, opts),
@@ -2061,7 +2287,7 @@ function createC89JsHosts(getMemory, opts = {}) {
 
 // ---------- host-extern wrappers (auto-generated from source) ----------
 const _buildHostEnv = // Auto-generated host env – do not edit manually
-(function buildEnv(getMemory) {
+(function buildEnv(getMemory, opts = {}) {
   function alignUp(value, alignment) {
     const a = Math.max(1, Number(alignment) | 0);
     const v = Number(value) | 0;
@@ -2098,16 +2324,43 @@ const _buildHostEnv = // Auto-generated host env – do not edit manually
     while (end < mem.length && mem[end] !== 0) end++;
     return new TextDecoder('utf-8').decode(mem.subarray(offset, end));
   }
+  function __globalRoot() {
+    if (typeof globalThis !== 'undefined') return globalThis;
+    if (typeof window !== 'undefined') return window;
+    if (typeof self !== 'undefined') return self;
+    return {};
+  }
+  function __resolveHost(parts) {
+    let obj = __globalRoot();
+    if (!Array.isArray(parts) || parts.length === 0) return { thisValue: null, fn: null };
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (obj == null) return { thisValue: null, fn: null };
+      obj = obj[parts[i]];
+    }
+    if (obj == null) return { thisValue: null, fn: null };
+    return { thisValue: obj, fn: obj[parts[parts.length - 1]] };
+  }
+  function __hostWrite(text) {
+    if (opts && typeof opts.write === 'function') {
+      opts.write(String(text));
+      return;
+    }
+    if (typeof process !== 'undefined' && process.stdout && typeof process.stdout.write === 'function') {
+      process.stdout.write(String(text));
+      return;
+    }
+    if (typeof console !== 'undefined' && typeof console.log === 'function') {
+      console.log(String(text));
+    }
+  }
   return {
-    "__exc_push": () => exc_push(),
-    "__exc_pop": () => exc_pop(),
-    "__exc_active": () => exc_active(),
-    "__exc_type": () => exc_type(),
-    "__exc_data": () => exc_data(),
-    "__exc_throw": (p0, p1) => exc_throw(p0, p1),
-    "__exc_clear": () => exc_clear(),
-    "__exc_matches": (p0, p1) => exc_matches(p0, p1),
-    "__malloc": (p0) => __malloc(p0),
+    "__exc_push": () => { const target = __resolveHost(["exc_push"]); if (typeof target.fn !== 'function') return undefined; const result = target.fn.call(target.thisValue); return undefined; },
+    "__exc_pop": () => { const target = __resolveHost(["exc_pop"]); if (typeof target.fn !== 'function') return undefined; const result = target.fn.call(target.thisValue); return undefined; },
+    "__exc_active": () => { const target = __resolveHost(["exc_active"]); if (typeof target.fn !== 'function') return 0; const result = target.fn.call(target.thisValue); return (result ?? 0); },
+    "__exc_type": () => { const target = __resolveHost(["exc_type"]); if (typeof target.fn !== 'function') return 0; const result = target.fn.call(target.thisValue); return (result ?? 0); },
+    "__exc_throw": (p0, p1) => { const target = __resolveHost(["exc_throw"]); if (typeof target.fn !== 'function') return undefined; const result = target.fn.call(target.thisValue, p0, p1); return undefined; },
+    "__exc_clear": () => { const target = __resolveHost(["exc_clear"]); if (typeof target.fn !== 'function') return undefined; const result = target.fn.call(target.thisValue); return undefined; },
+    "__exc_matches": (p0, p1) => { const target = __resolveHost(["exc_matches"]); if (typeof target.fn !== 'function') return 0; const result = target.fn.call(target.thisValue, p0, p1); return (result ?? 0); },
     "__free": (p0) => __free(p0),
   };
 });
@@ -2189,7 +2442,7 @@ function createImports(getMemory, opts = {}) {
     env: {
       printf: createPrintfHost({ getMemory, write }),
       ...defaultBuiltins,
-      ..._buildHostEnv(getMemory),
+      ..._buildHostEnv(getMemory, { write }),
     }
   };
 }
@@ -2200,7 +2453,66 @@ function createImports(getMemory, opts = {}) {
  * @param {string} wasmPath  – path to the .wasm file
  * @returns {Promise<number>} – exit code returned by main()
  */
-async function run(wasmPath) {
+// Write argc/argv/env into WASM linear memory and return { argc, argvPtr, envPtr }.
+// Strings are packed at the top of linear memory. The buffer grows when needed
+// so large host environments do not overflow a fixed-size region.
+function _buildArgvInMemory(memory, argv, env) {
+  const MIN_SAFE_BASE = 32768;
+
+  function alignedStrBytes(s) {
+    const raw = String(s).length + 1;
+    return (raw + 3) & ~3;
+  }
+
+  const argvStrings = argv.map(String);
+  const envStrings = env.map(String);
+  const stringsBytes = argvStrings.reduce((n, s) => n + alignedStrBytes(s), 0)
+    + envStrings.reduce((n, s) => n + alignedStrBytes(s), 0);
+  const ptrBytes = (argvStrings.length + 1 + envStrings.length + 1) * 4;
+  const totalBytes = stringsBytes + ptrBytes + 8;
+
+  while ((memory.buffer.byteLength - totalBytes) < MIN_SAFE_BASE) {
+    memory.grow(1);
+  }
+
+  const mem8  = new Uint8Array(memory.buffer);
+  const memSz = memory.buffer.byteLength;
+  let ptr = (memSz - totalBytes) & ~3;
+
+  function writeStr(s) {
+    const start = ptr;
+    for (let i = 0; i < s.length; i++) { mem8[ptr++] = s.charCodeAt(i) & 0xFF; }
+    mem8[ptr++] = 0;
+    // Align to 4 bytes.
+    while (ptr & 3) { mem8[ptr++] = 0; }
+    return start;
+  }
+
+  function writeI32(v) {
+    const start = ptr;
+    mem8[ptr++] = v & 0xFF; mem8[ptr++] = (v >>> 8) & 0xFF;
+    mem8[ptr++] = (v >>> 16) & 0xFF; mem8[ptr++] = (v >>> 24) & 0xFF;
+    return start;
+  }
+
+  // Write string data first.
+  const argPtrs = argvStrings.map(writeStr);
+  const envPtrs = envStrings.map(writeStr);
+
+  // Write argv[] pointer array (null-terminated).
+  const argvPtr = ptr;
+  argPtrs.forEach(writeI32);
+  writeI32(0);
+
+  // Write env[] pointer array (null-terminated).
+  const envPtr = ptr;
+  envPtrs.forEach(writeI32);
+  writeI32(0);
+
+  return { argc: argvStrings.length, argvPtr, envPtr };
+}
+
+async function run(wasmPath, opts) {
   const fs   = require('fs');
   const path = require('path');
   const bytes = fs.readFileSync(wasmPath);
@@ -2214,6 +2526,38 @@ async function run(wasmPath) {
   memoryRef = instance.exports.memory || null;
   const entry = instance.exports.main || instance.exports.test_entry;
   if (typeof entry !== 'function') throw new Error('No main() export found');
+
+  // If main() accepts argc/argv/env, populate them based on environment.
+  if (entry.length >= 2 && memoryRef) {
+    let argv, env;
+    if (typeof process !== 'undefined' && process.argv) {
+      // Node.js: derive argv from process.argv / process.env.
+      // opts.argv can override (e.g. node-runner passes its own argv).
+      if (opts && Array.isArray(opts.argv)) {
+        argv = opts.argv.map(String);
+        env  = Array.isArray(opts.env) ? opts.env.map(String) : [];
+      } else {
+        // Standalone execution: [node, script.js, wasm-path?, arg1, arg2, ...]
+        const _pathMod = require('path');
+        const progName = _pathMod.basename(wasmPath, '.wasm');
+        argv = [progName].concat(process.argv.slice(3));
+        env  = Object.keys(process.env).map(function(k) { return k + '=' + process.env[k]; });
+      }
+    } else {
+      // Browser: no access to process — pass empty argc/argv/env.
+      argv = [];
+      env  = [];
+    }
+    if (argv.length > 0) {
+      const { argc, argvPtr, envPtr } = _buildArgvInMemory(memoryRef, argv, env);
+      const boundEntry = () => entry(argc, argvPtr, envPtr);
+      return _runEntrypointWithLongjmpResume(boundEntry);
+    }
+    // Browser with empty argv: call with explicit zeros so WASM doesn't read garbage.
+    const boundEntry = () => entry(0, 0, 0);
+    return _runEntrypointWithLongjmpResume(boundEntry);
+  }
+
   return _runEntrypointWithLongjmpResume(entry);
 }
 
@@ -2221,7 +2565,7 @@ if (typeof module !== 'undefined') {
   module.exports = { createImports, run };
 }
 
-// When executed directly (node <file>.js [wasm-path]), run main() immediately.
+// When executed directly (node <file>.js [wasm-path] [args...]), run main().
 if (typeof require !== 'undefined' && require.main === module) {
   const _path  = require('path');
   const _wasm  = process.argv[2]

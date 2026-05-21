@@ -14,6 +14,26 @@ extern int    __exc_matches(int thrown_type, int catch_type);
 extern void*  __malloc(unsigned long size);
 extern void   __free(void* ptr);
 
+/* String and memory function declarations (MaiaC-compatible, no #include needed) */
+extern unsigned int strlen(const char* s);
+extern int strcmp(const char* s1, const char* s2);
+extern int strncmp(const char* s1, const char* s2, unsigned int n);
+extern char* strcpy(char* dest, const char* src);
+extern char* strncpy(char* dest, const char* src, unsigned int n);
+extern char* strcat(char* dest, const char* src);
+extern char* strncat(char* dest, const char* src, unsigned int n);
+extern char* strstr(const char* haystack, const char* needle);
+extern char* strchr(const char* s, int c);
+extern char* strrchr(const char* s, int c);
+extern unsigned int strspn(const char* s, const char* accept);
+extern unsigned int strcspn(const char* s, const char* reject);
+extern char* strtok(char* str, const char* delim);
+extern int memcmp(const void* s1, const void* s2, unsigned int n);
+extern void* memcpy(void* dest, const void* src, unsigned int n);
+extern void* memmove(void* dest, const void* src, unsigned int n);
+extern void* memset(void* s, int c, unsigned int n);
+extern void* memchr(const void* s, int c, unsigned int n);
+
 #define EXC_LifeForm 1
 #define EXC_Human 2
 #define EXC_Wizard 3
@@ -66,6 +86,9 @@ char* LifeForm_getName(LifeForm* self) {
 
 void LifeForm_setLife__i(LifeForm* self, int v) {
   (void)self;
+  if (v >= 0 && v <= 100) {
+    self->life = v;
+  }
   (void)v;
 }
 
@@ -76,6 +99,9 @@ int LifeForm_getLife(LifeForm* self) {
 
 void LifeForm_setStrength__i(LifeForm* self, int f) {
   (void)self;
+  if (f >= 0 && f <= 100) {
+    self->strength = f;
+  }
   (void)f;
 }
 
@@ -119,8 +145,31 @@ void Human_say__pv(Human* self, char* s) {
 
 char* Human_respond__pv(Human* self, char* s) {
   (void)self;
+  if ((strcmp(s, "Hello!") == 0))
+  {
+  return "How are you?";
+  }
+  else if ((strcmp(s, "How are you?") == 0))
+  {
+  return "Fine, and you?";
+  }
+  else if ((strcmp(s, "Fine, and you?") == 0))
+  {
+  return "I'm doing great!";
+  }
+  else if ((strcmp(s, "Goodbye!") == 0))
+  {
+  return "See you!";
+  }
+  else if ((strcmp(s, "Bye!") == 0))
+  {
+  return "See you!";
+  }
+  else
+  {
+  return "I don't know.";
+  }
   (void)s;
-  return (char*)0;
 }
 
 typedef struct Wizard {
@@ -150,6 +199,9 @@ void Wizard_destroy(Wizard* self) {
 
 void Wizard_setMagic__i(Wizard* self, int m) {
   (void)self;
+  if (m >= 0 && m <= 100) {
+    self->magic = m;
+  }
   (void)m;
 }
 
@@ -185,6 +237,9 @@ void Witch_destroy(Witch* self) {
 
 void Witch_setMagic__i(Witch* self, int m) {
   (void)self;
+  if (m >= 0 && m <= 100) {
+    self->magic = m;
+  }
   (void)m;
 }
 
@@ -225,6 +280,9 @@ void Knight_destroy(Knight* self) {
 
 void Knight_setBravery__i(Knight* self, int c) {
   (void)self;
+  if (c >= 0 && c <= 100) {
+    self->bravery = c;
+  }
   (void)c;
 }
 
@@ -235,6 +293,9 @@ int Knight_getBravery(Knight* self) {
 
 void Knight_setArmor__i(Knight* self, int a) {
   (void)self;
+  if (a >= 0 && a <= 100) {
+    self->armor = a;
+  }
   (void)a;
 }
 
@@ -245,8 +306,31 @@ int Knight_getArmor(Knight* self) {
 
 char* Knight_respond__pv(Knight* self, char* s) {
   (void)self;
+  if ((strcmp(s, "Hello!") == 0))
+  {
+  return "How do you do, noble person?";
+  }
+  else if ((strcmp(s, "How are you?") == 0))
+  {
+  return "Fine, and how is Your Lordship?";
+  }
+  else if ((strcmp(s, "Fine, and you?") == 0))
+  {
+  return "I am doing splendidly well!";
+  }
+  else if ((strcmp(s, "Goodbye!") == 0))
+  {
+  return "Until next time!";
+  }
+  else if ((strcmp(s, "Bye!") == 0))
+  {
+  return "Until next time!";
+  }
+  else
+  {
+  return "I don't know.";
+  }
   (void)s;
-  return (char*)0;
 }
 
 typedef struct Princess {
@@ -283,6 +367,9 @@ void Princess_destroy(Princess* self) {
 
 void Princess_setIntelligence__i(Princess* self, int i) {
   (void)self;
+  if (i >= 0 && i <= 100) {
+    self->intelligence = i;
+  }
   (void)i;
 }
 
@@ -293,6 +380,9 @@ int Princess_getIntelligence(Princess* self) {
 
 void Princess_setBeauty__i(Princess* self, int b) {
   (void)self;
+  if (b >= 0 && b <= 100) {
+    self->beauty = b;
+  }
   (void)b;
 }
 
@@ -303,6 +393,9 @@ int Princess_getBeauty(Princess* self) {
 
 void Princess_setWealth__i(Princess* self, int d) {
   (void)self;
+  if (d >= 0 && d <= 100) {
+    self->wealth = d;
+  }
   (void)d;
 }
 
@@ -313,8 +406,35 @@ int Princess_getWealth(Princess* self) {
 
 char* Princess_respond__pv(Princess* self, char* s) {
   (void)self;
+  if ((strcmp(s, "Hello!") == 0))
+  {
+  return "I'm good, and you?";
+  }
+  else if ((strcmp(s, "I'm good, and you?") == 0))
+  {
+  return "I'm great!";
+  }
+  else if ((strcmp(s, "None of your business!") == 0))
+  {
+  return "How rude!";
+  }
+  else if ((strcmp(s, "Get out of here!") == 0))
+  {
+  return "I'll call my father!";
+  }
+  else if ((strcmp(s, "Get lost!") == 0))
+  {
+  return "You're done for!";
+  }
+  else if ((strcmp(s, "You're done for!") == 0))
+  {
+  return "I don't care!";
+  }
+  else
+  {
+  return "I don't know.";
+  }
   (void)s;
-  return (char*)0;
 }
 
 typedef struct Villager {
@@ -348,6 +468,9 @@ void Villager_destroy(Villager* self) {
 
 void Villager_setLoyalty__i(Villager* self, int l) {
   (void)self;
+  if (l >= 0 && l <= 100) {
+    self->loyalty = l;
+  }
   (void)l;
 }
 
@@ -358,6 +481,9 @@ int Villager_getLoyalty(Villager* self) {
 
 void Villager_setHonesty__i(Villager* self, int h) {
   (void)self;
+  if (h >= 0 && h <= 100) {
+    self->honesty = h;
+  }
   (void)h;
 }
 
@@ -368,8 +494,39 @@ int Villager_getHonesty(Villager* self) {
 
 char* Villager_respond__pv(Villager* self, char* s) {
   (void)self;
+  if ((strcmp(s, "Hello!") == 0))
+  {
+  return "I'm good, and you?";
+  }
+  else if ((strcmp(s, "How are you?") == 0))
+  {
+  return "None of your business!";
+  }
+  else if ((strcmp(s, "Fine, and you?") == 0))
+  {
+  return "Get out of here!";
+  }
+  else if ((strcmp(s, "I'm great!") == 0))
+  {
+  return "Get out of here!";
+  }
+  else if ((strcmp(s, "I'll call my father!") == 0))
+  {
+  return "I don't care!";
+  }
+  else if ((strcmp(s, "Goodbye!") == 0))
+  {
+  return "Get lost!";
+  }
+  else if ((strcmp(s, "Bye!") == 0))
+  {
+  return "I don't care!";
+  }
+  else
+  {
+  return "I don't know.";
+  }
   (void)s;
-  return (char*)0;
 }
 
 typedef struct Monster {
@@ -399,6 +556,9 @@ void Monster_destroy(Monster* self) {
 
 void Monster_setSympathy__i(Monster* self, int s) {
   (void)self;
+  if (s >= 0 && s <= 100) {
+    self->sympathy = s;
+  }
   (void)s;
 }
 
@@ -434,6 +594,9 @@ void Dragon_destroy(Dragon* self) {
 
 void Dragon_setFire__i(Dragon* self, int f) {
   (void)self;
+  if (f >= 0 && f <= 100) {
+    self->fire = f;
+  }
   (void)f;
 }
 

@@ -7,11 +7,9 @@
   (import "env" "__exc_pop" (func $imp___exc_pop))
   (import "env" "__exc_active" (func $imp___exc_active (result i32)))
   (import "env" "__exc_type" (func $imp___exc_type (result i32)))
-  (import "env" "__exc_data" (func $imp___exc_data))
   (import "env" "__exc_throw" (func $imp___exc_throw (param i32 i32)))
   (import "env" "__exc_clear" (func $imp___exc_clear))
   (import "env" "__exc_matches" (func $imp___exc_matches (param i32 i32) (result i32)))
-  (import "env" "__malloc" (func $imp___malloc (param i32) (result i32)))
   (import "env" "__free" (func $imp___free (param i32)))
   (import "env" "printf" (func $imp_printf (param f64 f64 f64 f64 f64 f64 f64 f64) (result i32)))
 
@@ -259,6 +257,7 @@
     i32.add
     i32.load
     call $Australopithecus_init
+    i32.const 0
   )
 
   ;; function HomoHabilis_init__pv
@@ -299,6 +298,7 @@
     i32.add
     i32.load
     call $Australopithecus_init__pv
+    i32.const 0
   )
 
   ;; function HomoHabilis_destroy
@@ -425,6 +425,7 @@
     i32.add
     i32.load
     call $HomoHabilis_init
+    i32.const 0
   )
 
   ;; function HomoErectus_init__pv
@@ -465,6 +466,7 @@
     i32.add
     i32.load
     call $HomoHabilis_init__pv
+    i32.const 0
   )
 
   ;; function HomoErectus_destroy
@@ -522,6 +524,7 @@
     i32.add
     i32.load
     call $HomoErectus_init
+    i32.const 0
   )
 
   ;; function HomoSapiens_init__pv
@@ -562,6 +565,7 @@
     i32.add
     i32.load
     call $HomoErectus_init__pv
+    i32.const 0
   )
 
   ;; function HomoSapiens_destroy
@@ -751,6 +755,7 @@
     i32.add
     i32.load
     call $HomoErectus_init
+    i32.const 0
   )
 
   ;; function HomoNeanderthalensis_init__pv
@@ -791,6 +796,7 @@
     i32.add
     i32.load
     call $HomoErectus_init__pv
+    i32.const 0
   )
 
   ;; function HomoNeanderthalensis_destroy
@@ -840,16 +846,19 @@
     i32.add
     i32.const 80
     call $HomoNeanderthalensis_init__pv
+    i32.const 0
     local.get $__frame
     i32.const 4
     i32.add
     i32.const 88
     call $HomoSapiens_init__pv
+    i32.const 0
     local.get $__frame
     i32.const 4
     i32.add
     i32.const 96
     call $HomoSapiens_say__pv
+    i32.const 0
     local.get $__frame
     i32.const 4
     i32.add
@@ -858,6 +867,7 @@
     i32.const 0
     i32.add
     call $HomoSapiens_say__pvN11HomoErectus
+    i32.const 0
     local.get $__frame
     i32.const 0
     i32.add

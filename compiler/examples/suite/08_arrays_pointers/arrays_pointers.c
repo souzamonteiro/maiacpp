@@ -21,7 +21,9 @@ int main(void);
 int array_sum__pvi(int* arr, int n) {
   int i;
   int s = 0;
-  for (i = 0; i < n; ++i) s += arr[i];
+  for (i = 0;
+  i < n;
+  ++i) s += arr[i];
   return s;
 }
 
@@ -59,4 +61,4 @@ int main(void) {
 }
 
 /* Lowering diagnostics: 1 event(s) (structured-cstyle-body=1) */
-/* - array_sum: structured-cstyle-body (raw-body 4 line(s)) */
+/* - array_sum: structured-cstyle-body (raw-body 6 line(s)) */

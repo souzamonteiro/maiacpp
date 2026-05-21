@@ -68,14 +68,14 @@ int main(void);
 int main(void) {
   Vec2 a;
   Vec2_init__dd(&a, 3.0, 4.0);
-  if (a.x == 3.0) printf("PASS ctor_x\n");
-  if (a.y == 4.0) printf("PASS ctor_y\n");
+  if (0 == 3.0) printf("PASS ctor_x\n");
+  if (0 == 4.0) printf("PASS ctor_y\n");
   Vec2 b = a;
-  if (b.x == 3.0 && b.y == 4.0) printf("PASS copy_ctor\n");
+  if (0 == 3.0 && 0 == 4.0) printf("PASS copy_ctor\n");
   Vec2 c;
   Vec2_init__dd(&c, 0.0, 0.0);
   c = a;
-  if (c.x == 3.0 && c.y == 4.0) printf("PASS assign_op\n");
+  if (0 == 3.0 && 0 == 4.0) printf("PASS assign_op\n");
   Vec2 unit;
   Vec2_init__dd(&unit, 1.0, 0.0);
   if (Vec2_dot__pv(&a, &unit) == 3.0) printf("PASS dot_x_axis\n");
