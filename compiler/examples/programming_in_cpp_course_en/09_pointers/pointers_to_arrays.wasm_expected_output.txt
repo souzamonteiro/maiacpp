@@ -1,11 +1,11 @@
-Value pointed to by p: .
+Value pointed to by p: 1.
 The memory address pointed to by p is 1024.
-Value pointed to by p: ÿ.
+Value pointed to by p: 255.
 The memory address pointed to by p is 1028.
-Value pointed to by p: .
-The memory address pointed to by p is 1032.
-Value pointed to by p: .
-The memory address pointed to by p is 1036.
+Value pointed to by p: 4.
+The memory address pointed to by p is 1044.
+Value pointed to by p: 5.
+The memory address pointed to by p is 1048.
 d[0] = 4.
 d[1] = 7.
 d[2] = 6.

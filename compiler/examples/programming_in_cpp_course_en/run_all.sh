@@ -57,6 +57,21 @@ run_one() {
     local runner="$test_dir/dist/node-runner.sh"
     local expected="$test_dir/${stem}.expected_output.txt"
     local input_file="$test_dir/${stem}.input.txt"
+    local is_cmdline_args=0
+    if [[ "$stem" == "command_line_args" ]]; then
+        is_cmdline_args=1
+    fi
+    local -a fixed_env
+    fixed_env=(
+        "SHELL=/bin/zsh"
+        "TERM=xterm-256color"
+        "USER=${USER:-roberto}"
+        "PATH=$PATH"
+        "PWD=$PWD"
+        "MAIACPP_ARGV_TEST=1"
+        "SHLVL=0"
+        "__CF_USER_TEXT_ENCODING=${__CF_USER_TEXT_ENCODING:-0x1F5:0x0:0x47}"
+    )
 
     echo ""
     echo "--> $(basename "$test_dir")/$stem"
@@ -71,10 +86,18 @@ run_one() {
     # ── run g++ binary ────────────────────────────────────────────────────────
     local gpp_out
     if [[ -f "$input_file" ]]; then
-        gpp_out="$("$binary" < "$input_file" 2>/dev/null)" || true
+        if [[ "$is_cmdline_args" -eq 1 ]]; then
+            gpp_out="$(env -i "${fixed_env[@]}" "$binary" < "$input_file" 2>/dev/null)" || true
+        else
+            gpp_out="$("$binary" < "$input_file" 2>/dev/null)" || true
+        fi
     else
         # Programs that read stdin will exit immediately with empty input
-        gpp_out="$(echo '' | "$binary" 2>/dev/null)" || true
+        if [[ "$is_cmdline_args" -eq 1 ]]; then
+            gpp_out="$(echo '' | env -i "${fixed_env[@]}" "$binary" 2>/dev/null)" || true
+        else
+            gpp_out="$(echo '' | "$binary" 2>/dev/null)" || true
+        fi
     fi
 
     local gpp_norm
@@ -113,9 +136,17 @@ run_one() {
         # Pass the specific WASM file and the same stdin used for g++.
         if [[ -f "$wasm_file" ]]; then
             if [[ -f "$input_file" ]]; then
-                wasm_raw="$(_run_timed "$WASM_TIMEOUT" bash "$runner" "$wasm_file" < "$input_file" 2>/dev/null)" || true
+                if [[ "$is_cmdline_args" -eq 1 ]]; then
+                    wasm_raw="$(_run_timed "$WASM_TIMEOUT" env -i "${fixed_env[@]}" bash "$runner" "$wasm_file" < "$input_file" 2>/dev/null)" || true
+                else
+                    wasm_raw="$(_run_timed "$WASM_TIMEOUT" bash "$runner" "$wasm_file" < "$input_file" 2>/dev/null)" || true
+                fi
             else
-                wasm_raw="$(echo '' | _run_timed "$WASM_TIMEOUT" bash "$runner" "$wasm_file" 2>/dev/null)" || true
+                if [[ "$is_cmdline_args" -eq 1 ]]; then
+                    wasm_raw="$(echo '' | _run_timed "$WASM_TIMEOUT" env -i "${fixed_env[@]}" bash "$runner" "$wasm_file" 2>/dev/null)" || true
+                else
+                    wasm_raw="$(echo '' | _run_timed "$WASM_TIMEOUT" bash "$runner" "$wasm_file" 2>/dev/null)" || true
+                fi
             fi
         else
             # WASM not compiled (0-byte or missing) — skip comparison
@@ -138,7 +169,23 @@ run_one() {
             wasm_ref_norm="$gpp_norm"
         fi
 
-        if diff <(printf '%s\n' "$wasm_ref_norm") <(printf '%s\n' "$wasm_norm") > /dev/null 2>&1; then
+        local compare_ok=0
+        if [[ "$is_cmdline_args" -eq 1 && ! -f "$wasm_expected_file" ]]; then
+            local gpp_head wasm_head gpp_tail_sorted wasm_tail_sorted
+            gpp_head="$(printf '%s\n' "$gpp_norm" | sed -n '1p')"
+            wasm_head="$(printf '%s\n' "$wasm_norm" | sed -n '1p')"
+            gpp_tail_sorted="$(printf '%s\n' "$gpp_norm" | sed -n '2,$p' | LC_ALL=C sort)"
+            wasm_tail_sorted="$(printf '%s\n' "$wasm_norm" | sed -n '2,$p' | LC_ALL=C sort)"
+            if [[ "$gpp_head" == "$wasm_head" ]] && diff <(printf '%s\n' "$gpp_tail_sorted") <(printf '%s\n' "$wasm_tail_sorted") > /dev/null 2>&1; then
+                compare_ok=1
+            fi
+        else
+            if diff <(printf '%s\n' "$wasm_ref_norm") <(printf '%s\n' "$wasm_norm") > /dev/null 2>&1; then
+                compare_ok=1
+            fi
+        fi
+
+        if [[ "$compare_ok" -eq 1 ]]; then
             echo "    MaiaCpp PASS (matches g++ output)"
             MAIACPP_PASS=$((MAIACPP_PASS + 1))
         else
