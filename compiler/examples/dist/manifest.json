@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-21T22:06:50.851Z",
-  "input": "/var/folders/6p/871hys095mq5mm7078sqplx40000gn/T/tmp.hO89UItdnQ/test.c",
+  "generatedAt": "2026-05-21T22:23:01.137Z",
+  "input": "/var/folders/6p/871hys095mq5mm7078sqplx40000gn/T/tmp.N96obaSLvS/test.c",
   "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/dist",
   "appName": "test",
   "artifacts": {

@@ -505,7 +505,6 @@
     i32.add
     i32.load
     call $LifeForm_init
-    i32.const 0
   )
 
   ;; function Human_init__pv
@@ -546,7 +545,6 @@
     i32.add
     i32.load
     call $LifeForm_init__pv
-    i32.const 0
   )
 
   ;; function Human_destroy
@@ -806,7 +804,6 @@
     i32.add
     i32.load
     call $Human_init
-    i32.const 0
   )
 
   ;; function Wizard_init__pv
@@ -847,7 +844,6 @@
     i32.add
     i32.load
     call $Human_init__pv
-    i32.const 0
   )
 
   ;; function Wizard_destroy
@@ -1025,7 +1021,6 @@
     i32.add
     i32.load
     call $Human_init
-    i32.const 0
   )
 
   ;; function Witch_init__pv
@@ -1066,7 +1061,6 @@
     i32.add
     i32.load
     call $Human_init__pv
-    i32.const 0
   )
 
   ;; function Witch_destroy
@@ -1244,7 +1238,6 @@
     i32.add
     i32.load
     call $Human_init
-    i32.const 0
   )
 
   ;; function Knight_init__pv
@@ -1285,7 +1278,6 @@
     i32.add
     i32.load
     call $Human_init__pv
-    i32.const 0
   )
 
   ;; function Knight_destroy
@@ -1726,7 +1718,6 @@
     i32.add
     i32.load
     call $Human_init
-    i32.const 0
   )
 
   ;; function Princess_init__pv
@@ -1767,7 +1758,6 @@
     i32.add
     i32.load
     call $Human_init__pv
-    i32.const 0
   )
 
   ;; function Princess_destroy
@@ -2347,7 +2337,6 @@
     i32.add
     i32.load
     call $Human_init
-    i32.const 0
   )
 
   ;; function Villager_init__pv
@@ -2388,7 +2377,6 @@
     i32.add
     i32.load
     call $Human_init__pv
-    i32.const 0
   )
 
   ;; function Villager_destroy
@@ -2867,7 +2855,6 @@
     i32.add
     i32.load
     call $LifeForm_init
-    i32.const 0
   )
 
   ;; function Monster_init__pv
@@ -2908,7 +2895,6 @@
     i32.add
     i32.load
     call $LifeForm_init__pv
-    i32.const 0
   )
 
   ;; function Monster_destroy
@@ -3086,7 +3072,6 @@
     i32.add
     i32.load
     call $Monster_init
-    i32.const 0
   )
 
   ;; function Dragon_init__pv
@@ -3127,7 +3112,6 @@
     i32.add
     i32.load
     call $Monster_init__pv
-    i32.const 0
   )
 
   ;; function Dragon_destroy

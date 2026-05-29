@@ -196,7 +196,6 @@
     i32.const 0
     i32.add
     call $display_message__pv
-    i32.const 0
     i32.const 24
     f64.convert_i32_s
     f64.const 0

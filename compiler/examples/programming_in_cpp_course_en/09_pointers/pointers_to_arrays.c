@@ -29,12 +29,24 @@ int main(void) {
   c[1] = 2;
   c[2] = 3;
   p = &a;
+  printf("Value pointed to by p: ");
+  printf("%d", *p);
+  printf(".\n");
   printf("The memory address pointed to by p is %ld.\n", p);
   p = &b;
+  printf("Value pointed to by p: ");
+  printf("%d", *p);
+  printf(".\n");
   printf("The memory address pointed to by p is %ld.\n", p);
   p = d;
+  printf("Value pointed to by p: ");
+  printf("%d", *p);
+  printf(".\n");
   printf("The memory address pointed to by p is %ld.\n", p);
   p++;
+  printf("Value pointed to by p: ");
+  printf("%d", *p);
+  printf(".\n");
   printf("The memory address pointed to by p is %ld.\n", p);
   *p = 7;
   for (i = 0; i < (sizeof(d) / sizeof(int)); i++) {

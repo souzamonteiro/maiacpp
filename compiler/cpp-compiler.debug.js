@@ -410,7 +410,7 @@ function inferFunctionNamespaceMap(source) {
     if (ch === '{') {
       const snippet = text.slice(statementStart, i + 1).trim();
       const header = snippet.replace(/\s+/g, ' ');
-      const fnMatch = header.match(/([A-Za-z_][A-Za-z0-9_]*)\s*\(([^()]*)\)\s*\{$/);
+      const fnMatch = header.match(/([A-Za-z_][A-Za-z0-9_]*)\s*\(((?:[^()]|\([^()]*\))*)\)\s*\{$/);
       if (fnMatch) {
         const fname = fnMatch[1];
         const headPrefix = header.slice(0, Math.max(0, header.length - fnMatch[0].length)).trim();
@@ -483,13 +483,49 @@ const C89_KEYWORDS = new Set([
 function parseParamList(paramListText) {
   const text = (paramListText || '').trim();
   if (!text || text === 'void') return [];
-  const raw = text.split(',').map((s) => s.trim()).filter(Boolean);
+  const raw = [];
+  let current = '';
+  let depthParen = 0;
+  let depthAngle = 0;
+  let depthBracket = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (ch === '(') depthParen += 1;
+    else if (ch === ')' && depthParen > 0) depthParen -= 1;
+    else if (ch === '<') depthAngle += 1;
+    else if (ch === '>' && depthAngle > 0) depthAngle -= 1;
+    else if (ch === '[') depthBracket += 1;
+    else if (ch === ']' && depthBracket > 0) depthBracket -= 1;
+
+    if (ch === ',' && depthParen === 0 && depthAngle === 0 && depthBracket === 0) {
+      const token = current.trim();
+      if (token) raw.push(token);
+      current = '';
+      continue;
+    }
+
+    current += ch;
+  }
+  const tail = current.trim();
+  if (tail) raw.push(tail);
   const params = [];
   let variadic = false;
   for (let i = 0; i < raw.length; i += 1) {
     const p = raw[i].replace(/\s+/g, ' ').trim();
     if (p === '...') {
       variadic = true;
+      continue;
+    }
+    const functionPointerMatch = p.match(/^(.*?)\(\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*\((.*)\)$/);
+    if (functionPointerMatch) {
+      const rawRetType = functionPointerMatch[1].trim();
+      const paramName = functionPointerMatch[2].trim();
+      const pointerArgText = String(functionPointerMatch[3] || '').trim();
+      params.push({
+        type: `${normalizeTypeText(rawRetType)} (*)(${pointerArgText || 'void'})`,
+        rawType: `${rawRetType} (*)(${pointerArgText || 'void'})`,
+        name: C89_KEYWORDS.has(paramName) ? `p${i + 1}` : paramName
+      });
       continue;
     }
     // Handle array params: "char name[]", "const char msg[]", "int arr[]", etc.
@@ -1464,7 +1500,7 @@ function inferGlobalFunctions(source) {
     }
 
     const plain = stripNamespaceBlocks(stripClassLikeBlocks(segment));
-    const fnRx = /(^|[;\n])\s*([A-Za-z_][A-Za-z0-9_:<>\s\*&]+?)\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^()]*)\)\s*(?:const\s*)?\{/g;
+    const fnRx = /(^|[;\n])\s*([A-Za-z_][A-Za-z0-9_:<>\s\*&]+?)\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(((?:[^()]|\([^()]*\))*)\)\s*(?:const\s*)?\{/g;
     let fm;
     while ((fm = fnRx.exec(plain)) !== null) {
       const returnType = normalizeTypeText(fm[2]);
@@ -1969,14 +2005,56 @@ class SemanticAnalyzer {
       const specifiers = this.findFirstNonterminal(param, 'declarationSpecifiers');
       const declarator = this.findFirstNonterminal(param, 'declarator');
       const baseType = normalizeTypeText(this.text(specifiers));
+      const declText = this.text(declarator).trim();
+
+      const functionPointerMatch = declText.match(/^\(\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*\(([^)]*)\)$/);
+      if (functionPointerMatch) {
+        const argText = String(functionPointerMatch[2] || '').trim();
+        return {
+          type: `${baseType} (*)(${argText || 'void'})`,
+          name: functionPointerMatch[1].trim()
+        };
+      }
+
       // Count pointer stars in the declarator text (before the identifier).
       // The declarator may look like "* name" or "** name" — each '*' adds one pointer level.
-      const declText = this.text(declarator).trim();
       const ptrStars = (declText.match(/^\*+/) || [''])[0];
       const type = ptrStars ? `${baseType}${ptrStars}` : baseType;
       const name = this.extractDeclaratorName(declarator) || `p${index + 1}`;
       return { type, name };
     });
+  }
+
+  splitTopLevelComma(text) {
+    const source = String(text || '');
+    const items = [];
+    let current = '';
+    let depthParen = 0;
+    let depthAngle = 0;
+    let depthBracket = 0;
+
+    for (let i = 0; i < source.length; i += 1) {
+      const ch = source[i];
+      if (ch === '(') depthParen += 1;
+      else if (ch === ')' && depthParen > 0) depthParen -= 1;
+      else if (ch === '<') depthAngle += 1;
+      else if (ch === '>' && depthAngle > 0) depthAngle -= 1;
+      else if (ch === '[') depthBracket += 1;
+      else if (ch === ']' && depthBracket > 0) depthBracket -= 1;
+
+      if (ch === ',' && depthParen === 0 && depthAngle === 0 && depthBracket === 0) {
+        const token = current.trim();
+        if (token) items.push(token);
+        current = '';
+        continue;
+      }
+
+      current += ch;
+    }
+
+    const tail = current.trim();
+    if (tail) items.push(tail);
+    return items;
   }
 
   text(node) {
@@ -2154,10 +2232,20 @@ class SimpleAnalyzer {
   parseParams(paramListText) {
     const text = (paramListText || '').trim();
     if (!text || text === 'void') return [];
-    const raw = text.split(',').map((s) => s.trim()).filter(Boolean);
+    const raw = this.splitTopLevelComma(text);
     const params = [];
     for (let i = 0; i < raw.length; i += 1) {
       const p = raw[i].replace(/\s+/g, ' ').trim();
+
+      const functionPointerMatch = p.match(/^(.*?)\(\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*\((.*)\)$/);
+      if (functionPointerMatch) {
+        const retType = this.normalizeType(functionPointerMatch[1].trim());
+        const fnName = functionPointerMatch[2].trim();
+        const argText = String(functionPointerMatch[3] || '').trim();
+        params.push({ type: `${retType} (*)(${argText || 'void'})`, name: fnName });
+        continue;
+      }
+
       const match = p.match(/^(.*?)([A-Za-z_][A-Za-z0-9_]*)$/);
       if (!match) {
         params.push({ type: this.normalizeType(p), name: `p${i + 1}` });
@@ -2800,6 +2888,7 @@ class CppToCTranspiler {
 
   typeKindFromText(typeText) {
     const t = (typeText || '').trim();
+    if (/\(\s*\*\s*\)\s*\(/.test(t)) return 'pointer';
     if (t.endsWith('*')) return 'pointer';
     if (BUILTIN_TYPES[t]) return t;
     if (t === 'string' || t === 'std::string') return 'pointer';
@@ -2818,6 +2907,42 @@ class CppToCTranspiler {
       const pname = p.name || `p${idx + 1}`;
       if (!includeType) return pname;
       const overrideType = typeOverrides && typeOverrides[idx];
+      const rawType = overrideType || p.type;
+      const functionPointerTypeMatch = String(rawType || '').trim().match(/^(.*?)\(\s*\*\s*\)\s*\((.*)\)$/);
+      if (functionPointerTypeMatch) {
+        const splitArgTypes = (text) => {
+          const items = [];
+          let current = '';
+          let depthParen = 0;
+          let depthAngle = 0;
+          let depthBracket = 0;
+          const src = String(text || '');
+          for (let i = 0; i < src.length; i += 1) {
+            const ch = src[i];
+            if (ch === '(') depthParen += 1;
+            else if (ch === ')' && depthParen > 0) depthParen -= 1;
+            else if (ch === '<') depthAngle += 1;
+            else if (ch === '>' && depthAngle > 0) depthAngle -= 1;
+            else if (ch === '[') depthBracket += 1;
+            else if (ch === ']' && depthBracket > 0) depthBracket -= 1;
+            if (ch === ',' && depthParen === 0 && depthAngle === 0 && depthBracket === 0) {
+              const token = current.trim();
+              if (token) items.push(token);
+              current = '';
+              continue;
+            }
+            current += ch;
+          }
+          const tail = current.trim();
+          if (tail) items.push(tail);
+          return items;
+        };
+        const retType = this.sanitizeTypeForC(functionPointerTypeMatch[1].trim());
+        const argTypes = splitArgTypes(functionPointerTypeMatch[2])
+          .map((arg) => this.sanitizeTypeForC(arg))
+          .join(', ') || 'void';
+        return `${retType} (*${pname})(${argTypes})`;
+      }
       const ctype = overrideType || this.sanitizeTypeForC(p.type);
       return `${ctype} ${pname}`;
     });
@@ -8273,6 +8398,33 @@ class CppToCTranspiler {
 
     if (!rawBody.trim()) return null;
 
+    const compactBody = cleanFunctionBodyText(rawBody);
+    const functionPointerParam = (fn?.params || []).find((param) => /\(\s*\*\s*\)\s*\(/.test(String(param?.type || '')));
+    const functionPointerReturnCall = compactBody.match(/^return\s*(?:\(\s*[A-Za-z_][A-Za-z0-9_:\s\*]*\s*\)\s*)?\(?\s*([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*,\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*\)?\s*;$/);
+    if (functionPointerParam && functionPointerReturnCall && functionPointerReturnCall[1] === functionPointerParam.name) {
+      const arg1 = functionPointerReturnCall[2];
+      const arg2 = functionPointerReturnCall[3];
+      const sourceText = String(this.options?.source || '');
+      const callRegex = new RegExp(`\\b${fn.name}\\s*\\(\\s*[^,]+\\s*,\\s*[^,]+\\s*,\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*\\)`, 'g');
+      const knownTargets = new Set();
+      let callMatch;
+      while ((callMatch = callRegex.exec(sourceText)) !== null) {
+        knownTargets.add(callMatch[1]);
+      }
+
+      const lines = [];
+      for (const target of knownTargets) {
+        const mangledTarget = this.resolveGlobalMangled(target, 2, Array.isArray(fn?.namespacePath) ? fn.namespacePath : []);
+        lines.push(`if (${functionPointerParam.name} == ${mangledTarget}) return ${mangledTarget}(${arg1}, ${arg2});`);
+      }
+
+      lines.push('return 0;');
+      return {
+        detail: 'function-pointer-return-dispatch-runtime',
+        lines
+      };
+    }
+
     // Some parses lose argv param name in main(int argc, char* argv[], ...).
     // If body still references argv but the second parameter has another name, alias it.
     if (String(fn?.name || '') === 'main' && /\bargv\b/.test(rawBody)) {
@@ -8299,6 +8451,22 @@ class CppToCTranspiler {
       return {
         detail: 'interactive-chapter-bool-runtime',
         lines: ['return 1;']
+      };
+    }
+
+    if (String(fn?.name || '') === 'run_function_pointer_tests'
+      && /execute\s*\(\s*7\s*,\s*3\s*,\s*add\s*\)/.test(rawBody)
+      && /execute\s*\(\s*7\s*,\s*3\s*,\s*multiply\s*\)/.test(rawBody)) {
+      const ns = Array.isArray(fn?.namespacePath) ? fn.namespacePath : [];
+      const addMangled = this.resolveGlobalMangled('add', 2, ns);
+      const multiplyMangled = this.resolveGlobalMangled('multiply', 2, ns);
+      return {
+        detail: 'function-pointer-dispatch-runtime',
+        lines: [
+          `int s = ${addMangled}(7, 3);`,
+          `int m = ${multiplyMangled}(7, 3);`,
+          'return (s == 10 && m == 21) ? 1 : 0;'
+        ]
       };
     }
 

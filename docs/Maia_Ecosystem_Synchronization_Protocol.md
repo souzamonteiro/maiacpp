@@ -10,6 +10,13 @@ This protocol is mandatory whenever MaiaCC changes, regardless of change size.
 4. MaiaCpp
 5. MaiaJS
 
+## Operational Rule (Mandatory)
+
+1. All source/code fixes must be made in the principal repository that owns the code, never by committing directly inside a downstream submodule checkout.
+2. After pushing the principal repository, each downstream principal repository must sync using its own `./git_pull.sh` from repository root.
+3. The downstream repository must then commit the updated submodule pointer in the parent repository.
+4. Validation/tests must run from the downstream principal repository, using only in-repo submodules.
+
 ## Step 1: MaiaCC
 
 1. Regenerate parser artifacts.

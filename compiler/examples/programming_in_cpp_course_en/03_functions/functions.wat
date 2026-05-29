@@ -151,10 +151,8 @@
   ;; function main
   (func $main (result i32)
     call $hello_world
-    i32.const 0
     i32.const 40
     call $display_message__pv
-    i32.const 0
     i32.const 52
     f64.convert_i32_s
     f64.const 0

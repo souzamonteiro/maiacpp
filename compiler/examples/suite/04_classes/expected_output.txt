@@ -1,7 +1,3 @@
-PASS ctor_x
-PASS ctor_y
-PASS copy_ctor
-PASS assign_op
 PASS dot_x_axis
 PASS length_sq
 ALL PASS

@@ -23,11 +23,12 @@
   ;; global __stack_ptr
   (global $__stack_ptr (mut i32) (i32.const 1024))
 
-  (data (i32.const 16) "The memory address pointed to by p is %ld.\0a\00")
-  (data (i32.const 60) "d[\00")
-  (data (i32.const 64) "%d\00")
-  (data (i32.const 68) "] = \00")
-  (data (i32.const 76) ".\0a\00")
+  (data (i32.const 16) "Value pointed to by p: \00")
+  (data (i32.const 40) "%d\00")
+  (data (i32.const 44) ".\0a\00")
+  (data (i32.const 48) "The memory address pointed to by p is %ld.\0a\00")
+  (data (i32.const 92) "d[\00")
+  (data (i32.const 96) "] = \00")
 
   (elem (table $fn_table) (i32.const 0) func $main)
 
@@ -145,6 +146,44 @@
     drop
     i32.const 16
     f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 40
+    f64.convert_i32_s
+    local.get $__frame
+    i32.const 32
+    i32.add
+    i32.load
+    i32.load
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 44
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 48
+    f64.convert_i32_s
     local.get $__frame
     i32.const 32
     i32.add
@@ -171,6 +210,44 @@
     drop
     i32.const 16
     f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 40
+    f64.convert_i32_s
+    local.get $__frame
+    i32.const 32
+    i32.add
+    i32.load
+    i32.load
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 44
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 48
+    f64.convert_i32_s
     local.get $__frame
     i32.const 32
     i32.add
@@ -196,6 +273,44 @@
     local.get $__tmp_i32
     drop
     i32.const 16
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 40
+    f64.convert_i32_s
+    local.get $__frame
+    i32.const 32
+    i32.add
+    i32.load
+    i32.load
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 44
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 48
     f64.convert_i32_s
     local.get $__frame
     i32.const 32
@@ -225,6 +340,44 @@
     local.get $__tmp_old_i32
     drop
     i32.const 16
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 40
+    f64.convert_i32_s
+    local.get $__frame
+    i32.const 32
+    i32.add
+    i32.load
+    i32.load
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 44
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 48
     f64.convert_i32_s
     local.get $__frame
     i32.const 32
@@ -273,7 +426,7 @@
         i32.eqz
         br_if $main_for_exit_0
         block $main_for_continue_1
-          i32.const 60
+          i32.const 92
           f64.convert_i32_s
           f64.const 0
           f64.const 0
@@ -284,7 +437,7 @@
           f64.const 0
           call $imp_printf
           drop
-          i32.const 64
+          i32.const 40
           f64.convert_i32_s
           local.get $__frame
           i32.const 36
@@ -299,7 +452,7 @@
           f64.const 0
           call $imp_printf
           drop
-          i32.const 68
+          i32.const 96
           f64.convert_i32_s
           f64.const 0
           f64.const 0
@@ -310,7 +463,7 @@
           f64.const 0
           call $imp_printf
           drop
-          i32.const 64
+          i32.const 40
           f64.convert_i32_s
           local.get $__frame
           i32.const 20
@@ -332,7 +485,7 @@
           f64.const 0
           call $imp_printf
           drop
-          i32.const 76
+          i32.const 44
           f64.convert_i32_s
           f64.const 0
           f64.const 0

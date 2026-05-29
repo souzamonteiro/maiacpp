@@ -133,7 +133,6 @@
     i32.add
     i32.load
     call $imp___free
-    i32.const 0
     local.get $__frame
     i32.const 4
     i32.add
@@ -269,7 +268,6 @@
     i32.add
     i32.load
     call $imp___free
-    i32.const 0
     local.get $__frame
     i32.const 8
     i32.add
@@ -343,7 +341,6 @@
     i32.add
     i32.load
     call $imp___free
-    i32.const 0
     i32.const 132
     f64.convert_i32_s
     f64.const 0

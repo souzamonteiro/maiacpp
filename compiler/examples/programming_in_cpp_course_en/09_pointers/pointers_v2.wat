@@ -419,7 +419,6 @@
     i32.const 255
     i32.add
     call $to_uppercase__pvpv
-    i32.const 0
     i32.const 76
     f64.convert_i32_s
     f64.const 0

@@ -30,12 +30,16 @@ int apply__N5IntOpi(IntOp f, int x);
 int main(void);
 
 int factorial__i(int n) {
-  if (n <= 1) return 1;
+  if (n <= 1) {
+    return 1;
+  }
   return n * factorial__i(n - 1);
 }
 
 int fib__i(int n) {
-  if (n <= 1) return n;
+  if (n <= 1) {
+    return n;
+  }
   return fib__i(n - 1) + fib__i(n - 2);
 }
 
@@ -59,8 +63,12 @@ int sum_cref__ii(int x, int y) {
 }
 
 int clamp__iii(int x, int lo, int hi) {
-  if (x < lo) return lo;
-  if (x > hi) return hi;
+  if (x < lo) {
+    return lo;
+  }
+  if (x > hi) {
+    return hi;
+  }
   return x;
 }
 

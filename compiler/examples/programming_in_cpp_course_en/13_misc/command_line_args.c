@@ -15,9 +15,9 @@ extern void*  __malloc(unsigned long size);
 extern void   __free(void* ptr);
 
 /* Global functions */
-int main(int argc, int p2, char* env);
+int main(int argc, char** argv, char** env);
 
-int main(int argc, int p2, char* env) {
+int main(int argc, char** argv, char** env) {
   int i = 0;
   char** p = 0;
 
@@ -25,12 +25,12 @@ int main(int argc, int p2, char* env) {
     printf("argv[");
     printf("%d", i);
     printf("] = ");
-    printf("%d", argv[i]);
+    printf("%s", argv[i]);
     printf("\n");
   }
   p = env;
   while (*p) {
-    printf("%c", *p);
+    printf("%s", *p);
     printf("\n");
     p++;
   }

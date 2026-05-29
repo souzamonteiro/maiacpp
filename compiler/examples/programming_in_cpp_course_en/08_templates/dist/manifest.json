@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-21T14:15:00.900Z",
-  "input": "/Volumes/External_SSD/Documentos/Projects/maiajs/maiacpp/compiler/examples/programming_in_cpp_course_en/08_templates/templates.c",
-  "outDir": "/Volumes/External_SSD/Documentos/Projects/maiajs/maiacpp/compiler/examples/programming_in_cpp_course_en/08_templates/dist",
+  "generatedAt": "2026-05-23T14:40:39.601Z",
+  "input": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/programming_in_cpp_course_en/08_templates/templates.c",
+  "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/programming_in_cpp_course_en/08_templates/dist",
   "appName": "templates",
   "artifacts": {
     "wasm": "templates.wasm",
@@ -13,12 +13,7 @@
     "nodeRunnerShell": "node-runner.sh"
   },
   "linkedLibraries": [],
-  "copiedLibraries": [
-    "ctype",
-    "setjmp",
-    "stdlib",
-    "string"
-  ],
+  "copiedLibraries": [],
   "runtimeProvidedHeaders": [],
   "missingLibraries": [],
   "sourceBytes": 686
