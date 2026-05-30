@@ -9062,10 +9062,51 @@ class CppToCTranspiler {
 
     const lowerRawBody = () => {
       const rewritten = rewriteCalls(normalizedBodyText);
+      const analysisClassNames = this.analysis?.classes instanceof Map
+        ? Array.from(this.analysis.classes.keys()).sort((a, b) => String(b).length - String(a).length)
+        : [];
+
+      const collapsedDeclarationPrefixes = [
+        ['const void*', 'constvoid*'],
+        ['const char*', 'constchar*'],
+        ['const double', 'constdouble'],
+        ['const float', 'constfloat'],
+        ['const long', 'constlong'],
+        ['const int', 'constint'],
+        ['const short', 'constshort'],
+        ['const char', 'constchar'],
+        ['unsigned long', 'unsignedlong'],
+        ['unsigned int', 'unsignedint'],
+        ['void*', 'void*'],
+        ['double', 'double'],
+        ['float', 'float'],
+        ['long', 'long'],
+        ['int', 'int'],
+        ['short', 'short'],
+        ['char', 'char'],
+        ['bool', 'bool']
+      ];
 
       const normalizeCollapsedLine = (line) => {
         let out = String(line || '').trim();
         if (!out) return out;
+
+        for (const [typeText, collapsedPrefix] of collapsedDeclarationPrefixes) {
+          const declRx = new RegExp(`^${collapsedPrefix}([A-Za-z_][A-Za-z0-9_]*)(\\s*(?:=|;|\\[))`);
+          if (declRx.test(out)) {
+            out = out.replace(declRx, `${typeText} $1$2`);
+            break;
+          }
+        }
+
+        for (const className of analysisClassNames) {
+          const escaped = String(className || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const declRx = new RegExp(`^(${escaped})([A-Za-z_][A-Za-z0-9_]*)(\\s*(?:=|;|\\[))`);
+          if (declRx.test(out)) {
+            out = out.replace(declRx, '$1 $2$3');
+            break;
+          }
+        }
 
         out = out.replace(/^const(?=(?:void|int|double|float|char|short|long|unsigned|bool)\b)/, 'const ');
         out = out.replace(/^((?:const\s+)?(?:void|int|double|float|char|short|long|unsigned|bool)\*?)([A-Za-z_])/, '$1 $2');
