@@ -8805,14 +8805,17 @@ class CppToCTranspiler {
       const fnPtrLocals = new Map();
       const linesOut = [];
       for (const rawLine of String(text || '').split('\n')) {
-        const line = String(rawLine || '');
+        const line = String(rawLine || '')
+          .replace(/^(\s*)return(?=[A-Za-z_(])/, '$1return ')
+          .replace(/\bnew(?=(?:int|char|double|float)\b)/g, 'new ')
+          .replace(/\bdelete(?=(?:\[\s*\]|[A-Za-z_]))/g, 'delete ');
         const trimmed = line.trim();
         if (!trimmed) {
           linesOut.push(line);
           continue;
         }
 
-        const newArrayDecl = line.match(/^(\s*)(int|char|double|float)\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*new\s+(int|char|double|float)\s*\[\s*([^\]]+)\s*\]\s*;\s*$/);
+        const newArrayDecl = line.match(/^(\s*)(int|char|double|float)\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*new\s*(int|char|double|float)\s*\[\s*([^\]]+)\s*\]\s*;\s*$/);
         if (newArrayDecl && newArrayDecl[2] === newArrayDecl[4]) {
           const indent = newArrayDecl[1];
           const baseType = newArrayDecl[2];
@@ -8822,7 +8825,7 @@ class CppToCTranspiler {
           continue;
         }
 
-        const newScalarDecl = line.match(/^(\s*)(int|char|double|float)\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*new\s+(int|char|double|float)\s*(?:\(\s*([^)]*)\s*\))?\s*;\s*$/);
+        const newScalarDecl = line.match(/^(\s*)(int|char|double|float)\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*new\s*(int|char|double|float)\s*(?:\(\s*([^)]*)\s*\))?\s*;\s*$/);
         if (newScalarDecl && newScalarDecl[2] === newScalarDecl[4]) {
           const indent = newScalarDecl[1];
           const baseType = newScalarDecl[2];
@@ -9090,6 +9093,10 @@ class CppToCTranspiler {
       const normalizeCollapsedLine = (line) => {
         let out = String(line || '').trim();
         if (!out) return out;
+
+        out = out.replace(/^return(?=[A-Za-z_(])/, 'return ');
+        out = out.replace(/\bnew(?=(?:int|char|double|float)\b)/g, 'new ');
+        out = out.replace(/\bdelete(?=(?:\[\s*\]|[A-Za-z_]))/g, 'delete ');
 
         for (const [typeText, collapsedPrefix] of collapsedDeclarationPrefixes) {
           const declRx = new RegExp(`^${collapsedPrefix}([A-Za-z_][A-Za-z0-9_]*)(\\s*(?:=|;|\\[))`);
@@ -9747,12 +9754,15 @@ class Cpp98Compiler {
     );
 
     // Some MaiaJS prototype helper stubs can still leak C++-style `this->`
-    // accesses while their lowered C signatures carry no receiver parameter.
+    // accesses, or bare `this` references, while their lowered C signatures
+    // carry no receiver parameter.
     // Keep this scoped to generated `maia_fn_*_prototype_*` helpers so regular
     // C++ class code used by MaiaCpp suites is unaffected.
     out = out.replace(
       /\b(?:int|char\*|float|double|long|short|unsigned\s+int|unsigned\s+long|void)\s+maia_fn_[A-Za-z0-9_]+_prototype_[A-Za-z0-9_]+\s*\([^)]*\)\s*\{[\s\S]*?\}/g,
-      (fnBlock) => fnBlock.replace(/\bthis->([A-Za-z_][A-Za-z0-9_]*)\b/g, '0')
+      (fnBlock) => fnBlock
+        .replace(/\bthis->([A-Za-z_][A-Za-z0-9_]*)\b/g, '0')
+        .replace(/\bthis\b/g, '0')
     );
     out = out.replace(/^\s*0\s*=\s*([^;]+);\s*$/gm, '  (void)($1);');
 
