@@ -976,6 +976,25 @@ function stripNamespaceBlocks(segment) {
   return out;
 }
 
+function stripFunctionBlocks(segment) {
+  const text = String(segment || '');
+  const out = [];
+  const fnRx = /(^|[;\n])\s*[A-Za-z_][A-Za-z0-9_:<>\s\*&]*\s+[A-Za-z_][A-Za-z0-9_]*\s*\(((?:[^()]|\([^()]*\))*)\)\s*(?:const\s*)?\{/g;
+  let lastIndex = 0;
+  let m;
+  while ((m = fnRx.exec(text)) !== null) {
+    const open = m.index + m[0].lastIndexOf('{');
+    const close = findMatchingBrace(text, open);
+    if (close < 0) continue;
+    out.push(text.slice(lastIndex, open));
+    out.push('\n');
+    lastIndex = close + 1;
+    fnRx.lastIndex = close + 1;
+  }
+  out.push(text.slice(lastIndex));
+  return out.join('');
+}
+
 function inferGlobalFunctions(source) {
   const functions = [];
 
@@ -2555,14 +2574,15 @@ class CppToCTranspiler {
     this.knownTypeNames = new Set([
       ...Object.keys(BUILTIN_TYPES),
       ...Array.from((analysis && analysis.classes) ? analysis.classes.keys() : []),
-      ...this.extractFunctionPointerTypedefNames(options.source || '')
+      ...this.extractFunctionPointerTypedefNames(options.source || ''),
+      ...this.extractBuiltinTypedefNames(options.source || '')
     ]);
   }
 
   transpile() {
     this.emitHeaders();
     this.emitSourceTypedefs();
-    this.emitNamespaceGlobalVariables(this.options.source || '');
+    this.emitSourceGlobalDeclarations(this.options.source || '');
     this.emitClasses();
     this.emitGlobalFunctionStubs();
     this.emitLoweringDiagnosticsSummary();
@@ -2570,56 +2590,36 @@ class CppToCTranspiler {
     return this.em.code();
   }
 
-  emitNamespaceGlobalVariables(sourceText) {
+  emitSourceGlobalDeclarations(sourceText) {
     const src = String(sourceText || '');
-    if (!src.includes('namespace')) return;
-
     const emitted = new Set();
+    const text = stripFunctionBlocks(stripClassLikeBlocks(src))
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/.*$/gm, '');
 
-    const collectFromSegment = (segment) => {
-      const text = String(segment || '')
-        .replace(/\/\*[\s\S]*?\*\//g, '')
-        .replace(/\/\/.*$/gm, '');
+    const declRx = /(?:^|\n)\s*(?:(static)\s+)?(?:(const)\s+)?(unsigned\s+long|unsigned\s+int|long|short|int|float|double|char)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:=\s*([^;]+))?\s*;/g;
+    let dm;
+    while ((dm = declRx.exec(text)) !== null) {
+      const storage = dm[1] ? 'static ' : '';
+      const constKw = dm[2] ? 'const ' : '';
+      const type = normalizeTypeText(dm[3] || '');
+      const name = dm[4];
+      if (!name || emitted.has(name)) continue;
+      const initRaw = String(dm[5] || '').trim();
 
-      const declRx = /(?:^|\n)\s*(?:const\s+)?(int|float|double|char)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:=\s*([^;]+))?\s*;/g;
-      let dm;
-      while ((dm = declRx.exec(text)) !== null) {
-        const type = dm[1];
-        const name = dm[2];
-        if (!name || emitted.has(name)) continue;
-        const initRaw = String(dm[3] || '').trim();
-
-        // Keep this conservative: emit only literal/scalar initializers.
-        if (!initRaw) {
-          this.em.line(`${type} ${name};`);
-          emitted.add(name);
-          continue;
-        }
-
-        if (/^[-+]?\d+$/.test(initRaw)
-          || /^[-+]?(?:\d+\.\d*|\d*\.\d+)(?:[eE][-+]?\d+)?[fFlL]?$/.test(initRaw)
-          || /^'(?:\\.|[^'\\])'$/.test(initRaw)) {
-          this.em.line(`${type} ${name} = ${initRaw};`);
-          emitted.add(name);
-        }
+      if (!initRaw) {
+        this.em.line(`${storage}${constKw}${type} ${name};`);
+        emitted.add(name);
+        continue;
       }
-    };
 
-    const walkNamespaces = (text) => {
-      const nsRx = /\bnamespace\s+[A-Za-z_][A-Za-z0-9_]*\s*\{/g;
-      let m;
-      while ((m = nsRx.exec(text)) !== null) {
-        const open = nsRx.lastIndex - 1;
-        const close = findMatchingBrace(text, open);
-        if (close < 0) continue;
-        const body = text.slice(open + 1, close);
-        collectFromSegment(body);
-        walkNamespaces(body);
-        nsRx.lastIndex = close + 1;
+      if (/^[-+]?\d+$/.test(initRaw)
+        || /^[-+]?(?:\d+\.\d*|\d*\.\d+)(?:[eE][-+]?\d+)?[fFlL]?$/.test(initRaw)
+        || /^'(?:\\.|[^'\\])'$/.test(initRaw)) {
+        this.em.line(`${storage}${constKw}${type} ${name} = ${initRaw};`);
+        emitted.add(name);
       }
-    };
-
-    walkNamespaces(src);
+    }
     if (emitted.size > 0) this.em.line();
   }
 
@@ -2861,7 +2861,10 @@ class CppToCTranspiler {
   }
 
   emitSourceTypedefs() {
-    const typedefs = this.extractFunctionPointerTypedefs(this.options.source || '');
+    const typedefs = [
+      ...this.extractBuiltinTypedefs(this.options.source || ''),
+      ...this.extractFunctionPointerTypedefs(this.options.source || '')
+    ];
     if (typedefs.length === 0) return;
     for (const line of typedefs) {
       this.em.line(line);
@@ -2885,6 +2888,58 @@ class CppToCTranspiler {
       }
     }
     return out;
+  }
+
+  extractBuiltinTypedefs(sourceText) {
+    const clean = stripFunctionBlocks(stripClassLikeBlocks(String(sourceText || '')))
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/.*$/gm, '');
+    const out = [];
+    const seen = new Set();
+    const rx = /typedef\s+(unsigned\s+long|unsigned\s+int|long|short|int|char|float|double|bool)\s+([A-Za-z_][A-Za-z0-9_]*)\s*;/g;
+    let m;
+    while ((m = rx.exec(clean)) !== null) {
+      const text = `typedef ${normalizeTypeText(m[1])} ${m[2]};`;
+      if (!seen.has(text)) {
+        seen.add(text);
+        out.push(text);
+      }
+    }
+    return out;
+  }
+
+  extractBuiltinTypedefNames(sourceText) {
+    return this.extractBuiltinTypedefs(sourceText)
+      .map((line) => {
+        const m = String(line || '').match(/^typedef\s+.+\s+([A-Za-z_][A-Za-z0-9_]*)\s*;\s*$/);
+        return m ? m[1] : null;
+      })
+      .filter(Boolean);
+  }
+
+  extractSimpleGlobalNames(sourceText) {
+    const clean = stripFunctionBlocks(stripClassLikeBlocks(String(sourceText || '')))
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/.*$/gm, '');
+    const out = [];
+    const rx = /(?:^|\n)\s*(?:(?:static|const)\s+)*(?:unsigned\s+long|unsigned\s+int|long|short|int|float|double|char)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:=\s*[^;]+)?\s*;/g;
+    let m;
+    while ((m = rx.exec(clean)) !== null) {
+      out.push(m[1]);
+    }
+    return out;
+  }
+
+  mainReferencesTopLevelAliasesOrGlobals(bodyText) {
+    const body = String(bodyText || '');
+    const names = [
+      ...this.extractBuiltinTypedefNames(this.options.source || ''),
+      ...this.extractSimpleGlobalNames(this.options.source || '')
+    ];
+    return names.some((name) => {
+      const safe = String(name || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return safe && new RegExp(`\\b${safe}\\b`).test(body);
+    });
   }
 
   extractFunctionPointerTypedefNames(sourceText) {
@@ -3511,7 +3566,10 @@ class CppToCTranspiler {
       const mangled = mangle(fn.name, sigTypes, null, fn.namespacePath || []);
       const returnType = this.sanitizeTypeForC(fn.returnType);
       const rawBodyText = String(fn?.bodyText || '');
-      const preferCStyleMain = false;
+      const skipStructuredMain = fn.name === 'main'
+        && !fn.namespacePath?.length
+        && (Boolean(fn.resourceDeterministicHint) || this.mainReferencesTopLevelAliasesOrGlobals(rawBodyText));
+      const preferCStyleMain = skipStructuredMain;
       const hasStructuredCandidate = Boolean(
         fn.simpleIfReturn
         || fn.simpleLocalInitReturn
@@ -3522,7 +3580,7 @@ class CppToCTranspiler {
       );
       this.em.line(`${returnType} ${mangled}(${paramsText || 'void'}) {`);
       this.em.level += 1;
-      if (fn.name === 'main' && !fn.namespacePath?.length && structuredMain && !preferCStyleMain) {
+      if (fn.name === 'main' && !fn.namespacePath?.length && structuredMain && !preferCStyleMain && !skipStructuredMain) {
         this.emitStructuredMain(structuredMain);
       } else if (Number.isInteger(fn.deterministicNoParamI32Return)
         && fn.returnType !== 'void'
@@ -4073,7 +4131,7 @@ class CppToCTranspiler {
     const castStaticPattern = this.lowerResourceCastStaticPattern(clean);
     if (castStaticPattern) return castStaticPattern;
 
-    const newDeletePattern = this.lowerResourceNewDeletePattern(clean);
+    const newDeletePattern = this.lowerResourceNewDeletePattern(clean, fn?.bodyText || '');
     if (newDeletePattern) return newDeletePattern;
 
     // Resource stubs are legacy placeholders and can corrupt semantics.
@@ -4880,14 +4938,36 @@ class CppToCTranspiler {
     };
   }
 
-  lowerResourceNewDeletePattern(cleanBody) {
-    const scalarAlloc = cleanBody.match(/int\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*new\s+int\s*\(\s*([-+]?\d+)\s*\)\s*;/);
-    const scalarCheck = cleanBody.match(/if\s*\(\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*!=\s*([-+]?\d+)\s*\)\s*\{\s*delete\s+([A-Za-z_][A-Za-z0-9_]*)\s*;\s*return\s+0\s*;\s*\}/);
-    const bufferDecl = cleanBody.match(/char\s+([A-Za-z_][A-Za-z0-9_]*)\s*\[\s*sizeof\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*\]\s*;/);
-    const placementNew = cleanBody.match(/([A-Za-z_][A-Za-z0-9_]*)\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*new\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*([-+]?\d+)\s*\)\s*;/);
-    const getterCall = cleanBody.match(/int\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([A-Za-z_][A-Za-z0-9_]*)->([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*\)\s*;/);
-    const dtorCall = cleanBody.match(/([A-Za-z_][A-Za-z0-9_]*)->~([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*\)\s*;/);
-    const retTernary = cleanBody.match(/return\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*==\s*([-+]?\d+)\s*\)\s*\?\s*([-+]?\d+)\s*:\s*([-+]?\d+)\s*;/);
+  lowerResourceNewDeletePattern(cleanBody, rawBodyText = '') {
+    let body = String(rawBodyText || cleanBody || '').trim();
+    const prefixLines = [];
+
+    const objectGuard = String(rawBodyText || '').match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*([-+]?\d+)\s*\)\s*;\s*if\s*\(\s*\2\.([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*\)\s*!=\s*([-+]?\d+)\s*\)\s*return\s+([-+]?\d+)\s*;\s*/s);
+    if (objectGuard) {
+      const className = objectGuard[1];
+      const objName = objectGuard[2];
+      const ctorArg = Number.parseInt(objectGuard[3], 10) | 0;
+      const getterName = objectGuard[4];
+      const getterExpected = Number.parseInt(objectGuard[5], 10) | 0;
+      const guardFail = Number.parseInt(objectGuard[6], 10) | 0;
+      const initMangled = this.resolveClassMangled(className, 'init', ['int'])
+        || this.resolveClassMangled(className, 'init', []);
+      const getterMangled = this.resolveClassMangled(className, getterName, []);
+      if (!initMangled || !getterMangled) return null;
+      prefixLines.push(
+        `${className} ${objName};`,
+        `${initMangled}(&${objName}, ${ctorArg});`,
+        `if (${getterMangled}(&${objName}) != ${getterExpected}) return ${guardFail};`
+      );
+    }
+
+    const scalarAlloc = body.match(/int\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*new\s+int\s*\(\s*([-+]?\d+)\s*\)\s*;/);
+    const scalarCheck = body.match(/if\s*\(\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*!=\s*([-+]?\d+)\s*\)\s*\{\s*delete\s+([A-Za-z_][A-Za-z0-9_]*)\s*;\s*return\s+([-+]?\d+)\s*;\s*\}/);
+    const bufferDecl = body.match(/char\s+([A-Za-z_][A-Za-z0-9_]*)\s*\[\s*sizeof\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*\]\s*;/);
+    const placementNew = body.match(/([A-Za-z_][A-Za-z0-9_]*)\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*new\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*([-+]?\d+)\s*\)\s*;/);
+    const getterCall = body.match(/int\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([A-Za-z_][A-Za-z0-9_]*)->([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*\)\s*;/);
+    const dtorCall = body.match(/([A-Za-z_][A-Za-z0-9_]*)->~([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*\)\s*;/);
+    const retTernary = body.match(/return\s*(?:\(\s*)?([A-Za-z_][A-Za-z0-9_]*)\s*==\s*([-+]?\d+)(?:\s*\))?\s*\?\s*([-+]?\d+)\s*:\s*([-+]?\d+)\s*;/);
 
     if (!scalarAlloc || !scalarCheck || !bufferDecl || !placementNew || !getterCall || !dtorCall || !retTernary) return null;
 
@@ -4896,6 +4976,7 @@ class CppToCTranspiler {
     const scalarCheckVar = scalarCheck[1];
     const scalarExpected = Number.parseInt(scalarCheck[2], 10) | 0;
     const scalarDeleteVar = scalarCheck[3];
+    const scalarFailReturn = Number.parseInt(scalarCheck[4], 10) | 0;
 
     const bufferVar = bufferDecl[1];
     const bufferClass = bufferDecl[2];
@@ -4933,10 +5014,11 @@ class CppToCTranspiler {
     return {
       detail: 'new-delete-runtime',
       lines: [
+        ...prefixLines,
         `int* ${scalarVar} = (int*)__malloc((unsigned long)sizeof(int));`,
         `if (${scalarVar} == 0) return 0;`,
         `*${scalarVar} = ${scalarInit};`,
-        `if (*${scalarVar} != ${scalarExpected}) { __free(${scalarVar}); return 0; }`,
+        `if (*${scalarVar} != ${scalarExpected}) { __free(${scalarVar}); return ${scalarFailReturn}; }`,
         `__free(${scalarVar});`,
         `char ${bufferVar}[sizeof(${bufferClass})];`,
         `${bufferClass}* ${objVar} = (${bufferClass}*)(void*)${bufferVar};`,
