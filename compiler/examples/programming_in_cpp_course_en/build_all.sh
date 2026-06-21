@@ -74,6 +74,8 @@ build_maiacpp() {
     local c_out="${src%.cpp}.c"
     local wat_out="${src%.cpp}.wat"
     local dist_dir="$dir/dist"
+    local log_file
+    local rc
 
     if [[ ! -x "$WEBCPP" && ! -f "$WEBCPP" ]]; then
         echo "    MaiaCpp SKIP — webcpp.sh not found"
@@ -87,18 +89,23 @@ build_maiacpp() {
         --dist    --out-dir "$dist_dir"
         --name    "$stem")
 
+    log_file="$(mktemp)"
+
     if [[ "$VERBOSE" -eq 1 ]]; then
         "${cmd[@]}"
+        rc=$?
     else
-        if ! "${cmd[@]}" 2>&1 | grep -E '^\[(webcpp|webc)\]|ERROR|error:' ; then
+        "${cmd[@]}" >"$log_file" 2>&1
+        rc=$?
+        if ! grep -E '^\[(webcpp|webc)\]|ERROR|error:' "$log_file"; then
             true
         fi
     fi
 
-    local rc="${PIPESTATUS[0]:-${?}}"
     if [[ "$rc" -ne 0 ]]; then
         echo "    MaiaCpp FAILED (exit $rc)"
         MAIACPP_FAIL=$((MAIACPP_FAIL + 1))
+        rm -f "$log_file"
         return
     fi
 
@@ -110,6 +117,7 @@ build_maiacpp() {
 
     echo "    MaiaCpp OK — C: $(basename "$c_out")  WASM: ${size_wasm}B"
     MAIACPP_PASS=$((MAIACPP_PASS + 1))
+    rm -f "$log_file"
 }
 
 # ── main loop ─────────────────────────────────────────────────────────────────

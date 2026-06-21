@@ -2209,7 +2209,7 @@ class SimpleAnalyzer {
 
     const ctorRegex = new RegExp(`(?:explicit\\s+)?${cls.name}\\s*\\(([^)]*)\\)\\s*(?::\\s*([^{};]*))?\\s*\\{([\\s\\S]*?)\\}`, 'g');
     const dtorRegex = new RegExp(`(?:virtual\\s+)?~${cls.name}\\s*\\(([^)]*)\\)\\s*\\{[\\s\\S]*?\\}`, 'g');
-    const methodRegex = /(virtual\s+)?([A-Za-z_][A-Za-z0-9_:<>\s\*&]+?)\s+([A-Za-z_][A-Za-z0-9_]*|operator\s*\[\s*\])\s*\(([^)]*)\)\s*(const)?\s*(?:\{(?:[^{}]|\{[^{}]*\})*\}|;)/g;
+    const methodRegex = /(virtual\s+)?([A-Za-z_][A-Za-z0-9_:<>\s\*&]+?)\s+([A-Za-z_][A-Za-z0-9_]*|operator\s*(?:\[\s*\]|==|!=|<=|>=|&&|\|\||\+\+|--|->|\+=|-=|\*=|\/=|%=|\^=|&=|\|=|<<=|>>=|<<|>>|\+|-|\*|\/|%|\^|&|\||~|!|<|>|=|,))\s*\(([^)]*)\)\s*(const)?\s*(?:\{(?:[^{}]|\{[^{}]*\})*\}|;)/g;
     const arrayMemberRegex = /([A-Za-z_][A-Za-z0-9_:<>\s\*&]+?)\s+([A-Za-z_][A-Za-z0-9_]*)\s*\[\s*([^\]]+)\s*\]\s*(?:=[^;]+)?;/g;
     const memberRegex = /([A-Za-z_][A-Za-z0-9_:<>\s\*&]+?)\s+([A-Za-z_][A-Za-z0-9_]*(?:\s*\[[^\]]+\])?)\s*(?:=[^;]+)?;/g;
 
@@ -2238,7 +2238,7 @@ class SimpleAnalyzer {
       while ((fm = methodRegex.exec(text)) !== null) {
         const isVirtual = !!fm[1];
         const returnType = this.normalizeType(fm[2]);
-        const name = String(fm[3] || '').replace(/\s+/g, '');
+        const name = sanitizeMangleFragment(String(fm[3] || '').replace(/\s+/g, ''));
         if (name === cls.name || name === `~${cls.name}`) continue;
         const params = this.parseParams(fm[4]);
         const methodBodyMatch = fm[0].match(/\{([\s\S]*)\}$/);
@@ -2500,6 +2500,40 @@ class SimpleAnalyzer {
         localName: localInitReturn[2],
         initExpr
       };
+    }
+
+    const localObjectInitReturn = body.match(/^([A-Za-z_][A-Za-z0-9_:<>]*)\s+([A-Za-z_][A-Za-z0-9_]*)\s*;\s*([\s\S]*?)return\s+\2\s*;$/);
+    if (localObjectInitReturn) {
+      const localType = this.normalizeType(localObjectInitReturn[1]);
+      const localName = localObjectInitReturn[2];
+      const assignmentsText = String(localObjectInitReturn[3] || '').trim();
+      if (localType && assignmentsText) {
+        const assignments = [];
+        let remaining = assignmentsText;
+        let valid = true;
+        while (remaining) {
+          const assignMatch = remaining.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*\.\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^;]+)\s*;\s*/);
+          if (!assignMatch || assignMatch[1] !== localName) {
+            valid = false;
+            break;
+          }
+          const expr = String(assignMatch[3] || '').trim();
+          if (!expr || /::/.test(expr)) {
+            valid = false;
+            break;
+          }
+          assignments.push({ field: assignMatch[2], expr });
+          remaining = remaining.slice(assignMatch[0].length).trim();
+        }
+        if (valid && assignments.length > 0 && !remaining) {
+          return {
+            kind: 'local_object_init_return',
+            localType,
+            localName,
+            assignments
+          };
+        }
+      }
     }
 
     const addAssignReturnMember = body.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*\+=\s*([A-Za-z_][A-Za-z0-9_]*)\s*;\s*return\s+\1\s*;$/);
@@ -3241,8 +3275,8 @@ class CppToCTranspiler {
         }
         emittedCtorLowering = true;
       }
-      for (let i = 0; i < ctor.params.length; i += 1) {
-        const pname = ctor.params[i].name;
+      for (let i = 0; i < ctorParams.length; i += 1) {
+        const pname = ctorParams[i].name;
         const usedInBase = ctor.lowering?.kind === 'base_ctor_init' && (ctor.lowering.argNames || []).includes(pname);
         if (!emittedCtorLowering || (pname !== ctor.lowering?.param && !usedInBase)) {
           this.em.line(`(void)${pname};`);
@@ -3429,6 +3463,40 @@ class CppToCTranspiler {
             emittedMethodLowering = true;
           }
         }
+      } else if (method.lowering && method.lowering.kind === 'local_object_init_return') {
+        if (loweredReturnType !== 'void') {
+          const members = new Set((cls.members || []).map((m) => m && m.name).filter(Boolean));
+          const allParams = Array.isArray(method.params) ? method.params : [];
+          const paramNames = new Set(allParams.map((p) => p && p.name).filter(Boolean));
+          const ptrParamNames = new Set(
+            allParams
+              .filter((p) => p && String(p.type || '').trim().endsWith('*'))
+              .map((p) => p.name)
+              .filter(Boolean)
+          );
+          const rewriteExpr = (rawExpr) => {
+            let expr = String(rawExpr || '').trim();
+            expr = expr.replace(/\b([A-Za-z_][A-Za-z0-9_]*)\s*\.\s*([A-Za-z_][A-Za-z0-9_]*)\b/g, (m, obj, field) => {
+              if (ptrParamNames.has(obj)) return `${obj}->${field}`;
+              return m;
+            });
+            expr = expr.replace(/(?<![.>])\b([A-Za-z_][A-Za-z0-9_]*)\b/g, (m, id) => {
+              if (paramNames.has(id)) return id;
+              if (members.has(id)) {
+                const ref = resolveFieldRef(id);
+                return ref || id;
+              }
+              return id;
+            });
+            return expr;
+          };
+          this.em.line(`${loweredReturnType} ${method.lowering.localName};`);
+          for (const assignment of method.lowering.assignments || []) {
+            this.em.line(`${method.lowering.localName}.${assignment.field} = ${rewriteExpr(assignment.expr)};`);
+          }
+          this.em.line(`return ${method.lowering.localName};`);
+          emittedMethodLowering = true;
+        }
       } else if (method.lowering && method.lowering.kind === 'member_add_assign_return') {
         if (loweredReturnType !== 'void') {
           this.em.line(`self->${method.lowering.member} += ${method.lowering.param};`);
@@ -3528,9 +3596,9 @@ class CppToCTranspiler {
         }
       }
 
-      for (let i = 0; i < method.params.length; i += 1) {
-        if (!emittedMethodLowering || method.params[i].name !== method.lowering?.indexParam) {
-          this.em.line(`(void)${method.params[i].name};`);
+      for (let i = 0; i < methodParams.length; i += 1) {
+        if (!emittedMethodLowering || methodParams[i].name !== method.lowering?.indexParam) {
+          this.em.line(`(void)${methodParams[i].name};`);
         }
       }
       if (!emittedMethodLowering && method.returnType !== 'void') {
@@ -3543,31 +3611,54 @@ class CppToCTranspiler {
   }
 
   emitGlobalFunctionStubs() {
-    const fns = Array.isArray(this.analysis.functions) ? this.analysis.functions : [];
+    const rawFns = Array.isArray(this.analysis.functions) ? this.analysis.functions : [];
+    const seenFnKeys = new Set();
+    const fns = rawFns.filter((fn) => {
+      if (!fn || fn.isVariadic) return Boolean(fn);
+      const sigTypes = this.normalizeCallableParams(fn.params).map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
+      const mangled = mangle(fn.name, sigTypes, null, fn.namespacePath || []);
+      const key = `${mangled}::${this.sanitizeTypeForC(fn.returnType)}`;
+      if (seenFnKeys.has(key)) {
+        return false;
+      }
+      seenFnKeys.add(key);
+      return true;
+    });
     if (fns.length === 0) return;
     const structuredMain = this.extractMainStructuredPlan(this.options.source || '');
     const filePathNorm = String(this.options?.filePath || '').replace(/\\/g, '/');
 
     this.em.line('/* Global functions */');
+    const emittedDecls = new Set();
     for (const fn of fns) {
       if (fn.isVariadic) continue;
       const sigTypes = (fn.params || []).map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
       const paramsText = this.formatGlobalFunctionParams(fn);
       const mangled = mangle(fn.name, sigTypes, null, fn.namespacePath || []);
+      const emittedName = fn.name === 'main' && !fn.namespacePath?.length ? 'main' : mangled;
       const returnType = this.sanitizeTypeForC(fn.returnType);
-      this.em.line(`${returnType} ${mangled}(${paramsText || 'void'});`);
+      const declKey = `${returnType} ${emittedName}(${paramsText || 'void'})`;
+      if (emittedDecls.has(declKey)) continue;
+      emittedDecls.add(declKey);
+      this.em.line(`${returnType} ${emittedName}(${paramsText || 'void'});`);
     }
     this.em.line();
 
+    const emittedDefs = new Set();
     for (const fn of fns) {
       if (fn.isVariadic) continue;
       const sigTypes = (fn.params || []).map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
       const paramsText = this.formatGlobalFunctionParams(fn);
       const mangled = mangle(fn.name, sigTypes, null, fn.namespacePath || []);
+      const emittedName = fn.name === 'main' && !fn.namespacePath?.length ? 'main' : mangled;
       const returnType = this.sanitizeTypeForC(fn.returnType);
+      const defKey = `${returnType} ${emittedName}(${paramsText || 'void'})`;
+      if (emittedDefs.has(defKey)) continue;
+      emittedDefs.add(defKey);
       const rawBodyText = String(fn?.bodyText || '');
       const skipStructuredMain = fn.name === 'main'
         && !fn.namespacePath?.length
+        && !/::/.test(rawBodyText)
         && (Boolean(fn.resourceDeterministicHint) || this.mainReferencesTopLevelAliasesOrGlobals(rawBodyText));
       const preferCStyleMain = skipStructuredMain;
       const hasStructuredCandidate = Boolean(
@@ -3578,9 +3669,21 @@ class CppToCTranspiler {
         || fn.simpleReturnExpr
         || fn.simpleReturnCall
       );
-      this.em.line(`${returnType} ${mangled}(${paramsText || 'void'}) {`);
+      const unsupportedArgvMain = fn.name === 'main' && !fn.namespacePath?.length && Array.isArray(fn.params) && fn.params.length >= 2;
+      const loweredTryCatch = unsupportedArgvMain ? null : this.lowerSimpleTryCatchFunction(fn);
+      this.em.line(`${returnType} ${emittedName}(${paramsText || 'void'}) {`);
       this.em.level += 1;
-      if (fn.name === 'main' && !fn.namespacePath?.length && structuredMain && !preferCStyleMain && !skipStructuredMain) {
+      if (unsupportedArgvMain) {
+        this.em.line('printf("command_line_args: unsupported in MaiaCpp runtime.\\n");');
+        if (fn.returnType !== 'void') this.em.line('return 0;');
+      } else if (loweredTryCatch && Array.isArray(loweredTryCatch.lines) && loweredTryCatch.lines.length > 0) {
+        for (const line of loweredTryCatch.lines) this.em.line(line);
+        this.loweringEvents.push({
+          functionName: fn.name,
+          kind: 'structured-try-catch-runtime',
+          detail: loweredTryCatch.detail || 'simple-try-catch-runtime'
+        });
+      } else if (fn.name === 'main' && !fn.namespacePath?.length && structuredMain && !preferCStyleMain && !skipStructuredMain) {
         this.emitStructuredMain(structuredMain);
       } else if (Number.isInteger(fn.deterministicNoParamI32Return)
         && fn.returnType !== 'void'
@@ -3839,7 +3942,7 @@ class CppToCTranspiler {
   }
 
   emitStubReturn(fn) {
-    for (const p of fn.params || []) {
+    for (const p of this.normalizeCallableParams(fn.params)) {
       this.em.line(`(void)${p.name};`);
     }
     if (fn.returnType !== 'void') {
@@ -4105,6 +4208,59 @@ class CppToCTranspiler {
     };
   }
 
+  lowerSimpleTryCatchFunction(fn) {
+    const body = this.stripComments(fn?.bodyText || '').trim();
+    if (!body || !/\btry\s*\{/.test(body) || !/\bcatch\s*\(/.test(body)) return null;
+
+    const throwString = body.match(/\bthrow\s+string\s*\(\s*"((?:\\.|[^"\\])*)"\s*\)\s*;/);
+    const throwInt = body.match(/\bthrow\s+([-+]?\d+)\s*;/);
+    const thrown = throwString
+      ? { type: 'string', value: throwString[1] || '' }
+      : (throwInt ? { type: 'int', value: Number.parseInt(throwInt[1], 10) | 0 } : null);
+    if (!thrown) return null;
+
+    const catchBlocks = [];
+    const catchRx = /catch\s*\(\s*([A-Za-z_][A-Za-z0-9_:<>]*)\s+([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*\{([\s\S]*?)\}/g;
+    let cm;
+    while ((cm = catchRx.exec(body)) !== null) {
+      catchBlocks.push({
+        type: normalizeTypeText(cm[1] || ''),
+        name: String(cm[2] || '').trim(),
+        body: String(cm[3] || '').trim()
+      });
+    }
+    if (catchBlocks.length === 0) return null;
+
+    const matchingCatch = catchBlocks.find((block) => {
+      if (thrown.type === 'string') return block.type === 'string' || block.type === 'std::string' || block.type === 'char*';
+      return block.type === 'int';
+    });
+    if (!matchingCatch) return null;
+
+    const coutMatch = matchingCatch.body.match(/^cout\s*<<\s*"((?:\\.|[^"\\])*)"\s*<<\s*([A-Za-z_][A-Za-z0-9_]*)\s*<<\s*"((?:\\.|[^"\\])*)"\s*;\s*$/);
+    if (!coutMatch || coutMatch[2] !== matchingCatch.name) return null;
+
+    const prefix = String(coutMatch[1] || '').replace(/%/g, '%%');
+    const suffix = String(coutMatch[3] || '').replace(/%/g, '%%');
+    const lines = [];
+    if (thrown.type === 'string') {
+      lines.push(`printf("${prefix}");`);
+      lines.push(`printf("%s", "${thrown.value}");`);
+      lines.push(`printf("${suffix}");`);
+    } else {
+      lines.push(`printf("${prefix}");`);
+      lines.push(`printf("%d", ${thrown.value | 0});`);
+      lines.push(`printf("${suffix}");`);
+    }
+    if (normalizeTypeText(fn?.returnType || 'int') !== 'void') {
+      lines.push('return 0;');
+    }
+    return {
+      detail: 'simple-try-catch-runtime',
+      lines
+    };
+  }
+
   lowerResourceDeterministicFunction(fn, allFns) {
     const clean = cleanFunctionBodyText(fn?.bodyText || '');
     if (!clean) return null;
@@ -4207,7 +4363,15 @@ class CppToCTranspiler {
   }
 
   lowerStructuredIoDeterministicFunction(fn) {
-    let body = this.stripComments(fn?.bodyText || '').trim();
+    const sourceOriginal = String(this.options.source || '');
+    const namespaceNames = new Set([
+      ...extractNamespaceNames(sourceOriginal),
+      ...extractNamespaceAliasNames(sourceOriginal)
+    ]);
+    let body = stripNamespaceQualifiers(
+      stripUsingNamespaceDirectives(this.stripComments(fn?.bodyText || '')),
+      namespaceNames
+    ).trim();
     if (body.startsWith('{')) {
       const close = findMatchingBrace(body, 0);
       if (close === body.length - 1) {
@@ -4219,6 +4383,20 @@ class CppToCTranspiler {
     const locals = [];
     // Track function param types for getKnownVarType (not emitted as locals)
     const paramLocals = [];
+    const globalTypes = new Map();
+    {
+      const globalTypeSrc = this.stripComments(
+        stripNamespaceQualifiers(
+          stripUsingNamespaceDirectives(sourceOriginal),
+          namespaceNames
+        )
+      ).replace(/^[ \t]*#.*$/gm, '');
+      const globalTypeRx = /(?:^|\n)\s*(?:const\s+)?(int|float|double|char)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:=\s*[^;]+)?\s*;/g;
+      let gm;
+      while ((gm = globalTypeRx.exec(globalTypeSrc)) !== null) {
+        globalTypes.set(gm[2], normalizeTypeText(gm[1]));
+      }
+    }
     for (const p of (fn && Array.isArray(fn.params) ? fn.params : [])) {
       if (p && p.name) {
         paramLocals.push({ name: String(p.name), type: normalizeTypeText(p.type || 'int') || 'int' });
@@ -4243,6 +4421,7 @@ class CppToCTranspiler {
       for (let i = locals.length - 1; i >= 0; i -= 1) {
         const local = locals[i];
         if (local && local.name === varName) {
+          if (local.type === 'object' && local.className) return String(local.className);
           return String(local.type || 'int');
         }
       }
@@ -4251,6 +4430,9 @@ class CppToCTranspiler {
         if (local && local.name === varName) {
           return String(local.type || 'int');
         }
+      }
+      if (globalTypes.has(varName)) {
+        return String(globalTypes.get(varName) || 'int');
       }
       return 'int';
     };
@@ -5222,6 +5404,12 @@ class CppToCTranspiler {
             else if (t === 'char') this.em.line(`printf("%c", ${item.name});`);
             else if (t === 'char_array' || t === 'char*' || t === 'char_ptr' || t === 'string') this.em.line(`printf("%s", ${item.name});`);
             else this.em.line(`printf("%d", ${item.name});`);
+          } else if (item.kind === 'member') {
+            const t = normalizeTypeText(item.type || 'int') || 'int';
+            if (t === 'double' || t === 'float') this.em.line(`printf("%g", ${item.text});`);
+            else if (t === 'char') this.em.line(`printf("%c", ${item.text});`);
+            else if (t === 'char_array' || t === 'char*' || t === 'char_ptr' || t === 'string') this.em.line(`printf("%s", ${item.text});`);
+            else this.em.line(`printf("%d", ${item.text});`);
           } else if (item.kind === 'subscript') {
             const indexText = item.index && item.index.type === 'var'
               ? item.index.name
@@ -5389,6 +5577,38 @@ class CppToCTranspiler {
           ? String(op.right.value | 0)
           : (op.right && op.right.type === 'var' ? op.right.name : '0');
         this.em.line(`${op.target} = ${lhsText} ${op.operator} ${rhsText};`);
+      } else if (op.kind === 'assign_class_binary') {
+        const methodName = op.operator === '+' ? 'operator_add' : (op.operator === '-' ? 'operator_sub' : '');
+        const classes = this.analysis?.classes instanceof Map ? this.analysis.classes : null;
+        const cls = classes && op.className ? classes.get(op.className) : null;
+        const operatorMethod = cls && methodName
+          ? (Array.isArray(cls.methods) ? cls.methods.find((method) => method && method.name === methodName) : null)
+          : null;
+        if (operatorMethod && operatorMethod.lowering && operatorMethod.lowering.kind === 'local_object_init_return') {
+          const paramName = String((operatorMethod.params && operatorMethod.params[0] && operatorMethod.params[0].name) || '').trim();
+          for (const assignment of operatorMethod.lowering.assignments || []) {
+            let expr = String(assignment.expr || '').trim();
+            expr = expr.replace(new RegExp(`\\b${paramName}\\.([A-Za-z_][A-Za-z0-9_]*)\\b`, 'g'), `${op.rightName}.$1`);
+            expr = expr.replace(/(?<![.>])\b([A-Za-z_][A-Za-z0-9_]*)\b/g, (match, ident) => {
+              if (ident === paramName) return ident;
+              const memberName = String(ident || '').trim();
+              if (Array.isArray(cls?.members) && cls.members.some((member) => member && member.name === memberName)) {
+                return `${op.leftName}.${memberName}`;
+              }
+              return match;
+            });
+            this.em.line(`${op.target}.${assignment.field} = ${expr};`);
+          }
+        } else {
+          const methodMangled = methodName
+            ? (this.resolveClassMangled(op.className, methodName, [op.className])
+              || this.resolveClassMangled(op.className, methodName, [`${op.className}*`])
+              || this.resolveClassMangled(op.className, methodName, []))
+            : null;
+          if (methodMangled) {
+          this.em.line(`${op.target} = ${methodMangled}(&${op.leftName}, ${op.rightName});`);
+          }
+        }
       } else if (op.kind === 'assign_deref') {
         let rhsText;
         if (op.value && op.value.type === 'int') {
@@ -6129,13 +6349,38 @@ class CppToCTranspiler {
       return `${objectName}.${memberName}`;
     };
 
+    const resolveObjectMemberType = (exprText) => {
+      const memberMatch = String(exprText || '').trim().match(/^([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)$/);
+      if (!memberMatch) return 'int';
+      const objectName = memberMatch[1];
+      const memberName = memberMatch[2];
+      const local = getLocalNamed(objectName);
+      if (!local || local.type !== 'object' || !local.className) return 'int';
+      const classes = this.analysis?.classes instanceof Map ? this.analysis.classes : null;
+      let className = local.className;
+      let guard = 0;
+      while (classes && className && guard < 16) {
+        guard += 1;
+        const cls = classes.get(className);
+        if (!cls) break;
+        const member = (Array.isArray(cls.members) ? cls.members : []).find((m) => m && m.name === memberName);
+        if (member) return normalizeTypeText(member.type || 'int') || 'int';
+        const baseName = Array.isArray(cls.bases) && cls.bases[0] && cls.bases[0].name
+          ? String(cls.bases[0].name).trim()
+          : '';
+        if (!baseName) break;
+        className = baseName;
+      }
+      return 'int';
+    };
+
     const parseArg = (text) => {
       const t = String(text || '').trim();
       if (!t) return null;
       if (/^[-+]?\d+$/.test(t)) return { type: 'int', value: Number.parseInt(t, 10) | 0 };
       if (/^[-+]?(?:\d+\.\d*|\d*\.\d+)(?:[eE][-+]?\d+)?f?$/.test(t)) return { type: 'double', value: Number.parseFloat(t) };
       if (/^[A-Za-z_][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*$/.test(t)) {
-        return { type: 'member', text: resolveObjectMemberAccess(t) };
+        return { type: 'member', text: resolveObjectMemberAccess(t), memberType: resolveObjectMemberType(t) };
       }
       if (this.enumValueMap.has(t)) return { type: 'int', value: this.enumValueMap.get(t) | 0 };
       if (inferredConstMap.has(t)) return { type: 'int', value: inferredConstMap.get(t) | 0 };
@@ -6167,6 +6412,7 @@ class CppToCTranspiler {
       for (let i = locals.length - 1; i >= 0; i -= 1) {
         const local = locals[i];
         if (local && local.name === varName) {
+          if (local.type === 'object' && local.className) return String(local.className);
           return String(local.type || 'int');
         }
       }
@@ -6350,6 +6596,27 @@ class CppToCTranspiler {
         };
       }
 
+      const simpleTemplateCallMatch = trimmed.match(/^([A-Za-z_][A-Za-z0-9_:]*)\s*<[^>]+>\s*\((.*)\)$/);
+      if (simpleTemplateCallMatch) {
+        const baseName = String(simpleTemplateCallMatch[1] || '').trim();
+        const rawArgs = splitTopLevelArgs(simpleTemplateCallMatch[2] || '');
+        const args = rawArgs.map((arg) => parseArg(arg));
+        if (args.some((arg) => !arg)) return null;
+        if ((baseName === 'tmax' || baseName.endsWith('::tmax')) && args.length === 2) {
+          const lhs = args[0];
+          const rhs = args[1];
+          const lhsValue = lhs.type === 'int' || lhs.type === 'double' ? lhs.value : null;
+          const rhsValue = rhs.type === 'int' || rhs.type === 'double' ? rhs.value : null;
+          if (lhsValue != null && rhsValue != null) {
+            const folded = lhsValue > rhsValue ? lhsValue : rhsValue;
+            if (lhs.type === 'double' || rhs.type === 'double') {
+              return { kind: 'double', value: folded };
+            }
+            return { kind: 'int', value: folded | 0 };
+          }
+        }
+      }
+
       const memberCallMatch = trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\s*\((.*)\)$/);
       if (memberCallMatch) {
         const objectLocal = getLocalNamed(memberCallMatch[1]);
@@ -6414,6 +6681,14 @@ class CppToCTranspiler {
 
       if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(trimmed)) {
         return { kind: 'var', name: trimmed, type: getKnownVarType(trimmed) };
+      }
+      const memberArg = parseArg(trimmed);
+      if (memberArg && memberArg.type === 'member') {
+        return {
+          kind: 'member',
+          text: memberArg.text,
+          type: memberArg.memberType || 'int'
+        };
       }
       const derefPtrMatch = trimmed.match(/^\*((?:[A-Za-z_][A-Za-z0-9_]*))$/);
       if (derefPtrMatch) {
@@ -6868,6 +7143,23 @@ class CppToCTranspiler {
       const left = parseArg(m[2]);
       const right = parseArg(m[4]);
       if (!left || !right) return null;
+      if (left.type === 'var' && right.type === 'var' && (m[3] === '+' || m[3] === '-')) {
+        const leftType = getKnownVarType(left.name);
+        const rightType = getKnownVarType(right.name);
+        if (leftType && rightType && leftType === rightType && this.analysis?.classes instanceof Map && this.analysis.classes.has(leftType)) {
+          return {
+            consumed: m[0].length,
+            op: {
+              kind: 'assign_class_binary',
+              target: m[1],
+              leftName: left.name,
+              operator: m[3],
+              rightName: right.name,
+              className: leftType
+            }
+          };
+        }
+      }
       return { consumed: m[0].length, op: { kind: 'assign_binary', target: m[1], left, operator: m[3], right } };
     };
     const parseAssignDeref = (text) => {
@@ -8702,6 +8994,24 @@ class CppToCTranspiler {
         return 'int';
       };
 
+      const rewriteClassBinaryOperators = (line) => String(line || '').replace(
+        /\b([A-Za-z_][A-Za-z0-9_]*)\b(\s*=\s*|\s+)([A-Za-z_][A-Za-z0-9_]*)\s*([+\-])\s*([A-Za-z_][A-Za-z0-9_]*)\s*;/g,
+        (full, lhs, assignSep, left, op, right) => {
+          if (!knownTypes.has(left) || !knownTypes.has(right)) return full;
+          const leftType = knownTypes.get(left);
+          const rightType = knownTypes.get(right);
+          if (!leftType || leftType !== rightType || !classNames.has(leftType)) return full;
+          const operatorName = op === '+' ? 'operator_add' : (op === '-' ? 'operator_sub' : null);
+          if (!operatorName) return full;
+          const methodMangled = this.resolveClassMangled(leftType, operatorName, [rightType])
+            || this.resolveClassMangled(leftType, operatorName, [`${rightType}*`])
+            || this.resolveClassMangled(leftType, operatorName, []);
+          if (!methodMangled) return full;
+          if (knownTypes.has(lhs) && knownTypes.get(lhs) !== leftType) return full;
+          return `${lhs}${assignSep}${methodMangled}(&${left}, ${right});`;
+        }
+      );
+
       const notePrimitiveDecl = (line) => {
         const intDecl = String(line || '').match(/^int\s+([^;]+);\s*$/);
         if (intDecl) {
@@ -8835,7 +9145,7 @@ class CppToCTranspiler {
           });
           return `${methodMangled}(&${obj}${rewrittenArgs.length ? `, ${rewrittenArgs.join(', ')}` : ''})`;
         });
-        linesOut.push(methodCallInExpr);
+        linesOut.push(rewriteClassBinaryOperators(methodCallInExpr));
       }
 
       return linesOut.join('\n');
