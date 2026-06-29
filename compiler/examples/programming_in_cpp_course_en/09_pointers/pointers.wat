@@ -17,7 +17,7 @@
 
   (memory $mem 1)
 
-  (table $fn_table 4 funcref)
+  (table $fn_table 5 funcref)
 
   ;; global __frame_ptr
   (global $__frame_ptr (mut i32) (i32.const 0))
@@ -38,7 +38,7 @@
   (data (i32.const 100) "Your name in uppercase is \00")
   (data (i32.const 128) ".\0a\00")
 
-  (elem (table $fn_table) (i32.const 0) func $__cpp_toupper $length__pv $to_uppercase__pvpv $main)
+  (elem (table $fn_table) (i32.const 0) func $__cpp_toupper $length__pv $to_uppercase__pvpv $main $length__c)
 
   ;; function __cpp_toupper
   (func $__cpp_toupper (param $c i32) (result i32)
@@ -835,10 +835,95 @@
     return
   )
 
+  ;; function length__c
+  (func $length__c (param $txt i32) (result i32)
+    (local $__frame i32)
+    (local $n i32)
+    (local $__tmp_i32 i32)
+    (local $__tmp_addr i32)
+    (local $__tmp_old_i32 i32)
+    (local $__parent_frame i32)
+    global.get $__frame_ptr
+    local.set $__parent_frame
+    global.get $__stack_ptr
+    local.set $__frame
+    local.get $__frame
+    global.set $__frame_ptr
+    global.get $__stack_ptr
+    i32.const 8
+    i32.add
+    global.set $__stack_ptr
+    local.get $__frame
+    i32.const 0
+    i32.add
+    local.get $txt
+    i32.store
+    local.get $__frame
+    i32.const 4
+    i32.add
+    i32.const 0
+    local.set $__tmp_i32
+    local.get $__tmp_i32
+    i32.store
+    local.get $__tmp_i32
+    drop
+    block $length__c_while_exit_0
+      loop $length__c_while_loop_1
+        local.get $__frame
+        i32.const 0
+        i32.add
+        i32.load8_u
+        local.get $__frame
+        i32.const 4
+        i32.add
+        i32.load
+        i32.const 1
+        i32.mul
+        i32.add
+        i32.load8_u
+        i32.eqz
+        i32.eqz
+        i32.eqz
+        br_if $length__c_while_exit_0
+        local.get $__frame
+        i32.const 4
+        i32.add
+        local.tee $__tmp_addr
+        i32.load
+        local.tee $__tmp_old_i32
+        i32.const 1
+        i32.add
+        local.set $__tmp_i32
+        local.get $__tmp_addr
+        local.get $__tmp_i32
+        i32.store
+        local.get $__tmp_old_i32
+        drop
+        br $length__c_while_loop_1
+      end
+    end
+    local.get $__frame
+    i32.const 4
+    i32.add
+    i32.load
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
+    i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
+  )
+
   (export "__cpp_toupper" (func $__cpp_toupper))
   (export "length__pv" (func $length__pv))
   (export "to_uppercase__pvpv" (func $to_uppercase__pvpv))
   (export "main" (func $main))
+  (export "length__c" (func $length__c))
   (export "memory" (memory $mem))
   (export "__frame_ptr" (global $__frame_ptr))
   (export "__stack_ptr" (global $__stack_ptr))

@@ -231,7 +231,6 @@
     i32.const 4
     i32.const 5
     call $Rectangle_setValues__ii
-    i32.const 0
     i32.const 16
     f64.convert_i32_s
     f64.const 0

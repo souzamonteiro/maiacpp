@@ -1,0 +1,20 @@
+{
+  "generatedAt": "2026-06-21T20:50:28.635Z",
+  "input": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/programming_in_cpp_course_en/10_strings/vowels_combined.c",
+  "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/programming_in_cpp_course_en/10_strings/dist",
+  "appName": "vowels_combined",
+  "artifacts": {
+    "wasm": "vowels_combined.wasm",
+    "wrapper": "vowels_combined.js",
+    "wat": "vowels_combined.wat",
+    "browserRunner": "browser-runner.html",
+    "browserMemoryFileStore": "browser-memory-file-store.js",
+    "nodeRunner": "node-runner.js",
+    "nodeRunnerShell": "node-runner.sh"
+  },
+  "linkedLibraries": [],
+  "copiedLibraries": [],
+  "runtimeProvidedHeaders": [],
+  "missingLibraries": [],
+  "sourceBytes": 4695
+}

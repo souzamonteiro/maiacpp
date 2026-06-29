@@ -22,7 +22,7 @@ typedef struct MultiplicationTable {
 
 void MultiplicationTable_init(MultiplicationTable* self);
 void MultiplicationTable_destroy(MultiplicationTable* self);
-void MultiplicationTable_createTable__i(MultiplicationTable* self, int n);
+int MultiplicationTable_createTable__i(MultiplicationTable* self, int n);
 
 void MultiplicationTable_init(MultiplicationTable* self) {
   (void)self;
@@ -32,12 +32,13 @@ void MultiplicationTable_destroy(MultiplicationTable* self) {
   (void)self;
 }
 
-void MultiplicationTable_createTable__i(MultiplicationTable* self, int n) {
+int MultiplicationTable_createTable__i(MultiplicationTable* self, int n) {
   (void)self;
   int i;
   for (i = 1; i <= 10; i++) {
     printf("%d x %d = %d\n", n, i, n * i);
   }
+  return (int)0;
   (void)n;
 }
 

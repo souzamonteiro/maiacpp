@@ -1,0 +1,20 @@
+{
+  "generatedAt": "2026-06-21T20:49:51.638Z",
+  "input": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/programming_in_cpp_course_en/01_basics/data_input.c",
+  "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/programming_in_cpp_course_en/01_basics/dist",
+  "appName": "data_input",
+  "artifacts": {
+    "wasm": "data_input.wasm",
+    "wrapper": "data_input.js",
+    "wat": "data_input.wat",
+    "browserRunner": "browser-runner.html",
+    "browserMemoryFileStore": "browser-memory-file-store.js",
+    "nodeRunner": "node-runner.js",
+    "nodeRunnerShell": "node-runner.sh"
+  },
+  "linkedLibraries": [],
+  "copiedLibraries": [],
+  "runtimeProvidedHeaders": [],
+  "missingLibraries": [],
+  "sourceBytes": 1024
+}

@@ -17,7 +17,7 @@
 
   (memory $mem 1)
 
-  (table $fn_table 4 funcref)
+  (table $fn_table 6 funcref)
 
   ;; global __frame_ptr
   (global $__frame_ptr (mut i32) (i32.const 0))
@@ -32,7 +32,7 @@
   (data (i32.const 60) " vowels (with repetition).\0a\00")
   (data (i32.const 88) " vowels (without repetition).\0a\00")
 
-  (elem (table $fn_table) (i32.const 0) func $__cpp_tolower $count_vowels_with_repeat__pv $count_vowels_no_repeat__pv $main)
+  (elem (table $fn_table) (i32.const 0) func $__cpp_tolower $count_vowels_with_repeat__pv $count_vowels_no_repeat__pv $main $count_vowels_with_repeat__c $count_vowels_no_repeat__c)
 
   ;; function __cpp_tolower
   (func $__cpp_tolower (param $c i32) (result i32)
@@ -838,10 +838,438 @@
     return
   )
 
+  ;; function count_vowels_with_repeat__c
+  (func $count_vowels_with_repeat__c (param $name i32) (result i32)
+    (local $__frame i32)
+    (local $i i32)
+    (local $n i32)
+    (local $__tmp_i32 i32)
+    (local $count_vowels_with_repeat__c___switch_value_4 i32)
+    (local $count_vowels_with_repeat__c___switch_matched_5 i32)
+    (local $__tmp_addr i32)
+    (local $__tmp_old_i32 i32)
+    (local $__parent_frame i32)
+    global.get $__frame_ptr
+    local.set $__parent_frame
+    global.get $__stack_ptr
+    local.set $__frame
+    local.get $__frame
+    global.set $__frame_ptr
+    global.get $__stack_ptr
+    i32.const 16
+    i32.add
+    global.set $__stack_ptr
+    local.get $__frame
+    i32.const 0
+    i32.add
+    local.get $name
+    i32.store
+    local.get $__frame
+    i32.const 8
+    i32.add
+    i32.const 0
+    i32.store
+    local.get $__frame
+    i32.const 4
+    i32.add
+    i32.const 0
+    local.set $__tmp_i32
+    local.get $__tmp_i32
+    i32.store
+    local.get $__tmp_i32
+    drop
+    block $count_vowels_with_repeat__c_for_exit_0
+      loop $count_vowels_with_repeat__c_for_loop_2
+        local.get $__frame
+        i32.const 4
+        i32.add
+        i32.load
+        local.get $__frame
+        i32.const 0
+        i32.add
+        i32.load8_u
+        call $imp_strlen
+        i32.lt_s
+        i32.eqz
+        i32.eqz
+        i32.eqz
+        br_if $count_vowels_with_repeat__c_for_exit_0
+        block $count_vowels_with_repeat__c_for_continue_1
+          local.get $__frame
+          i32.const 0
+          i32.add
+          i32.load8_u
+          local.get $__frame
+          i32.const 4
+          i32.add
+          i32.load
+          i32.const 1
+          i32.mul
+          i32.add
+          i32.load8_u
+          call $__cpp_tolower
+          local.set $count_vowels_with_repeat__c___switch_value_4
+          i32.const 0
+          local.set $count_vowels_with_repeat__c___switch_matched_5
+          block $count_vowels_with_repeat__c_switch_exit_3
+            local.get $__frame
+            i32.const 8
+            i32.add
+            local.tee $__tmp_addr
+            i32.load
+            local.tee $__tmp_old_i32
+            i32.const 1
+            i32.add
+            local.set $__tmp_i32
+            local.get $__tmp_addr
+            local.get $__tmp_i32
+            i32.store
+            local.get $__tmp_old_i32
+            drop
+            br $count_vowels_with_repeat__c_switch_exit_3
+            local.get $count_vowels_with_repeat__c___switch_matched_5
+            if
+              br $count_vowels_with_repeat__c_switch_exit_3
+            else
+              i32.const 1
+              if
+                i32.const 1
+                local.set $count_vowels_with_repeat__c___switch_matched_5
+                br $count_vowels_with_repeat__c_switch_exit_3
+              end
+            end
+          end
+        end
+        local.get $__frame
+        i32.const 4
+        i32.add
+        local.tee $__tmp_addr
+        i32.load
+        local.tee $__tmp_old_i32
+        i32.const 1
+        i32.add
+        local.set $__tmp_i32
+        local.get $__tmp_addr
+        local.get $__tmp_i32
+        i32.store
+        local.get $__tmp_old_i32
+        drop
+        br $count_vowels_with_repeat__c_for_loop_2
+      end
+    end
+    local.get $__frame
+    i32.const 8
+    i32.add
+    i32.load
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
+    i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
+  )
+
+  ;; function count_vowels_no_repeat__c
+  (func $count_vowels_no_repeat__c (param $name i32) (result i32)
+    (local $__frame i32)
+    (local $i i32)
+    (local $na i32)
+    (local $ne i32)
+    (local $ni i32)
+    (local $no i32)
+    (local $nu i32)
+    (local $__tmp_i32 i32)
+    (local $count_vowels_no_repeat__c___switch_value_4 i32)
+    (local $count_vowels_no_repeat__c___switch_matched_5 i32)
+    (local $__tmp_addr i32)
+    (local $__tmp_old_i32 i32)
+    (local $__parent_frame i32)
+    global.get $__frame_ptr
+    local.set $__parent_frame
+    global.get $__stack_ptr
+    local.set $__frame
+    local.get $__frame
+    global.set $__frame_ptr
+    global.get $__stack_ptr
+    i32.const 32
+    i32.add
+    global.set $__stack_ptr
+    local.get $__frame
+    i32.const 0
+    i32.add
+    local.get $name
+    i32.store
+    local.get $__frame
+    i32.const 8
+    i32.add
+    i32.const 0
+    i32.store
+    local.get $__frame
+    i32.const 12
+    i32.add
+    i32.const 0
+    i32.store
+    local.get $__frame
+    i32.const 16
+    i32.add
+    i32.const 0
+    i32.store
+    local.get $__frame
+    i32.const 20
+    i32.add
+    i32.const 0
+    i32.store
+    local.get $__frame
+    i32.const 24
+    i32.add
+    i32.const 0
+    i32.store
+    local.get $__frame
+    i32.const 4
+    i32.add
+    i32.const 0
+    local.set $__tmp_i32
+    local.get $__tmp_i32
+    i32.store
+    local.get $__tmp_i32
+    drop
+    block $count_vowels_no_repeat__c_for_exit_0
+      loop $count_vowels_no_repeat__c_for_loop_2
+        local.get $__frame
+        i32.const 4
+        i32.add
+        i32.load
+        local.get $__frame
+        i32.const 0
+        i32.add
+        i32.load8_u
+        call $imp_strlen
+        i32.lt_s
+        i32.eqz
+        i32.eqz
+        i32.eqz
+        br_if $count_vowels_no_repeat__c_for_exit_0
+        block $count_vowels_no_repeat__c_for_continue_1
+          local.get $__frame
+          i32.const 0
+          i32.add
+          i32.load8_u
+          local.get $__frame
+          i32.const 4
+          i32.add
+          i32.load
+          i32.const 1
+          i32.mul
+          i32.add
+          i32.load8_u
+          call $__cpp_tolower
+          local.set $count_vowels_no_repeat__c___switch_value_4
+          i32.const 0
+          local.set $count_vowels_no_repeat__c___switch_matched_5
+          block $count_vowels_no_repeat__c_switch_exit_3
+            local.get $__frame
+            i32.const 8
+            i32.add
+            i32.load
+            i32.const 0
+            i32.eq
+            i32.eqz
+            i32.eqz
+            if
+              local.get $__frame
+              i32.const 8
+              i32.add
+              local.tee $__tmp_addr
+              i32.load
+              local.tee $__tmp_old_i32
+              i32.const 1
+              i32.add
+              local.set $__tmp_i32
+              local.get $__tmp_addr
+              local.get $__tmp_i32
+              i32.store
+              local.get $__tmp_old_i32
+              drop
+            end
+            br $count_vowels_no_repeat__c_switch_exit_3
+            local.get $__frame
+            i32.const 12
+            i32.add
+            i32.load
+            i32.const 0
+            i32.eq
+            i32.eqz
+            i32.eqz
+            if
+              local.get $__frame
+              i32.const 12
+              i32.add
+              local.tee $__tmp_addr
+              i32.load
+              local.tee $__tmp_old_i32
+              i32.const 1
+              i32.add
+              local.set $__tmp_i32
+              local.get $__tmp_addr
+              local.get $__tmp_i32
+              i32.store
+              local.get $__tmp_old_i32
+              drop
+            end
+            br $count_vowels_no_repeat__c_switch_exit_3
+            local.get $__frame
+            i32.const 16
+            i32.add
+            i32.load
+            i32.const 0
+            i32.eq
+            i32.eqz
+            i32.eqz
+            if
+              local.get $__frame
+              i32.const 16
+              i32.add
+              local.tee $__tmp_addr
+              i32.load
+              local.tee $__tmp_old_i32
+              i32.const 1
+              i32.add
+              local.set $__tmp_i32
+              local.get $__tmp_addr
+              local.get $__tmp_i32
+              i32.store
+              local.get $__tmp_old_i32
+              drop
+            end
+            br $count_vowels_no_repeat__c_switch_exit_3
+            local.get $__frame
+            i32.const 20
+            i32.add
+            i32.load
+            i32.const 0
+            i32.eq
+            i32.eqz
+            i32.eqz
+            if
+              local.get $__frame
+              i32.const 20
+              i32.add
+              local.tee $__tmp_addr
+              i32.load
+              local.tee $__tmp_old_i32
+              i32.const 1
+              i32.add
+              local.set $__tmp_i32
+              local.get $__tmp_addr
+              local.get $__tmp_i32
+              i32.store
+              local.get $__tmp_old_i32
+              drop
+            end
+            br $count_vowels_no_repeat__c_switch_exit_3
+            local.get $__frame
+            i32.const 24
+            i32.add
+            i32.load
+            i32.const 0
+            i32.eq
+            i32.eqz
+            i32.eqz
+            if
+              local.get $__frame
+              i32.const 24
+              i32.add
+              local.tee $__tmp_addr
+              i32.load
+              local.tee $__tmp_old_i32
+              i32.const 1
+              i32.add
+              local.set $__tmp_i32
+              local.get $__tmp_addr
+              local.get $__tmp_i32
+              i32.store
+              local.get $__tmp_old_i32
+              drop
+            end
+            br $count_vowels_no_repeat__c_switch_exit_3
+            local.get $count_vowels_no_repeat__c___switch_matched_5
+            if
+              br $count_vowels_no_repeat__c_switch_exit_3
+            else
+              i32.const 1
+              if
+                i32.const 1
+                local.set $count_vowels_no_repeat__c___switch_matched_5
+                br $count_vowels_no_repeat__c_switch_exit_3
+              end
+            end
+          end
+        end
+        local.get $__frame
+        i32.const 4
+        i32.add
+        local.tee $__tmp_addr
+        i32.load
+        local.tee $__tmp_old_i32
+        i32.const 1
+        i32.add
+        local.set $__tmp_i32
+        local.get $__tmp_addr
+        local.get $__tmp_i32
+        i32.store
+        local.get $__tmp_old_i32
+        drop
+        br $count_vowels_no_repeat__c_for_loop_2
+      end
+    end
+    local.get $__frame
+    i32.const 8
+    i32.add
+    i32.load
+    local.get $__frame
+    i32.const 12
+    i32.add
+    i32.load
+    i32.add
+    local.get $__frame
+    i32.const 16
+    i32.add
+    i32.load
+    i32.add
+    local.get $__frame
+    i32.const 20
+    i32.add
+    i32.load
+    i32.add
+    local.get $__frame
+    i32.const 24
+    i32.add
+    i32.load
+    i32.add
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
+    i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
+  )
+
   (export "__cpp_tolower" (func $__cpp_tolower))
   (export "count_vowels_with_repeat__pv" (func $count_vowels_with_repeat__pv))
   (export "count_vowels_no_repeat__pv" (func $count_vowels_no_repeat__pv))
   (export "main" (func $main))
+  (export "count_vowels_with_repeat__c" (func $count_vowels_with_repeat__c))
+  (export "count_vowels_no_repeat__c" (func $count_vowels_no_repeat__c))
   (export "memory" (memory $mem))
   (export "__frame_ptr" (global $__frame_ptr))
   (export "__stack_ptr" (global $__stack_ptr))

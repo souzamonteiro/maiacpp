@@ -23,7 +23,7 @@ typedef struct Fibonacci {
 void Fibonacci_init(Fibonacci* self);
 void Fibonacci_destroy(Fibonacci* self);
 int Fibonacci_nFibonacci__i(Fibonacci* self, int n);
-void Fibonacci_createSeries__i(Fibonacci* self, int n);
+int Fibonacci_createSeries__i(Fibonacci* self, int n);
 
 void Fibonacci_init(Fibonacci* self) {
   (void)self;
@@ -39,13 +39,14 @@ int Fibonacci_nFibonacci__i(Fibonacci* self, int n) {
   (void)n;
 }
 
-void Fibonacci_createSeries__i(Fibonacci* self, int n) {
+int Fibonacci_createSeries__i(Fibonacci* self, int n) {
   (void)self;
   int i;
   for (i = 1; i <= n; i++) {
     printf(" %d", fib__i(i));
   }
-  printf("\n");
+  (void)printf("\n");
+  return (int)0;
   (void)n;
 }
 

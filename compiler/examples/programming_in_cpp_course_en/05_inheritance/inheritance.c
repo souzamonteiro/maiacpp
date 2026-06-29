@@ -61,7 +61,7 @@ void Rectangle_destroy(Rectangle* self) {
 
 int Rectangle_calcArea(Rectangle* self) {
   (void)self;
-  return self->0 * self->0;
+  return self->__base.width * self->__base.height;
 }
 
 typedef struct Triangle {
@@ -82,7 +82,7 @@ void Triangle_destroy(Triangle* self) {
 
 int Triangle_calcArea(Triangle* self) {
   (void)self;
-  return self->0 * self->0 / 2;
+  return self->__base.width * self->__base.height / 2;
 }
 
 /* Global functions */

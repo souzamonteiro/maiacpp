@@ -96,7 +96,16 @@ int Triangle_calcArea(Triangle* self) {
 int main(void);
 
 int main(void) {
-  printf("The area of the rectangle is 12.\n");
-  printf("The area of the triangle is 6.\n");
+  Rectangle rectangle;
+  Triangle triangle;
+
+  Polygon_setValues__ii((Polygon*)&rectangle, 4, 3);
+  Polygon_setValues__ii((Polygon*)&triangle, 4, 3);
+  printf("The area of the rectangle is ");
+  printf("%d", Rectangle_calcArea(&rectangle));
+  printf(".\n");
+  printf("The area of the triangle is ");
+  printf("%d", Triangle_calcArea(&triangle));
+  printf(".\n");
   return 0;
 }

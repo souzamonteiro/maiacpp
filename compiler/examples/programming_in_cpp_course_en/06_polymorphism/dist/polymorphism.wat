@@ -23,8 +23,10 @@
   ;; global __stack_ptr
   (global $__stack_ptr (mut i32) (i32.const 1024))
 
-  (data (i32.const 16) "The area of the rectangle is 12.\0a\00")
-  (data (i32.const 52) "The area of the triangle is 6.\0a\00")
+  (data (i32.const 16) "The area of the rectangle is \00")
+  (data (i32.const 48) "%d\00")
+  (data (i32.const 52) ".\0a\00")
+  (data (i32.const 56) "The area of the triangle is \00")
 
   (elem (table $fn_table) (i32.const 0) func $Polygon_init $Polygon_destroy $Polygon_setValues__ii $Polygon_calcArea $Rectangle_init $Rectangle_destroy $Rectangle_calcArea $Triangle_init $Triangle_destroy $Triangle_calcArea $main)
 
@@ -415,9 +417,87 @@
 
   ;; function main
   (func $main (result i32)
+    (local $__frame i32)
+    (local $rectangle i32)
+    (local $triangle i32)
+    (local $__parent_frame i32)
+    global.get $__frame_ptr
+    local.set $__parent_frame
+    global.get $__stack_ptr
+    local.set $__frame
+    local.get $__frame
+    global.set $__frame_ptr
+    global.get $__stack_ptr
+    i32.const 24
+    i32.add
+    global.set $__stack_ptr
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.const 4
+    i32.const 3
+    call $Polygon_setValues__ii
+    local.get $__frame
+    i32.const 12
+    i32.add
+    i32.const 4
+    i32.const 3
+    call $Polygon_setValues__ii
     i32.const 16
     f64.convert_i32_s
     f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 48
+    f64.convert_i32_s
+    local.get $__frame
+    i32.const 0
+    i32.add
+    call $Rectangle_calcArea
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 52
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 56
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 48
+    f64.convert_i32_s
+    local.get $__frame
+    i32.const 12
+    i32.add
+    call $Triangle_calcArea
+    f64.convert_i32_s
     f64.const 0
     f64.const 0
     f64.const 0
@@ -438,8 +518,16 @@
     call $imp_printf
     drop
     i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
     return
     i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
     return
   )
 

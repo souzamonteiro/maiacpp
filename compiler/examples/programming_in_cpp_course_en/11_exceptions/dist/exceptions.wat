@@ -23,13 +23,39 @@
   ;; global __stack_ptr
   (global $__stack_ptr (mut i32) (i32.const 1024))
 
-  (data (i32.const 16) "An error occurred: Oops!.\0a\00")
+  (data (i32.const 16) "An error occurred: \00")
+  (data (i32.const 36) "%s\00")
+  (data (i32.const 40) "Oops!\00")
+  (data (i32.const 48) ".\0a\00")
 
   (elem (table $fn_table) (i32.const 0) func $main)
 
   ;; function main
   (func $main (result i32)
     i32.const 16
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 36
+    f64.convert_i32_s
+    i32.const 40
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 48
     f64.convert_i32_s
     f64.const 0
     f64.const 0

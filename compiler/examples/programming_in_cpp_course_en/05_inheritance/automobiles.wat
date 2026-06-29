@@ -23,7 +23,19 @@
   ;; global __stack_ptr
   (global $__stack_ptr (mut i32) (i32.const 1024))
 
-  (data (i32.const 16) "The tractor MF 3400 year 2022 costs $75000.\0a\00")
+  (data (i32.const 16) "Silver\00")
+  (data (i32.const 24) "XL\00")
+  (data (i32.const 28) "Red\00")
+  (data (i32.const 32) "X\00")
+  (data (i32.const 36) "Blue\00")
+  (data (i32.const 44) "MF 3400\00")
+  (data (i32.const 52) "The tractor \00")
+  (data (i32.const 68) "%s\00")
+  (data (i32.const 72) " year \00")
+  (data (i32.const 80) "%d\00")
+  (data (i32.const 84) " costs $\00")
+  (data (i32.const 96) "%g\00")
+  (data (i32.const 100) ".\0a\00")
 
   (elem (table $fn_table) (i32.const 0) func $Automobile_init $Automobile_init__pvipvff $Automobile_destroy $Car_init $Car_init__pvipvff $Car_destroy $Truck_init $Truck_init__pvipvff $Truck_destroy $Tractor_init $Tractor_init__pvipvff $Tractor_destroy $main)
 
@@ -186,7 +198,6 @@
     i32.add
     i32.load
     call $Automobile_init
-    i32.const 0
   )
 
   ;; function Car_init__pvipvff
@@ -263,7 +274,6 @@
     i32.add
     f32.load
     call $Automobile_init__pvipvff
-    i32.const 0
   )
 
   ;; function Car_destroy
@@ -321,7 +331,6 @@
     i32.add
     i32.load
     call $Automobile_init
-    i32.const 0
   )
 
   ;; function Truck_init__pvipvff
@@ -398,7 +407,6 @@
     i32.add
     f32.load
     call $Automobile_init__pvipvff
-    i32.const 0
   )
 
   ;; function Truck_destroy
@@ -456,7 +464,6 @@
     i32.add
     i32.load
     call $Automobile_init
-    i32.const 0
   )
 
   ;; function Tractor_init__pvipvff
@@ -533,7 +540,6 @@
     i32.add
     f32.load
     call $Automobile_init__pvipvff
-    i32.const 0
   )
 
   ;; function Tractor_destroy
@@ -564,7 +570,118 @@
 
   ;; function main
   (func $main (result i32)
+    (local $__frame i32)
+    (local $etios i32)
+    (local $actros i32)
+    (local $mf3400 i32)
+    (local $__parent_frame i32)
+    global.get $__frame_ptr
+    local.set $__parent_frame
+    global.get $__stack_ptr
+    local.set $__frame
+    local.get $__frame
+    global.set $__frame_ptr
+    global.get $__stack_ptr
+    i32.const 64
+    i32.add
+    global.set $__stack_ptr
+    local.get $__frame
+    i32.const 0
+    i32.add
     i32.const 16
+    i32.const 2021
+    i32.const 24
+    f32.const 1.4
+    f32.const 50000
+    call $Car_init__pvipvff
+    local.get $__frame
+    i32.const 20
+    i32.add
+    i32.const 28
+    i32.const 2022
+    i32.const 32
+    f32.const 6
+    f32.const 500000
+    call $Truck_init__pvipvff
+    local.get $__frame
+    i32.const 40
+    i32.add
+    i32.const 36
+    i32.const 2022
+    i32.const 44
+    f32.const 3
+    f32.const 75000
+    call $Tractor_init__pvipvff
+    i32.const 52
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 68
+    f64.convert_i32_s
+    i32.const 44
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 72
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 80
+    f64.convert_i32_s
+    i32.const 2022
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 84
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 96
+    f64.convert_i32_s
+    f32.const 75000
+    f64.promote_f32
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 100
     f64.convert_i32_s
     f64.const 0
     f64.const 0
@@ -576,8 +693,16 @@
     call $imp_printf
     drop
     i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
     return
     i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
     return
   )
 

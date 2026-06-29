@@ -7,11 +7,9 @@
   (import "env" "__exc_pop" (func $imp___exc_pop))
   (import "env" "__exc_active" (func $imp___exc_active (result i32)))
   (import "env" "__exc_type" (func $imp___exc_type (result i32)))
-  (import "env" "__exc_data" (func $imp___exc_data))
   (import "env" "__exc_throw" (func $imp___exc_throw (param i32 i32)))
   (import "env" "__exc_clear" (func $imp___exc_clear))
   (import "env" "__exc_matches" (func $imp___exc_matches (param i32 i32) (result i32)))
-  (import "env" "__malloc" (func $imp___malloc (param i32) (result i32)))
   (import "env" "__free" (func $imp___free (param i32)))
   (import "env" "printf" (func $imp_printf (param f64 f64 f64 f64 f64 f64 f64 f64) (result i32)))
 
@@ -136,7 +134,7 @@
   )
 
   ;; function LifeForm_setName__pv
-  (func $LifeForm_setName__pv (param $self i32) (param $n i32)
+  (func $LifeForm_setName__pv (param $self i32) (param $n i32) (result i32)
     (local $__frame i32)
     (local $__tmp_i32 i32)
     (local $__parent_frame i32)
@@ -185,6 +183,12 @@
     i32.add
     i32.load
     drop
+    i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
   )
 
   ;; function LifeForm_getName
@@ -335,7 +339,6 @@
   ;; function Dinosaur_eat__N1T
   (func $Dinosaur_eat__N1T (param $self i32) (param $other i32) (result i32)
     (local $__frame i32)
-    (local $__lf_other i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
     local.set $__parent_frame
@@ -344,7 +347,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 16
+    i32.const 8
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -362,14 +365,6 @@
     i32.add
     i32.load
     drop
-    local.get $__frame
-    i32.const 8
-    i32.add
-    local.get $__frame
-    i32.const 4
-    i32.add
-    i32.load
-    i32.store
     i32.const 16
     f64.convert_i32_s
     local.get $__frame
@@ -383,12 +378,10 @@
     i32.load
     f64.convert_i32_s
     local.get $__frame
-    i32.const 8
+    i32.const 4
     i32.add
     i32.load
-    i32.const 0
-    i32.add
-    i32.load
+    call $LifeForm_getName
     f64.convert_i32_s
     f64.const 0
     f64.const 0

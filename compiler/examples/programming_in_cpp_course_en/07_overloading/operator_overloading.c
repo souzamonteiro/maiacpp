@@ -19,13 +19,12 @@ extern void   __free(void* ptr);
 typedef struct Vector {
   int x;
   int y;
-  Vector temp;
-  int temp;
 } Vector;
 
 void Vector_init(Vector* self);
 void Vector_init__ii(Vector* self, int a, int b);
 void Vector_destroy(Vector* self);
+Vector Vector_operator_add__N6Vector(Vector* self, Vector param);
 
 void Vector_init(Vector* self) {
   (void)self;
@@ -43,10 +42,31 @@ void Vector_destroy(Vector* self) {
   (void)self;
 }
 
+Vector Vector_operator_add__N6Vector(Vector* self, Vector param) {
+  (void)self;
+  Vector temp;
+  temp.x = self->x + param.x;
+  temp.y = self->y + param.y;
+  return temp;
+  (void)param;
+}
+
 /* Global functions */
 int main(void);
 
 int main(void) {
-  printf("c = 4, 3.\n");
+  Vector a;
+  Vector_init__ii(&a, 3, 1);
+  Vector b;
+  Vector_init__ii(&b, 1, 2);
+  Vector c;
+
+  c.x = a.x + b.x;
+  c.y = a.y + b.y;
+  printf("c = ");
+  printf("%d", c.x);
+  printf(", ");
+  printf("%d", c.y);
+  printf(".\n");
   return 0;
 }

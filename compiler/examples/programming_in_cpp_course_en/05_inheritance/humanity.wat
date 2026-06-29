@@ -133,7 +133,7 @@
   )
 
   ;; function Australopithecus_setName__pv
-  (func $Australopithecus_setName__pv (param $self i32) (param $n i32)
+  (func $Australopithecus_setName__pv (param $self i32) (param $n i32) (result i32)
     (local $__frame i32)
     (local $__tmp_i32 i32)
     (local $__parent_frame i32)
@@ -182,6 +182,12 @@
     i32.add
     i32.load
     drop
+    i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
   )
 
   ;; function Australopithecus_getName
@@ -257,7 +263,6 @@
     i32.add
     i32.load
     call $Australopithecus_init
-    i32.const 0
   )
 
   ;; function HomoHabilis_init__pv
@@ -298,7 +303,6 @@
     i32.add
     i32.load
     call $Australopithecus_init__pv
-    i32.const 0
   )
 
   ;; function HomoHabilis_destroy
@@ -425,7 +429,6 @@
     i32.add
     i32.load
     call $HomoHabilis_init
-    i32.const 0
   )
 
   ;; function HomoErectus_init__pv
@@ -466,7 +469,6 @@
     i32.add
     i32.load
     call $HomoHabilis_init__pv
-    i32.const 0
   )
 
   ;; function HomoErectus_destroy
@@ -524,7 +526,6 @@
     i32.add
     i32.load
     call $HomoErectus_init
-    i32.const 0
   )
 
   ;; function HomoSapiens_init__pv
@@ -565,7 +566,6 @@
     i32.add
     i32.load
     call $HomoErectus_init__pv
-    i32.const 0
   )
 
   ;; function HomoSapiens_destroy
@@ -595,7 +595,7 @@
   )
 
   ;; function HomoSapiens_say__pv
-  (func $HomoSapiens_say__pv (param $self i32) (param $s i32)
+  (func $HomoSapiens_say__pv (param $self i32) (param $s i32) (result i32)
     (local $__frame i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
@@ -645,15 +645,27 @@
     f64.const 0
     call $imp_printf
     drop
+    i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
     local.get $__frame
     i32.const 4
     i32.add
     i32.load
     drop
+    i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
   )
 
   ;; function HomoSapiens_say__pvN11HomoErectus
-  (func $HomoSapiens_say__pvN11HomoErectus (param $self i32) (param $s i32) (param $who i32)
+  (func $HomoSapiens_say__pvN11HomoErectus (param $self i32) (param $s i32) (param $who i32) (result i32)
     (local $__frame i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
@@ -715,6 +727,12 @@
     f64.const 0
     call $imp_printf
     drop
+    i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
     local.get $__frame
     i32.const 4
     i32.add
@@ -724,6 +742,12 @@
     i32.const 8
     i32.add
     drop
+    i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
   )
 
   ;; function HomoNeanderthalensis_init
@@ -755,7 +779,6 @@
     i32.add
     i32.load
     call $HomoErectus_init
-    i32.const 0
   )
 
   ;; function HomoNeanderthalensis_init__pv
@@ -796,7 +819,6 @@
     i32.add
     i32.load
     call $HomoErectus_init__pv
-    i32.const 0
   )
 
   ;; function HomoNeanderthalensis_destroy
@@ -846,19 +868,17 @@
     i32.add
     i32.const 80
     call $HomoNeanderthalensis_init__pv
-    i32.const 0
     local.get $__frame
     i32.const 4
     i32.add
     i32.const 88
     call $HomoSapiens_init__pv
-    i32.const 0
     local.get $__frame
     i32.const 4
     i32.add
     i32.const 96
     call $HomoSapiens_say__pv
-    i32.const 0
+    drop
     local.get $__frame
     i32.const 4
     i32.add
@@ -867,7 +887,7 @@
     i32.const 0
     i32.add
     call $HomoSapiens_say__pvN11HomoErectus
-    i32.const 0
+    drop
     local.get $__frame
     i32.const 0
     i32.add

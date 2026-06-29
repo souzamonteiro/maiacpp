@@ -18,7 +18,19 @@ extern void   __free(void* ptr);
 int main(void);
 
 int main(void) {
-  printf("The greater value between 1 and 2 is 2.\n");
-  printf("The greater value between 3.2 and 3.7 is 3.7.\n");
+  printf("The greater value between ");
+  printf("%d", 1);
+  printf(" and ");
+  printf("%d", 2);
+  printf(" is ");
+  printf("%d", 2);
+  printf(".\n");
+  printf("The greater value between ");
+  printf("%g", 3.2);
+  printf(" and ");
+  printf("%g", 3.7);
+  printf(" is ");
+  printf("%g", 3.7);
+  printf(".\n");
   return 0;
 }

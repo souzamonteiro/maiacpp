@@ -18,6 +18,11 @@ extern void   __free(void* ptr);
 int main(void);
 
 int main(void) {
-  printf("An error occurred: Oops!.\n");
+  printf("An error occurred: ");
+  printf("%s", "Oops!");
+  printf(".\n");
   return 0;
 }
+
+/* Lowering diagnostics: 1 event(s) (structured-try-catch-runtime=1) */
+/* - main: structured-try-catch-runtime (simple-try-catch-runtime) */

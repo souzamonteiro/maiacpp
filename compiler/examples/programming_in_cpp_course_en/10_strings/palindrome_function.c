@@ -37,6 +37,7 @@ extern void* memchr(const void* s, int c, unsigned int n);
 /* Global functions */
 int is_palindrome__pv(char* word);
 int main(void);
+int is_palindrome__c(char word);
 
 int is_palindrome__pv(char* word) {
   int i, j;
@@ -64,5 +65,25 @@ int main(void) {
   return 0;
 }
 
-/* Lowering diagnostics: 1 event(s) (structured-cstyle-body=1) */
+int is_palindrome__c(char word) {
+  {
+  int i,j;
+  int result=1;
+  j=strlen(word)-1;
+  for(i=0;
+  i<strlen(word);
+  i++)
+  {
+  if(word[i]!=word[j])
+  {
+  result=0;
+  }
+  j--;
+  }
+  return result;
+  }
+}
+
+/* Lowering diagnostics: 2 event(s) (structured-cstyle-body=2) */
 /* - is_palindrome: structured-cstyle-body (5 stmt(s)) */
+/* - is_palindrome: structured-cstyle-body (raw-body 16 line(s)) */

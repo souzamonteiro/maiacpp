@@ -23,8 +23,12 @@
   ;; global __stack_ptr
   (global $__stack_ptr (mut i32) (i32.const 1024))
 
-  (data (i32.const 16) "The greater value between 1 and 2 is 2.\0a\00")
-  (data (i32.const 60) "The greater value between 3.2 and 3.7 is 3.7.\0a\00")
+  (data (i32.const 16) "The greater value between \00")
+  (data (i32.const 44) "%d\00")
+  (data (i32.const 48) " and \00")
+  (data (i32.const 56) " is \00")
+  (data (i32.const 64) ".\0a\00")
+  (data (i32.const 68) "%g\00")
 
   (elem (table $fn_table) (i32.const 0) func $main)
 
@@ -41,7 +45,142 @@
     f64.const 0
     call $imp_printf
     drop
-    i32.const 60
+    i32.const 44
+    f64.convert_i32_s
+    i32.const 1
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 48
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 44
+    f64.convert_i32_s
+    i32.const 2
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 56
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 44
+    f64.convert_i32_s
+    i32.const 2
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 64
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 16
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 68
+    f64.convert_i32_s
+    f64.const 3.2
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 48
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 68
+    f64.convert_i32_s
+    f64.const 3.7
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 56
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 68
+    f64.convert_i32_s
+    f64.const 3.7
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 64
     f64.convert_i32_s
     f64.const 0
     f64.const 0

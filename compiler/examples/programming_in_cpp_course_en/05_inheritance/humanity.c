@@ -27,8 +27,8 @@ typedef struct Australopithecus {
 void Australopithecus_init(Australopithecus* self);
 void Australopithecus_init__pv(Australopithecus* self, char* n);
 void Australopithecus_destroy(Australopithecus* self);
-void Australopithecus_setName__pv(Australopithecus* self, char* n);
-char* Australopithecus_getName(Australopithecus* self);
+int Australopithecus_setName__pv(Australopithecus* self, char* n);
+int Australopithecus_getName(Australopithecus* self);
 
 void Australopithecus_init(Australopithecus* self) {
   (void)self;
@@ -43,13 +43,13 @@ void Australopithecus_destroy(Australopithecus* self) {
   (void)self;
 }
 
-void Australopithecus_setName__pv(Australopithecus* self, char* n) {
+int Australopithecus_setName__pv(Australopithecus* self, char* n) {
   (void)self;
   self->name = n;
   (void)n;
 }
 
-char* Australopithecus_getName(Australopithecus* self) {
+int Australopithecus_getName(Australopithecus* self) {
   (void)self;
   return self->name;
 }
@@ -113,8 +113,8 @@ typedef struct HomoSapiens {
 void HomoSapiens_init(HomoSapiens* self);
 void HomoSapiens_init__pv(HomoSapiens* self, char* n);
 void HomoSapiens_destroy(HomoSapiens* self);
-void HomoSapiens_say__pv(HomoSapiens* self, char* s);
-void HomoSapiens_say__pvN11HomoErectus(HomoSapiens* self, char* s, HomoErectus who);
+int HomoSapiens_say__pv(HomoSapiens* self, char* s);
+int HomoSapiens_say__pvN11HomoErectus(HomoSapiens* self, char* s, HomoErectus who);
 
 void HomoSapiens_init(HomoSapiens* self) {
   (void)self;
@@ -130,15 +130,17 @@ void HomoSapiens_destroy(HomoSapiens* self) {
   (void)self;
 }
 
-void HomoSapiens_say__pv(HomoSapiens* self, char* s) {
+int HomoSapiens_say__pv(HomoSapiens* self, char* s) {
   (void)self;
   printf("%s said %c%s%c.\n", Australopithecus_getName((Australopithecus*)self), 34, s, 34);
+  return 0;
   (void)s;
 }
 
-void HomoSapiens_say__pvN11HomoErectus(HomoSapiens* self, char* s, HomoErectus who) {
+int HomoSapiens_say__pvN11HomoErectus(HomoSapiens* self, char* s, HomoErectus who) {
   (void)self;
   printf("%s said %c%s%c to %s.\n", Australopithecus_getName((Australopithecus*)self), 34, s, 34, Australopithecus_getName((Australopithecus*)&who));
+  return 0;
   (void)s;
   (void)who;
 }

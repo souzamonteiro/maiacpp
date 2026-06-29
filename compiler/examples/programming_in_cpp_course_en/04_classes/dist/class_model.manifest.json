@@ -1,0 +1,20 @@
+{
+  "generatedAt": "2026-06-21T20:50:00.723Z",
+  "input": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/programming_in_cpp_course_en/04_classes/class_model.c",
+  "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/programming_in_cpp_course_en/04_classes/dist",
+  "appName": "class_model",
+  "artifacts": {
+    "wasm": "class_model.wasm",
+    "wrapper": "class_model.js",
+    "wat": "class_model.wat",
+    "browserRunner": "browser-runner.html",
+    "browserMemoryFileStore": "browser-memory-file-store.js",
+    "nodeRunner": "node-runner.js",
+    "nodeRunnerShell": "node-runner.sh"
+  },
+  "linkedLibraries": [],
+  "copiedLibraries": [],
+  "runtimeProvidedHeaders": [],
+  "missingLibraries": [],
+  "sourceBytes": 1370
+}

@@ -15,7 +15,7 @@
 
   (memory $mem 1)
 
-  (table $fn_table 6 funcref)
+  (table $fn_table 8 funcref)
 
   ;; global __frame_ptr
   (global $__frame_ptr (mut i32) (i32.const 0))
@@ -23,10 +23,14 @@
   ;; global __stack_ptr
   (global $__stack_ptr (mut i32) (i32.const 1024))
 
-  (data (i32.const 16) "c(4,6)\0a\00")
-  (data (i32.const 24) "d(-2,-2)\0a\00")
+  (data (i32.const 16) "c(\00")
+  (data (i32.const 20) "%d\00")
+  (data (i32.const 24) ",\00")
+  (data (i32.const 28) ")\00")
+  (data (i32.const 32) "\0a\00")
+  (data (i32.const 36) "d(\00")
 
-  (elem (table $fn_table) (i32.const 0) func $Vector_init $Vector_init__ii $Vector_destroy $Vector_getX $Vector_getY $main)
+  (elem (table $fn_table) (i32.const 0) func $Vector_init $Vector_init__ii $Vector_destroy $Vector_operator_add__N6Vector $Vector_operator_sub__N6Vector $Vector_getX $Vector_getY $main)
 
   ;; function Vector_init
   (func $Vector_init (param $self i32)
@@ -39,7 +43,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 40944
+    i32.const 8
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -66,7 +70,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 40952
+    i32.const 16
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -75,12 +79,12 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 40944
+    i32.const 8
     i32.add
     local.get $a
     i32.store
     local.get $__frame
-    i32.const 40948
+    i32.const 12
     i32.add
     local.get $b
     i32.store
@@ -96,7 +100,7 @@
     i32.const 0
     i32.add
     local.get $__frame
-    i32.const 40944
+    i32.const 8
     i32.add
     i32.load
     local.set $__tmp_i32
@@ -111,7 +115,7 @@
     i32.const 4
     i32.add
     local.get $__frame
-    i32.const 40948
+    i32.const 12
     i32.add
     i32.load
     local.set $__tmp_i32
@@ -120,12 +124,12 @@
     local.get $__tmp_i32
     drop
     local.get $__frame
-    i32.const 40944
+    i32.const 8
     i32.add
     i32.load
     drop
     local.get $__frame
-    i32.const 40948
+    i32.const 12
     i32.add
     i32.load
     drop
@@ -142,7 +146,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 163824
+    i32.const 8
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -157,6 +161,258 @@
     drop
   )
 
+  ;; function Vector_operator_add__N6Vector
+  (func $Vector_operator_add__N6Vector (param $__maiac_sret i32) (param $self i32) (param $a i32)
+    (local $__frame i32)
+    (local $temp i32)
+    (local $__tmp_i32 i32)
+    (local $__parent_frame i32)
+    global.get $__frame_ptr
+    local.set $__parent_frame
+    global.get $__stack_ptr
+    local.set $__frame
+    local.get $__frame
+    global.set $__frame_ptr
+    global.get $__stack_ptr
+    i32.const 32
+    i32.add
+    global.set $__stack_ptr
+    local.get $__frame
+    i32.const 0
+    i32.add
+    local.get $__maiac_sret
+    i32.store
+    local.get $__frame
+    i32.const 4
+    i32.add
+    local.get $self
+    i32.store
+    local.get $__frame
+    i32.const 12
+    i32.add
+    local.get $a
+    i32.const 0
+    i32.add
+    i32.load
+    i32.store
+    local.get $__frame
+    i32.const 12
+    i32.add
+    i32.const 4
+    i32.add
+    local.get $a
+    i32.const 4
+    i32.add
+    i32.load
+    i32.store
+    local.get $__frame
+    i32.const 4
+    i32.add
+    i32.load
+    drop
+    local.get $__frame
+    i32.const 20
+    i32.add
+    i32.const 0
+    i32.add
+    local.get $__frame
+    i32.const 4
+    i32.add
+    i32.load
+    i32.const 0
+    i32.add
+    i32.load
+    local.get $__frame
+    i32.const 12
+    i32.add
+    i32.const 0
+    i32.add
+    i32.load
+    i32.add
+    local.set $__tmp_i32
+    local.get $__tmp_i32
+    i32.store
+    local.get $__tmp_i32
+    drop
+    local.get $__frame
+    i32.const 20
+    i32.add
+    i32.const 4
+    i32.add
+    local.get $__frame
+    i32.const 4
+    i32.add
+    i32.load
+    i32.const 4
+    i32.add
+    i32.load
+    local.get $__frame
+    i32.const 12
+    i32.add
+    i32.const 4
+    i32.add
+    i32.load
+    i32.add
+    local.set $__tmp_i32
+    local.get $__tmp_i32
+    i32.store
+    local.get $__tmp_i32
+    drop
+    local.get $__maiac_sret
+    local.get $__frame
+    i32.const 20
+    i32.add
+    i32.const 0
+    i32.add
+    i32.load
+    i32.store
+    local.get $__maiac_sret
+    i32.const 4
+    i32.add
+    local.get $__frame
+    i32.const 20
+    i32.add
+    i32.const 4
+    i32.add
+    i32.load
+    i32.store
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
+    local.get $__frame
+    i32.const 12
+    i32.add
+    drop
+  )
+
+  ;; function Vector_operator_sub__N6Vector
+  (func $Vector_operator_sub__N6Vector (param $__maiac_sret i32) (param $self i32) (param $a i32)
+    (local $__frame i32)
+    (local $temp i32)
+    (local $__tmp_i32 i32)
+    (local $__parent_frame i32)
+    global.get $__frame_ptr
+    local.set $__parent_frame
+    global.get $__stack_ptr
+    local.set $__frame
+    local.get $__frame
+    global.set $__frame_ptr
+    global.get $__stack_ptr
+    i32.const 32
+    i32.add
+    global.set $__stack_ptr
+    local.get $__frame
+    i32.const 0
+    i32.add
+    local.get $__maiac_sret
+    i32.store
+    local.get $__frame
+    i32.const 4
+    i32.add
+    local.get $self
+    i32.store
+    local.get $__frame
+    i32.const 12
+    i32.add
+    local.get $a
+    i32.const 0
+    i32.add
+    i32.load
+    i32.store
+    local.get $__frame
+    i32.const 12
+    i32.add
+    i32.const 4
+    i32.add
+    local.get $a
+    i32.const 4
+    i32.add
+    i32.load
+    i32.store
+    local.get $__frame
+    i32.const 4
+    i32.add
+    i32.load
+    drop
+    local.get $__frame
+    i32.const 20
+    i32.add
+    i32.const 0
+    i32.add
+    local.get $__frame
+    i32.const 4
+    i32.add
+    i32.load
+    i32.const 0
+    i32.add
+    i32.load
+    local.get $__frame
+    i32.const 12
+    i32.add
+    i32.const 0
+    i32.add
+    i32.load
+    i32.sub
+    local.set $__tmp_i32
+    local.get $__tmp_i32
+    i32.store
+    local.get $__tmp_i32
+    drop
+    local.get $__frame
+    i32.const 20
+    i32.add
+    i32.const 4
+    i32.add
+    local.get $__frame
+    i32.const 4
+    i32.add
+    i32.load
+    i32.const 4
+    i32.add
+    i32.load
+    local.get $__frame
+    i32.const 12
+    i32.add
+    i32.const 4
+    i32.add
+    i32.load
+    i32.sub
+    local.set $__tmp_i32
+    local.get $__tmp_i32
+    i32.store
+    local.get $__tmp_i32
+    drop
+    local.get $__maiac_sret
+    local.get $__frame
+    i32.const 20
+    i32.add
+    i32.const 0
+    i32.add
+    i32.load
+    i32.store
+    local.get $__maiac_sret
+    i32.const 4
+    i32.add
+    local.get $__frame
+    i32.const 20
+    i32.add
+    i32.const 4
+    i32.add
+    i32.load
+    i32.store
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
+    local.get $__frame
+    i32.const 12
+    i32.add
+    drop
+  )
+
   ;; function Vector_getX
   (func $Vector_getX (param $self i32) (result i32)
     (local $__frame i32)
@@ -168,7 +424,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 163824
+    i32.const 8
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -212,7 +468,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 655344
+    i32.const 8
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -247,9 +503,145 @@
 
   ;; function main
   (func $main (result i32)
+    (local $__frame i32)
+    (local $a i32)
+    (local $b i32)
+    (local $c i32)
+    (local $d i32)
+    (local $__tmp_i32 i32)
+    (local $__parent_frame i32)
+    global.get $__frame_ptr
+    local.set $__parent_frame
+    global.get $__stack_ptr
+    local.set $__frame
+    local.get $__frame
+    global.set $__frame_ptr
+    global.get $__stack_ptr
+    i32.const 32
+    i32.add
+    global.set $__stack_ptr
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.const 1
+    i32.const 2
+    call $Vector_init__ii
+    local.get $__frame
+    i32.const 8
+    i32.add
+    i32.const 3
+    i32.const 4
+    call $Vector_init__ii
+    local.get $__frame
+    i32.const 16
+    i32.add
+    i32.const 0
+    i32.add
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.const 0
+    i32.add
+    i32.load
+    local.get $__frame
+    i32.const 8
+    i32.add
+    i32.const 0
+    i32.add
+    i32.load
+    i32.add
+    local.set $__tmp_i32
+    local.get $__tmp_i32
+    i32.store
+    local.get $__tmp_i32
+    drop
+    local.get $__frame
+    i32.const 16
+    i32.add
+    i32.const 4
+    i32.add
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.const 4
+    i32.add
+    i32.load
+    local.get $__frame
+    i32.const 8
+    i32.add
+    i32.const 4
+    i32.add
+    i32.load
+    i32.add
+    local.set $__tmp_i32
+    local.get $__tmp_i32
+    i32.store
+    local.get $__tmp_i32
+    drop
+    local.get $__frame
+    i32.const 24
+    i32.add
+    i32.const 0
+    i32.add
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.const 0
+    i32.add
+    i32.load
+    local.get $__frame
+    i32.const 8
+    i32.add
+    i32.const 0
+    i32.add
+    i32.load
+    i32.sub
+    local.set $__tmp_i32
+    local.get $__tmp_i32
+    i32.store
+    local.get $__tmp_i32
+    drop
+    local.get $__frame
+    i32.const 24
+    i32.add
+    i32.const 4
+    i32.add
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.const 4
+    i32.add
+    i32.load
+    local.get $__frame
+    i32.const 8
+    i32.add
+    i32.const 4
+    i32.add
+    i32.load
+    i32.sub
+    local.set $__tmp_i32
+    local.get $__tmp_i32
+    i32.store
+    local.get $__tmp_i32
+    drop
     i32.const 16
     f64.convert_i32_s
     f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 20
+    f64.convert_i32_s
+    local.get $__frame
+    i32.const 16
+    i32.add
+    call $Vector_getX
+    f64.convert_i32_s
     f64.const 0
     f64.const 0
     f64.const 0
@@ -269,15 +661,136 @@
     f64.const 0
     call $imp_printf
     drop
+    i32.const 20
+    f64.convert_i32_s
+    local.get $__frame
+    i32.const 16
+    i32.add
+    call $Vector_getY
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 28
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 32
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 36
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 20
+    f64.convert_i32_s
+    local.get $__frame
+    i32.const 24
+    i32.add
+    call $Vector_getX
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 24
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 20
+    f64.convert_i32_s
+    local.get $__frame
+    i32.const 24
+    i32.add
+    call $Vector_getY
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 28
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 32
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
     i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
     return
     i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
     return
   )
 
   (export "Vector_init" (func $Vector_init))
   (export "Vector_init__ii" (func $Vector_init__ii))
   (export "Vector_destroy" (func $Vector_destroy))
+  (export "Vector_operator_add__N6Vector" (func $Vector_operator_add__N6Vector))
+  (export "Vector_operator_sub__N6Vector" (func $Vector_operator_sub__N6Vector))
   (export "Vector_getX" (func $Vector_getX))
   (export "Vector_getY" (func $Vector_getY))
   (export "main" (func $main))

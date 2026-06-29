@@ -17,7 +17,7 @@
 
   (memory $mem 1)
 
-  (table $fn_table 2 funcref)
+  (table $fn_table 3 funcref)
 
   ;; global __frame_ptr
   (global $__frame_ptr (mut i32) (i32.const 0))
@@ -30,7 +30,7 @@
   (data (i32.const 36) "The word is a palindrome!\00")
   (data (i32.const 64) "The word is not a palindrome!\00")
 
-  (elem (table $fn_table) (i32.const 0) func $is_palindrome__pv $main)
+  (elem (table $fn_table) (i32.const 0) func $is_palindrome__pv $main $is_palindrome__c)
 
   ;; function is_palindrome__pv
   (func $is_palindrome__pv (param $word i32) (result i32)
@@ -273,8 +273,167 @@
     return
   )
 
+  ;; function is_palindrome__c
+  (func $is_palindrome__c (param $word i32) (result i32)
+    (local $__frame i32)
+    (local $i i32)
+    (local $j i32)
+    (local $result i32)
+    (local $__tmp_i32 i32)
+    (local $__tmp_addr i32)
+    (local $__tmp_old_i32 i32)
+    (local $__parent_frame i32)
+    global.get $__frame_ptr
+    local.set $__parent_frame
+    global.get $__stack_ptr
+    local.set $__frame
+    local.get $__frame
+    global.set $__frame_ptr
+    global.get $__stack_ptr
+    i32.const 16
+    i32.add
+    global.set $__stack_ptr
+    local.get $__frame
+    i32.const 0
+    i32.add
+    local.get $word
+    i32.store
+    local.get $__frame
+    i32.const 12
+    i32.add
+    i32.const 1
+    i32.store
+    local.get $__frame
+    i32.const 8
+    i32.add
+    local.get $__frame
+    i32.const 0
+    i32.add
+    i32.load8_u
+    call $imp_strlen
+    i32.const 1
+    i32.sub
+    local.set $__tmp_i32
+    local.get $__tmp_i32
+    i32.store
+    local.get $__tmp_i32
+    drop
+    local.get $__frame
+    i32.const 4
+    i32.add
+    i32.const 0
+    local.set $__tmp_i32
+    local.get $__tmp_i32
+    i32.store
+    local.get $__tmp_i32
+    drop
+    block $is_palindrome__c_for_exit_0
+      loop $is_palindrome__c_for_loop_2
+        local.get $__frame
+        i32.const 4
+        i32.add
+        i32.load
+        local.get $__frame
+        i32.const 0
+        i32.add
+        i32.load8_u
+        call $imp_strlen
+        i32.lt_s
+        i32.eqz
+        i32.eqz
+        i32.eqz
+        br_if $is_palindrome__c_for_exit_0
+        block $is_palindrome__c_for_continue_1
+          local.get $__frame
+          i32.const 0
+          i32.add
+          i32.load8_u
+          local.get $__frame
+          i32.const 4
+          i32.add
+          i32.load
+          i32.const 1
+          i32.mul
+          i32.add
+          i32.load8_u
+          local.get $__frame
+          i32.const 0
+          i32.add
+          i32.load8_u
+          local.get $__frame
+          i32.const 8
+          i32.add
+          i32.load
+          i32.const 1
+          i32.mul
+          i32.add
+          i32.load8_u
+          i32.ne
+          i32.eqz
+          i32.eqz
+          if
+            local.get $__frame
+            i32.const 12
+            i32.add
+            i32.const 0
+            local.set $__tmp_i32
+            local.get $__tmp_i32
+            i32.store
+            local.get $__tmp_i32
+            drop
+          end
+          local.get $__frame
+          i32.const 8
+          i32.add
+          local.tee $__tmp_addr
+          i32.load
+          local.tee $__tmp_old_i32
+          i32.const 1
+          i32.sub
+          local.set $__tmp_i32
+          local.get $__tmp_addr
+          local.get $__tmp_i32
+          i32.store
+          local.get $__tmp_old_i32
+          drop
+        end
+        local.get $__frame
+        i32.const 4
+        i32.add
+        local.tee $__tmp_addr
+        i32.load
+        local.tee $__tmp_old_i32
+        i32.const 1
+        i32.add
+        local.set $__tmp_i32
+        local.get $__tmp_addr
+        local.get $__tmp_i32
+        i32.store
+        local.get $__tmp_old_i32
+        drop
+        br $is_palindrome__c_for_loop_2
+      end
+    end
+    local.get $__frame
+    i32.const 12
+    i32.add
+    i32.load
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
+    i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
+  )
+
   (export "is_palindrome__pv" (func $is_palindrome__pv))
   (export "main" (func $main))
+  (export "is_palindrome__c" (func $is_palindrome__c))
   (export "memory" (memory $mem))
   (export "__frame_ptr" (global $__frame_ptr))
   (export "__stack_ptr" (global $__stack_ptr))

@@ -20,6 +20,7 @@ void display_message__pv(char* msg);
 float square__f(float x);
 float power__fi(float x, int y);
 int main(void);
+void display_message__N9constchar(int msg);
 
 void hello_world(void) {
   printf("Hello World!\n");
@@ -56,7 +57,13 @@ int main(void) {
   return 0;
 }
 
-/* Lowering diagnostics: 3 event(s) (structured-cstyle-body=1, structured-io-runtime=2) */
+void display_message__N9constchar(int msg) {
+  printf("%d", msg);
+  printf("\n");
+}
+
+/* Lowering diagnostics: 4 event(s) (structured-cstyle-body=1, structured-io-runtime=3) */
 /* - hello_world: structured-io-runtime (structured-io-runtime) */
 /* - display_message: structured-io-runtime (structured-io-runtime) */
 /* - power: structured-cstyle-body (5 stmt(s)) */
+/* - display_message: structured-io-runtime (structured-io-runtime) */

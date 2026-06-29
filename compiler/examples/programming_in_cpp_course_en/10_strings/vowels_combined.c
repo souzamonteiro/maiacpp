@@ -42,6 +42,8 @@ static int __cpp_tolower(int c) { return (c >= 65 && c <= 90) ? c + 32 : c; }
 int count_vowels_with_repeat__pv(char* name);
 int count_vowels_no_repeat__pv(char* name);
 int main(void);
+int count_vowels_with_repeat__c(char name);
+int count_vowels_no_repeat__c(char name);
 
 int count_vowels_with_repeat__pv(char* name) {
   int i;
@@ -117,6 +119,73 @@ int main(void) {
   return 0;
 }
 
-/* Lowering diagnostics: 2 event(s) (structured-cstyle-body=2) */
+int count_vowels_with_repeat__c(char name) {
+  {
+  int i;
+  int n=0;
+  for(i=0;
+  i<strlen(name);
+  i++)
+  {
+  switch(tolower(name[i]))
+  {
+  case'a':case'e':case'i':case'o':case'u':n++;
+  break;
+  default:break;
+  }
+  }
+  return n;
+  }
+}
+
+int count_vowels_no_repeat__c(char name) {
+  {
+  int i;
+  int na=0;
+  int ne=0;
+  int ni=0;
+  int no=0;
+  int nu=0;
+  for(i=0;
+  i<strlen(name);
+  i++)
+  {
+  switch(tolower(name[i]))
+  {
+  case'a':if(na==0)
+  {
+  na++;
+  }
+  break;
+  case'e':if(ne==0)
+  {
+  ne++;
+  }
+  break;
+  case'i':if(ni==0)
+  {
+  ni++;
+  }
+  break;
+  case'o':if(no==0)
+  {
+  no++;
+  }
+  break;
+  case'u':if(nu==0)
+  {
+  nu++;
+  }
+  break;
+  default:break;
+  }
+  }
+  return na+ne+ni+no+nu;
+  }
+}
+
+/* Lowering diagnostics: 4 event(s) (structured-cstyle-body=4) */
 /* - count_vowels_with_repeat: structured-cstyle-body (4 stmt(s)) */
 /* - count_vowels_no_repeat: structured-cstyle-body (8 stmt(s)) */
+/* - count_vowels_with_repeat: structured-cstyle-body (raw-body 16 line(s)) */
+/* - count_vowels_no_repeat: structured-cstyle-body (raw-body 43 line(s)) */

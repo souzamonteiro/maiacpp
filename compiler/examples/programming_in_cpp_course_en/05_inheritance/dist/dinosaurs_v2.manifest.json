@@ -1,0 +1,20 @@
+{
+  "generatedAt": "2026-06-21T20:58:32.030Z",
+  "input": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/programming_in_cpp_course_en/05_inheritance/dinosaurs_v2.c",
+  "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/programming_in_cpp_course_en/05_inheritance/dist",
+  "appName": "dinosaurs_v2",
+  "artifacts": {
+    "wasm": "dinosaurs_v2.wasm",
+    "wrapper": "dinosaurs_v2.js",
+    "wat": "dinosaurs_v2.wat",
+    "browserRunner": "browser-runner.html",
+    "browserMemoryFileStore": "browser-memory-file-store.js",
+    "nodeRunner": "node-runner.js",
+    "nodeRunnerShell": "node-runner.sh"
+  },
+  "linkedLibraries": [],
+  "copiedLibraries": [],
+  "runtimeProvidedHeaders": [],
+  "missingLibraries": [],
+  "sourceBytes": 3549
+}

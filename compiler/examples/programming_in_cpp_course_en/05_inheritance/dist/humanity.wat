@@ -7,11 +7,9 @@
   (import "env" "__exc_pop" (func $imp___exc_pop))
   (import "env" "__exc_active" (func $imp___exc_active (result i32)))
   (import "env" "__exc_type" (func $imp___exc_type (result i32)))
-  (import "env" "__exc_data" (func $imp___exc_data))
   (import "env" "__exc_throw" (func $imp___exc_throw (param i32 i32)))
   (import "env" "__exc_clear" (func $imp___exc_clear))
   (import "env" "__exc_matches" (func $imp___exc_matches (param i32 i32) (result i32)))
-  (import "env" "__malloc" (func $imp___malloc (param i32) (result i32)))
   (import "env" "__free" (func $imp___free (param i32)))
   (import "env" "printf" (func $imp_printf (param f64 f64 f64 f64 f64 f64 f64 f64) (result i32)))
 
@@ -135,7 +133,7 @@
   )
 
   ;; function Australopithecus_setName__pv
-  (func $Australopithecus_setName__pv (param $self i32) (param $n i32)
+  (func $Australopithecus_setName__pv (param $self i32) (param $n i32) (result i32)
     (local $__frame i32)
     (local $__tmp_i32 i32)
     (local $__parent_frame i32)
@@ -184,6 +182,12 @@
     i32.add
     i32.load
     drop
+    i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
   )
 
   ;; function Australopithecus_getName
@@ -591,7 +595,7 @@
   )
 
   ;; function HomoSapiens_say__pv
-  (func $HomoSapiens_say__pv (param $self i32) (param $s i32)
+  (func $HomoSapiens_say__pv (param $self i32) (param $s i32) (result i32)
     (local $__frame i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
@@ -641,15 +645,27 @@
     f64.const 0
     call $imp_printf
     drop
+    i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
     local.get $__frame
     i32.const 4
     i32.add
     i32.load
     drop
+    i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
   )
 
   ;; function HomoSapiens_say__pvN11HomoErectus
-  (func $HomoSapiens_say__pvN11HomoErectus (param $self i32) (param $s i32) (param $who i32)
+  (func $HomoSapiens_say__pvN11HomoErectus (param $self i32) (param $s i32) (param $who i32) (result i32)
     (local $__frame i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
@@ -711,6 +727,12 @@
     f64.const 0
     call $imp_printf
     drop
+    i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
     local.get $__frame
     i32.const 4
     i32.add
@@ -720,6 +742,12 @@
     i32.const 8
     i32.add
     drop
+    i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
   )
 
   ;; function HomoNeanderthalensis_init
@@ -850,6 +878,7 @@
     i32.add
     i32.const 96
     call $HomoSapiens_say__pv
+    drop
     local.get $__frame
     i32.const 4
     i32.add
@@ -858,6 +887,7 @@
     i32.const 0
     i32.add
     call $HomoSapiens_say__pvN11HomoErectus
+    drop
     local.get $__frame
     i32.const 0
     i32.add

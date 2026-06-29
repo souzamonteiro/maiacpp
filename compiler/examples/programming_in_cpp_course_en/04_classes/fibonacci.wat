@@ -136,7 +136,7 @@
   )
 
   ;; function Fibonacci_createSeries__i
-  (func $Fibonacci_createSeries__i (param $self i32) (param $n i32)
+  (func $Fibonacci_createSeries__i (param $self i32) (param $n i32) (result i32)
     (local $__frame i32)
     (local $i i32)
     (local $__tmp_i32 i32)
@@ -238,11 +238,23 @@
     f64.const 0
     call $imp_printf
     drop
+    i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
     local.get $__frame
     i32.const 4
     i32.add
     i32.load
     drop
+    i32.const 0
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
   )
 
   ;; function fib__i
@@ -333,7 +345,7 @@
     i32.add
     i32.load
     call $Fibonacci_createSeries__i
-    i32.const 0
+    drop
     i32.const 0
     local.get $__parent_frame
     global.set $__frame_ptr

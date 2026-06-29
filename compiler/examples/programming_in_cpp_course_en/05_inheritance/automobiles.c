@@ -118,6 +118,19 @@ void Tractor_destroy(Tractor* self) {
 int main(void);
 
 int main(void) {
-  printf("The tractor MF 3400 year 2022 costs $75000.\n");
+  Car etios;
+  Car_init__pvipvff(&etios, "Silver", 2021, "XL", 1.4f, 50000.0f);
+  Truck actros;
+  Truck_init__pvipvff(&actros, "Red", 2022, "X", 6.0f, 500000.0f);
+  Tractor mf3400;
+  Tractor_init__pvipvff(&mf3400, "Blue", 2022, "MF 3400", 3.0f, 75000.0f);
+
+  printf("The tractor ");
+  printf("%s", "MF 3400");
+  printf(" year ");
+  printf("%d", 2022);
+  printf(" costs $");
+  printf("%g", 75000.0f);
+  printf(".\n");
   return 0;
 }

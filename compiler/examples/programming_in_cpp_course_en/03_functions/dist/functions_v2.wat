@@ -15,7 +15,7 @@
 
   (memory $mem 1)
 
-  (table $fn_table 3 funcref)
+  (table $fn_table 4 funcref)
 
   ;; global __frame_ptr
   (global $__frame_ptr (mut i32) (i32.const 0))
@@ -28,8 +28,9 @@
   (data (i32.const 24) "The square of 5 is \00")
   (data (i32.const 44) "%d\00")
   (data (i32.const 48) ".\0a\00")
+  (data (i32.const 52) "%c\00")
 
-  (elem (table $fn_table) (i32.const 0) func $display_message__pv $square__i $main)
+  (elem (table $fn_table) (i32.const 0) func $display_message__pv $square__i $main $display_message__c)
 
   ;; function display_message__pv
   (func $display_message__pv (param $text i32)
@@ -245,9 +246,37 @@
     return
   )
 
+  ;; function display_message__c
+  (func $display_message__c (param $text i32)
+    i32.const 52
+    f64.convert_i32_s
+    local.get $text
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+    i32.const 20
+    f64.convert_i32_s
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    f64.const 0
+    call $imp_printf
+    drop
+  )
+
   (export "display_message__pv" (func $display_message__pv))
   (export "square__i" (func $square__i))
   (export "main" (func $main))
+  (export "display_message__c" (func $display_message__c))
   (export "memory" (memory $mem))
   (export "__frame_ptr" (global $__frame_ptr))
   (export "__stack_ptr" (global $__stack_ptr))

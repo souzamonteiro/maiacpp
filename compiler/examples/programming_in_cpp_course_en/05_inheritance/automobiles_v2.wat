@@ -226,7 +226,6 @@
     i32.add
     i32.load
     call $Automobile_init
-    i32.const 0
   )
 
   ;; function Car_init__pvipvffff
@@ -321,7 +320,6 @@
     i32.add
     f32.load
     call $Automobile_init__pvipvffff
-    i32.const 0
   )
 
   ;; function Car_destroy
@@ -379,7 +377,6 @@
     i32.add
     i32.load
     call $Automobile_init
-    i32.const 0
   )
 
   ;; function Truck_init__pvipvffff
@@ -474,7 +471,6 @@
     i32.add
     f32.load
     call $Automobile_init__pvipvffff
-    i32.const 0
   )
 
   ;; function Truck_destroy
@@ -532,7 +528,6 @@
     i32.add
     i32.load
     call $Automobile_init
-    i32.const 0
   )
 
   ;; function Tractor_init__pvipvffff
@@ -627,7 +622,6 @@
     i32.add
     f32.load
     call $Automobile_init__pvipvffff
-    i32.const 0
   )
 
   ;; function Tractor_destroy
@@ -693,7 +687,6 @@
     f32.const 2000
     f32.const 3000
     call $Car_init__pvipvffff
-    i32.const 0
     local.get $__frame
     i32.const 28
     i32.add
@@ -705,7 +698,6 @@
     f32.const 20000
     f32.const 30000
     call $Truck_init__pvipvffff
-    i32.const 0
     local.get $__frame
     i32.const 56
     i32.add
@@ -717,7 +709,6 @@
     f32.const 3000
     f32.const 4000
     call $Tractor_init__pvipvffff
-    i32.const 0
     local.get $__frame
     i32.const 84
     i32.add

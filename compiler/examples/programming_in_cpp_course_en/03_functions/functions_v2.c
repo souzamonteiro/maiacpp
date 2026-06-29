@@ -18,6 +18,7 @@ extern void   __free(void* ptr);
 void display_message__pv(char* text);
 int square__i(int x);
 int main(void);
+void display_message__c(char text);
 
 void display_message__pv(char* text) {
   printf("%s", text);
@@ -38,5 +39,11 @@ int main(void) {
   return 0;
 }
 
-/* Lowering diagnostics: 1 event(s) (structured-io-runtime=1) */
+void display_message__c(char text) {
+  printf("%c", text);
+  printf("\n");
+}
+
+/* Lowering diagnostics: 2 event(s) (structured-io-runtime=2) */
+/* - display_message: structured-io-runtime (structured-io-runtime) */
 /* - display_message: structured-io-runtime (structured-io-runtime) */

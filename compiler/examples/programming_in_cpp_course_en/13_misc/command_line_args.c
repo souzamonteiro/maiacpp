@@ -18,21 +18,6 @@ extern void   __free(void* ptr);
 int main(int argc, char** argv, char** env);
 
 int main(int argc, char** argv, char** env) {
-  int i = 0;
-  char** p = 0;
-
-  for (i = 0; i < argc; i++) {
-    printf("argv[");
-    printf("%d", i);
-    printf("] = ");
-    printf("%s", argv[i]);
-    printf("\n");
-  }
-  p = env;
-  while (*p) {
-    printf("%s", *p);
-    printf("\n");
-    p++;
-  }
+  printf("command_line_args: unsupported in MaiaCpp runtime.\n");
   return 0;
 }

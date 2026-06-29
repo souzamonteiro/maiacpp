@@ -42,6 +42,7 @@ static int __cpp_toupper(int c) { return (c >= 97 && c <= 122) ? c - 32 : c; }
 int length__pv(char* txt);
 void to_uppercase__pvpv(char* source, char* dest);
 int main(void);
+int length__c(char txt);
 
 int length__pv(char* txt) {
   int n;
@@ -115,6 +116,19 @@ int main(void) {
   return 0;
 }
 
-/* Lowering diagnostics: 2 event(s) (structured-cstyle-body=2) */
+int length__c(char txt) {
+  {
+  int n;
+  n=0;
+  while(txt[n])
+  {
+  n++;
+  }
+  return n;
+  }
+}
+
+/* Lowering diagnostics: 3 event(s) (structured-cstyle-body=3) */
 /* - length: structured-cstyle-body (4 stmt(s)) */
 /* - to_uppercase: structured-cstyle-body (6 stmt(s)) */
+/* - length: structured-cstyle-body (raw-body 9 line(s)) */

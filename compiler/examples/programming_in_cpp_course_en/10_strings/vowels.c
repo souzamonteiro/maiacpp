@@ -41,6 +41,7 @@ static int __cpp_tolower(int c) { return (c >= 65 && c <= 90) ? c + 32 : c; }
 /* Global functions */
 int count_vowels__pv(char* name);
 int main(void);
+int count_vowels__c(char name);
 
 int count_vowels__pv(char* name) {
   int i;
@@ -64,5 +65,23 @@ int main(void) {
   return 0;
 }
 
-/* Lowering diagnostics: 1 event(s) (structured-cstyle-body=1) */
+int count_vowels__c(char name) {
+  {
+  int i;
+  int n=0;
+  for(i=0;
+  i<strlen(name);
+  i++)
+  {
+  if(tolower(name[i])=='a' || tolower(name[i]) == 'e' || tolower(name[i]) == 'i' || tolower(name[i]) == 'o' || tolower(name[i]) == 'u')
+  {
+  n++;
+  }
+  }
+  return n;
+  }
+}
+
+/* Lowering diagnostics: 2 event(s) (structured-cstyle-body=2) */
 /* - count_vowels: structured-cstyle-body (4 stmt(s)) */
+/* - count_vowels: structured-cstyle-body (raw-body 14 line(s)) */
