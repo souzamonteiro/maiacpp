@@ -3274,6 +3274,21 @@ class CppToCTranspiler {
           }
         }
         emittedCtorLowering = true;
+      } else if (!emittedCtorLowering
+        && ctorParams.length === 1
+        && normalizeTypeText(ctorParams[0]?.type || '') === `${name}*`) {
+        const sourceName = String(ctorParams[0]?.name || 'other').trim();
+        if (sourceName) {
+          if (Array.isArray(cls.bases) && cls.bases.length > 0) {
+            this.em.line(`self->__base = ${sourceName}->__base;`);
+          }
+          for (const member of (cls.members || [])) {
+            const memberName = String(member?.name || '').trim();
+            if (!memberName || memberName.includes('[')) continue;
+            this.em.line(`self->${memberName} = ${sourceName}->${memberName};`);
+          }
+          emittedCtorLowering = true;
+        }
       }
       for (let i = 0; i < ctorParams.length; i += 1) {
         const pname = ctorParams[i].name;
@@ -3569,6 +3584,26 @@ class CppToCTranspiler {
           && /\b(?:bool|char|short|int|long|float|double)\b/.test(String(member.type || '')));
         if (numericMember) {
           this.em.line(`return (int)self->${numericMember.name};`);
+          emittedMethodLowering = true;
+        }
+      }
+      if (!emittedMethodLowering
+        && (method.name === 'operator=' || method.name === 'operator_assign')
+        && methodParams.length === 1
+        && normalizeTypeText(methodParams[0]?.type || '') === `${name}*`) {
+        const sourceName = String(methodParams[0]?.name || 'other').trim();
+        if (sourceName) {
+          if (Array.isArray(cls.bases) && cls.bases.length > 0) {
+            this.em.line(`self->__base = ${sourceName}->__base;`);
+          }
+          for (const member of (cls.members || [])) {
+            const memberName = String(member?.name || '').trim();
+            if (!memberName || memberName.includes('[')) continue;
+            this.em.line(`self->${memberName} = ${sourceName}->${memberName};`);
+          }
+          if (loweredReturnType !== 'void') {
+            this.em.line(`return (${loweredReturnType})self;`);
+          }
           emittedMethodLowering = true;
         }
       }
