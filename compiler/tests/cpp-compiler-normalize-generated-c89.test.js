@@ -25,3 +25,27 @@ const char* maia_fn_Animal_prototype_getDescription(void) {
     'bare this passed as receiver must be normalized inside generated prototype helpers'
   );
 });
+
+test('normalizeGeneratedC89 rewrites local struct arguments when emitted C signature expects pointers', () => {
+  const compiler = new Cpp98Compiler(__filename);
+  const normalized = compiler.normalizeGeneratedC89(`
+typedef struct Vec2 {
+  double x;
+  double y;
+} Vec2;
+
+double Vec2_dot__pv(Vec2* self, Vec2* other);
+
+int main(void) {
+  Vec2 a;
+  Vec2 unit;
+  return Vec2_dot__pv(&a, unit) == 3.0;
+}
+`);
+
+  assert.match(
+    normalized,
+    /Vec2_dot__pv\(&a, &unit\)/,
+    'frame-backed struct locals must be passed by address when the lowered signature expects pointers'
+  );
+});
