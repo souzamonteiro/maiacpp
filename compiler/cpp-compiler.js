@@ -4652,6 +4652,7 @@ class CppToCTranspiler {
           objectName: objectLocal.name,
           callee: mangle(method.name, sigTypes, ownerClass, ownerCls.namespacePath || []),
           args,
+          paramTypes: methodNormParams.map((param) => normalizeTypeText(param.type || '')),
           returnType: methodReturnType,
           castPrefix
         };
@@ -5452,13 +5453,22 @@ class CppToCTranspiler {
             else if (retType === 'char') this.em.line(`printf("%c", ${item.callee}(${args}));`);
             else this.em.line(`printf("%d", ${item.callee}(${args}));`);
           } else if (item.kind === 'method_call') {
-            const args = (item.args || []).map((arg) => {
+            const paramTypes = Array.isArray(item.paramTypes) ? item.paramTypes : [];
+            const args = (item.args || []).map((arg, index) => {
               if (!arg) return '0';
+              const paramType = normalizeTypeText(paramTypes[index] || '');
               if (arg.type === 'int') return `${arg.value | 0}`;
               if (arg.type === 'double') return `${arg.value}`;
               if (arg.type === 'char') return `${arg.value}`;
               if (arg.type === 'char*') return `${arg.value}`;
-              if (arg.type === 'var') return `${arg.name}`;
+              if (arg.type === 'var') {
+                const localRef = getLocalNamed(arg.name);
+                if (localRef && localRef.type === 'object' && paramType.endsWith('*')) {
+                  const pointee = paramType.slice(0, -1).trim();
+                  if (pointee && pointee === localRef.className) return `&${arg.name}`;
+                }
+                return `${arg.name}`;
+              }
               return '0';
             }).join(', ');
             const cast = item.castPrefix || '';
@@ -6651,6 +6661,7 @@ class CppToCTranspiler {
           objectName: objectLocal.name,
           callee: mangle(method.name, sigTypes, ownerClass, ownerCls.namespacePath || []),
           args,
+          paramTypes: methodNormParams.map((param) => normalizeTypeText(param.type || '')),
           returnType: methodReturnType,
           castPrefix
         };
@@ -7617,6 +7628,9 @@ class CppToCTranspiler {
         const argNorm = normalizeTypeText(argType || '');
         const paramNorm = normalizeTypeText(paramType || '');
         if (argNorm === paramNorm) return 3;
+        if (argNorm && paramNorm.endsWith('*') && argNorm === paramNorm.slice(0, -1).trim()) {
+          return 2;
+        }
         if (isNumericType(argNorm) && isNumericType(paramNorm)) {
           if ((argNorm === 'int' && (paramNorm === 'float' || paramNorm === 'double'))
             || (argNorm === 'float' && paramNorm === 'double')) {
@@ -7667,6 +7681,11 @@ class CppToCTranspiler {
         finalArgs = finalArgs.map((argText, index) => {
           const raw = String(argText || '').trim();
           const paramType = normalizeTypeText(bestCtor.params[index]?.type || '');
+          const localRef = /^[A-Za-z_][A-Za-z0-9_]*$/.test(raw) ? getLocalNamed(raw) : null;
+          if (localRef && localRef.type === 'object' && paramType.endsWith('*')) {
+            const pointee = paramType.slice(0, -1).trim();
+            if (pointee && pointee === localRef.className) return `&${raw}`;
+          }
           if (paramType === 'float') {
             if (/^[-+]?\d+$/.test(raw)) return `${raw}.0f`;
             if (/^[-+]?(?:\d+\.\d*|\d*\.\d+)(?:[eE][-+]?\d+)?$/.test(raw)) return `${raw}f`;
@@ -9317,6 +9336,14 @@ class CppToCTranspiler {
 
     const rewriteCalls = (text) => {
       const src = String(text || '');
+      const localClassTypes = new Map();
+      src.replace(/(?:^|[;\n])\s*([A-Za-z_][A-Za-z0-9_:]*)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:\([^;]*\))?\s*;/g, (match, typeName, localName) => {
+        const normalizedType = normalizeTypeText(typeName || '');
+        if (this.analysis?.classes instanceof Map && this.analysis.classes.has(normalizedType)) {
+          localClassTypes.set(String(localName || '').trim(), normalizedType);
+        }
+        return match;
+      });
       const rewrittenCalls = src.replace(/\b([A-Za-z_][A-Za-z0-9_:]*)\s*\(([^()]*)\)/g, (match, name, argsRaw) => {
         const callee = String(name || '').trim();
         if (!callee) return match;
@@ -9380,6 +9407,13 @@ class CppToCTranspiler {
           const isRefParam = /&\s*$/.test(String(param?.rawType || param?.type || '').trim());
           if (isRefParam && /^[A-Za-z_][A-Za-z0-9_]*$/.test(rawArg) && !rawArg.startsWith('&')) {
             return `&${rawArg}`;
+          }
+          const paramType = normalizeTypeText(param?.type || '');
+          if (paramType.endsWith('*') && /^[A-Za-z_][A-Za-z0-9_]*$/.test(rawArg) && !rawArg.startsWith('&')) {
+            const pointee = paramType.slice(0, -1).trim();
+            if (pointee && localClassTypes.get(rawArg) === pointee) {
+              return `&${rawArg}`;
+            }
           }
 
           if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(rawArg)) {
@@ -10008,6 +10042,42 @@ class Cpp98Compiler {
       return parts;
     };
 
+    const splitTopLevelArgs = (raw) => {
+      const src = String(raw || '');
+      if (!src.trim()) return [];
+      const args = [];
+      let cur = '';
+      let depthParen = 0;
+      let depthBracket = 0;
+      let depthBrace = 0;
+      let inString = false;
+      for (let i = 0; i < src.length; i += 1) {
+        const ch = src[i];
+        const prev = i > 0 ? src[i - 1] : '';
+        if (ch === '"' && prev !== '\\') {
+          inString = !inString;
+          cur += ch;
+          continue;
+        }
+        if (!inString) {
+          if (ch === '(') depthParen += 1;
+          else if (ch === ')' && depthParen > 0) depthParen -= 1;
+          else if (ch === '[') depthBracket += 1;
+          else if (ch === ']' && depthBracket > 0) depthBracket -= 1;
+          else if (ch === '{') depthBrace += 1;
+          else if (ch === '}' && depthBrace > 0) depthBrace -= 1;
+          else if (ch === ',' && depthParen === 0 && depthBracket === 0 && depthBrace === 0) {
+            args.push(cur.trim());
+            cur = '';
+            continue;
+          }
+        }
+        cur += ch;
+      }
+      if (cur.trim()) args.push(cur.trim());
+      return args;
+    };
+
     const decodeCStringLiteral = (literal) => {
       const src = String(literal || '');
       if (!/^"(?:[^"\\]|\\.)*"$/.test(src)) return null;
@@ -10157,6 +10227,78 @@ class Cpp98Compiler {
         .replace(/\bthis\b/g, '0')
     );
     out = out.replace(/^\s*0\s*=\s*([^;]+);\s*$/gm, '  (void)($1);');
+
+    // When AST/source-hint merging lowers C++ class references to pointer-based C
+    // signatures, some call sites can still pass frame-backed struct locals by
+    // value. Patch those late using the emitted C signatures and local struct
+    // declarations so MaiaC receives consistent pointer arguments.
+    const knownStructTypes = new Set();
+    out.replace(/typedef\s+struct\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{/g, (_match, structName) => {
+      knownStructTypes.add(String(structName || '').trim());
+      return _match;
+    });
+
+    const callableParamTypes = new Map();
+    out.replace(/^[A-Za-z_][A-Za-z0-9_\s\*]*\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*(?:;|\{)/gm, (match, fnName, paramsText) => {
+      const params = splitTopLevelArgs(paramsText || '');
+      const normalizedParams = params
+        .map((paramText) => String(paramText || '').trim())
+        .filter(Boolean)
+        .filter((paramText) => paramText !== 'void')
+        .map((paramText) => {
+          const cleaned = paramText.replace(/\s+/g, ' ').trim();
+          const m = cleaned.match(/^(.*?)([A-Za-z_][A-Za-z0-9_]*)$/);
+          return normalizeTypeText(m ? m[1] : cleaned);
+        });
+      callableParamTypes.set(String(fnName || '').trim(), normalizedParams);
+      return match;
+    });
+
+    const lines = out.split('\n');
+    let braceDepth = 0;
+    let localStructTypes = new Map();
+    for (let i = 0; i < lines.length; i += 1) {
+      const line = lines[i];
+      const trimmed = String(line || '').trim();
+      const isSignatureLine = /^[A-Za-z_][A-Za-z0-9_\s\*]*\s+[A-Za-z_][A-Za-z0-9_]*\s*\([^;]*\)\s*(?:;|\{)\s*$/.test(trimmed);
+      if (braceDepth === 0 && /\{\s*$/.test(trimmed) && !trimmed.startsWith('typedef struct')) {
+        localStructTypes = new Map();
+      }
+      if (braceDepth > 0) {
+        const localDecl = trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:[;(=])/);
+        if (localDecl && knownStructTypes.has(localDecl[1])) {
+          localStructTypes.set(localDecl[2], localDecl[1]);
+        }
+      }
+      if (braceDepth > 0 && !isSignatureLine) {
+        lines[i] = line.replace(/\b([A-Za-z_][A-Za-z0-9_]*)\s*\(([^()]*)\)/g, (match, fnName, argsRaw) => {
+          const paramTypes = callableParamTypes.get(String(fnName || '').trim());
+          if (!paramTypes || paramTypes.length === 0) return match;
+          const args = splitTopLevelArgs(argsRaw || '');
+          if (args.length !== paramTypes.length) return match;
+          let changed = false;
+          const rewrittenArgs = args.map((argText, index) => {
+            const rawArg = String(argText || '').trim();
+            if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(rawArg) || rawArg.startsWith('&')) return rawArg;
+            const paramType = normalizeTypeText(paramTypes[index] || '');
+            if (!paramType.endsWith('*')) return rawArg;
+            const pointee = paramType.slice(0, -1).trim();
+            if (!pointee || localStructTypes.get(rawArg) !== pointee) return rawArg;
+            changed = true;
+            return `&${rawArg}`;
+          });
+          return changed ? `${fnName}(${rewrittenArgs.join(', ')})` : match;
+        });
+      }
+      const opens = (line.match(/\{/g) || []).length;
+      const closes = (line.match(/\}/g) || []).length;
+      braceDepth += opens - closes;
+      if (braceDepth <= 0) {
+        braceDepth = 0;
+        localStructTypes = new Map();
+      }
+    }
+    out = lines.join('\n');
 
     return out;
   }
@@ -10435,10 +10577,38 @@ class Cpp98Compiler {
 
     if (analysis.classes instanceof Map && fallback.classes instanceof Map) {
       const bodyKeyFor = (bodyText) => functionBodyKey(bodyText);
+      const knownClassTypeNames = new Set([
+        ...Array.from(analysis.classes.keys()),
+        ...Array.from(fallback.classes.keys())
+      ]);
       const effectiveParamTypes = (params) => {
         const list = Array.isArray(params) ? params.filter(Boolean) : [];
         if (list.length === 1 && normalizeTypeText(list[0].type || '') === 'void') return [];
         return list.map((p) => normalizeTypeText(p.type || ''));
+      };
+      const hasInformativeTypeText = (typeText) => {
+        const raw = String(typeText || '').trim();
+        const normalized = normalizeTypeText(raw);
+        if (!raw || !normalized) return false;
+        if (normalized === '*' || normalized === '&*') return false;
+        if (/^(?:const|volatile)[A-Z_]/.test(raw)) return false;
+        if (normalized.endsWith('*')) {
+          const pointee = normalized.slice(0, -1).trim();
+          if (!pointee) return false;
+          return BUILTIN_TYPES[pointee] || knownClassTypeNames.has(pointee);
+        }
+        return BUILTIN_TYPES[normalized]
+          || normalized === 'void'
+          || knownClassTypeNames.has(normalized);
+      };
+      const shouldPreferHintedCallable = (current, hint, includeReturnType) => {
+        if (!hint) return false;
+        const currentParams = Array.isArray(current?.params) ? current.params : [];
+        const hintParams = Array.isArray(hint?.params) ? hint.params : [];
+        if (currentParams.length !== hintParams.length) return true;
+        if (currentParams.some((param) => !hasInformativeTypeText(param?.type))) return true;
+        if (includeReturnType && !hasInformativeTypeText(current?.returnType)) return true;
+        return false;
       };
       const methodLooseKey = (method) => `${method?.name || ''}(${effectiveParamTypes(method?.params).join(',')})`;
       const chooseClassCallableHint = (candidates, target) => {
@@ -10490,10 +10660,11 @@ class Cpp98Compiler {
         cls.methods = (cls.methods || []).map((method) => {
           const hint = chooseClassCallableHint(fallbackMethodsByName.get(method.name), method);
           if (!hint) return method;
+          const preferHint = shouldPreferHintedCallable(method, hint, true);
           return {
             ...method,
-            returnType: method.returnType || hint.returnType,
-            params: Array.isArray(method.params) ? method.params : hint.params,
+            returnType: (!method.returnType || preferHint) ? hint.returnType : method.returnType,
+            params: (!Array.isArray(method.params) || preferHint) ? hint.params : method.params,
             lowering: method.lowering || hint.lowering || null,
             bodyText: method.bodyText || hint.bodyText || ''
           };
@@ -10502,9 +10673,10 @@ class Cpp98Compiler {
         cls.constructors = (cls.constructors || []).map((ctor) => {
           const hint = chooseClassCallableHint(fallbackCtors, ctor);
           if (!hint) return ctor;
+          const preferHint = shouldPreferHintedCallable(ctor, hint, false);
           return {
             ...ctor,
-            params: Array.isArray(ctor.params) ? ctor.params : hint.params,
+            params: (!Array.isArray(ctor.params) || preferHint) ? hint.params : ctor.params,
             lowering: ctor.lowering || hint.lowering || null,
             bodyText: ctor.bodyText || hint.bodyText || ''
           };
