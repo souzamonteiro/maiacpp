@@ -10718,6 +10718,10 @@ class Cpp98Compiler {
         if (includeReturnType && !hasInformativeTypeText(current?.returnType)) return true;
         return false;
       };
+      const canonicalMethodHintName = (name) => String(name || '')
+        .replace(/operator\s*\[\s*\]/g, 'operator_subscript')
+        .replace(/operator=/g, 'operator_assign')
+        .trim();
       const methodLooseKey = (method) => `${method?.name || ''}(${effectiveParamTypes(method?.params).join(',')})`;
       const chooseClassCallableHint = (candidates, target) => {
         if (!Array.isArray(candidates) || candidates.length === 0) return null;
@@ -10758,15 +10762,16 @@ class Cpp98Compiler {
 
         const fallbackMethodsByName = new Map();
         for (const method of fallbackCls.methods || []) {
-          const list = fallbackMethodsByName.get(method.name) || [];
+          const key = canonicalMethodHintName(method.name);
+          const list = fallbackMethodsByName.get(key) || [];
           list.push(method);
-          fallbackMethodsByName.set(method.name, list);
+          fallbackMethodsByName.set(key, list);
         }
 
         const fallbackCtors = Array.isArray(fallbackCls.constructors) ? fallbackCls.constructors : [];
 
         cls.methods = (cls.methods || []).map((method) => {
-          const hint = chooseClassCallableHint(fallbackMethodsByName.get(method.name), method);
+          const hint = chooseClassCallableHint(fallbackMethodsByName.get(canonicalMethodHintName(method.name)), method);
           if (!hint) return method;
           const preferHint = shouldPreferHintedCallable(method, hint, true);
           return {
