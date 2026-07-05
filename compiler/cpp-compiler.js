@@ -9017,13 +9017,22 @@ class CppToCTranspiler {
       return null;
     }
     
-    const refParams = (fn.params || []).filter((p) => /&\s*$/.test(String(p?.rawType || p?.type || '').trim()));
+    const refParams = (fn.params || []).filter((p) => {
+      const rawType = String(p?.rawType || '').trim();
+      const loweredType = normalizeTypeText(p?.type || '');
+      return /&\s*$/.test(rawType) && loweredType.endsWith('*');
+    });
     const rewriteRefParamUses = (text) => {
       let out = String(text || '');
       for (const param of refParams) {
         const pname = String(param?.name || '').trim();
         if (!pname) continue;
-        const rx = new RegExp(`\\b${pname}\\b`, 'g');
+        const pointeeType = normalizeTypeText(param?.type || '').replace(/\*+$/, '').trim();
+        if (pointeeType && this.knownTypeNames.has(pointeeType)) {
+          const memberRx = new RegExp(`\\b${pname}\\s*\\.\\s*([A-Za-z_][A-Za-z0-9_]*)`, 'g');
+          out = out.replace(memberRx, `${pname}->$1`);
+        }
+        const rx = new RegExp(`\\b${pname}\\b(?!\\s*(?:\\.|->))`, 'g');
         out = out.replace(rx, `*${pname}`);
       }
       return out;
@@ -9439,7 +9448,8 @@ class CppToCTranspiler {
         const rewrittenArgs = argsList.map((arg, idx) => {
           const rawArg = String(arg || '').trim();
           const param = targetFn && Array.isArray(targetFn.params) ? targetFn.params[idx] : null;
-          const isRefParam = /&\s*$/.test(String(param?.rawType || param?.type || '').trim());
+          const rawParamType = String(param?.rawType || '').trim();
+          const isRefParam = /&\s*$/.test(rawParamType) && normalizeTypeText(param?.type || '').endsWith('*');
           if (isRefParam && /^[A-Za-z_][A-Za-z0-9_]*$/.test(rawArg) && !rawArg.startsWith('&')) {
             return `&${rawArg}`;
           }
@@ -10482,28 +10492,87 @@ class Cpp98Compiler {
       return `${fn.name}(${sig})`;
     };
 
-    const functionHintCandidate = (fnList, targetFn) => {
+    const knownFunctionClassTypes = new Set([
+      ...(analysis.classes instanceof Map ? Array.from(analysis.classes.keys()) : []),
+      ...(fallback.classes instanceof Map ? Array.from(fallback.classes.keys()) : [])
+    ]);
+    const hasInformativeFunctionTypeText = (typeText) => {
+      const raw = String(typeText || '').trim();
+      const normalized = normalizeTypeText(raw);
+      if (!raw || !normalized) return false;
+      if (normalized === '*' || normalized === '&*') return false;
+      if (/^(?:const|volatile)[A-Z_]/.test(raw)) return false;
+      if (normalized.endsWith('*')) {
+        const pointee = normalized.slice(0, -1).trim();
+        if (!pointee) return false;
+        return BUILTIN_TYPES[pointee] || knownFunctionClassTypes.has(pointee);
+      }
+      return BUILTIN_TYPES[normalized]
+        || normalized === 'void'
+        || knownFunctionClassTypes.has(normalized);
+    };
+    const functionArity = (fn) => (Array.isArray(fn?.params) ? fn.params.length : 0);
+    const bodyKeyForFn = (fn) => functionBodyKey(fn && fn.bodyText);
+    const shouldPreferHintedFunctionSignature = (current, hint) => {
+      if (!hint) return false;
+      const currentParams = Array.isArray(current?.params) ? current.params : [];
+      const hintParams = Array.isArray(hint?.params) ? hint.params : [];
+      if (currentParams.length !== hintParams.length) return true;
+      if (currentParams.some((param) => !hasInformativeFunctionTypeText(param?.type))) return true;
+      if (!hasInformativeFunctionTypeText(current?.returnType)) return true;
+      return false;
+    };
+    const pickFunctionHintByBody = (fnList, targetFn) => {
       const candidates = Array.isArray(fnList) ? fnList : [];
       if (candidates.length <= 1) return candidates[0] || null;
-      const targetBodyKey = functionBodyKey(targetFn && targetFn.bodyText);
+      const targetBodyKey = bodyKeyForFn(targetFn);
       if (!targetBodyKey) return null;
-      const bodyMatches = candidates.filter((candidate) => functionBodyKey(candidate && candidate.bodyText) === targetBodyKey);
+      const bodyMatches = candidates.filter((candidate) => bodyKeyForFn(candidate) === targetBodyKey);
       return bodyMatches.length === 1 ? bodyMatches[0] : null;
+    };
+    const functionHintCandidate = (directFnList, fallbackByNameArity, targetFn) => {
+      const directCandidates = Array.isArray(directFnList) ? directFnList : [];
+      const directMatch = pickFunctionHintByBody(directCandidates, targetFn);
+      if (directMatch) return directMatch;
+      if (directCandidates.length === 1) return directCandidates[0];
+
+      const targetName = String(targetFn?.name || '').trim();
+      const nameArityKey = `${targetName}/${functionArity(targetFn)}`;
+      const broadCandidates = Array.isArray(fallbackByNameArity.get(nameArityKey))
+        ? fallbackByNameArity.get(nameArityKey)
+        : [];
+      if (broadCandidates.length === 0) return null;
+
+      const hasMalformedSignature = !hasInformativeFunctionTypeText(targetFn?.returnType)
+        || (Array.isArray(targetFn?.params) ? targetFn.params : []).some((param) => !hasInformativeFunctionTypeText(param?.type));
+      if (!hasMalformedSignature && directCandidates.length > 0) return null;
+
+      return pickFunctionHintByBody(broadCandidates, targetFn);
     };
 
     if (Array.isArray(analysis.functions) && fallback.functions && fallback.functions.length > 0) {
       const exprKey = (expr) => String(expr || '').replace(/\s+/g, '');
       const fallbackByLooseKey = new Map();
+      const fallbackByNameArity = new Map();
       for (const fn of fallback.functions) {
         const key = functionLooseKey(fn);
         const list = fallbackByLooseKey.get(key) || [];
         list.push(fn);
         fallbackByLooseKey.set(key, list);
+        const nameArityKey = `${String(fn?.name || '').trim()}/${functionArity(fn)}`;
+        const nameArityList = fallbackByNameArity.get(nameArityKey) || [];
+        nameArityList.push(fn);
+        fallbackByNameArity.set(nameArityKey, nameArityList);
       }
 
       analysis.functions = analysis.functions.map((fn) => {
-        const hinted = functionHintCandidate(fallbackByLooseKey.get(functionLooseKey(fn)), fn);
+        const hinted = functionHintCandidate(
+          fallbackByLooseKey.get(functionLooseKey(fn)),
+          fallbackByNameArity,
+          fn
+        );
         if (!hinted) return fn;
+        const preferHintedSignature = shouldPreferHintedFunctionSignature(fn, hinted);
         const hasInformativeTrueBoolean = (value) => value === true;
         const hasInformativeSimpleReturnExpr = (expr) => Boolean(String(expr || '').trim());
         const hasInformativeSimpleReturnCall = (callInfo) => Boolean(String(callInfo?.callee || '').trim());
@@ -10583,6 +10652,10 @@ class Cpp98Compiler {
 
         return {
           ...fn,
+          returnType: (!fn.returnType || preferHintedSignature) ? hinted.returnType : fn.returnType,
+          params: (!Array.isArray(fn.params) || preferHintedSignature) ? hinted.params : fn.params,
+          lowering: fn.lowering || hinted.lowering || null,
+          bodyText: fn.bodyText || hinted.bodyText || '',
           isVariadic: hasInformativeTrueBoolean(fn.isVariadic) || hasInformativeTrueBoolean(hinted.isVariadic),
           simpleVariadicIntSum: hasInformativeTrueBoolean(fn.simpleVariadicIntSum) || hasInformativeTrueBoolean(hinted.simpleVariadicIntSum),
           simpleReturnExpr: (() => {
@@ -10723,6 +10796,7 @@ class Cpp98Compiler {
       const astFns = Array.isArray(analysis.functions) ? analysis.functions : [];
       const fallbackLooseKeys = new Set();
       const astByLooseKey = new Map();
+      const fallbackFns = Array.isArray(fallback.functions) ? fallback.functions : [];
       for (const fn of astFns) {
         const key = functionLooseKey(fn);
         const list = astByLooseKey.get(key) || [];
@@ -10914,7 +10988,20 @@ class Cpp98Compiler {
         };
       });
 
-      const astOnlyFns = astFns.filter((fn) => !fallbackLooseKeys.has(functionLooseKey(fn)));
+      const astOnlyFns = astFns.filter((fn) => {
+        if (fallbackLooseKeys.has(functionLooseKey(fn))) return false;
+        const fnParams = Array.isArray(fn?.params) ? fn.params : [];
+        const hasMalformedSignature = fnParams.some((param) => !hasInformativeFunctionTypeText(param?.type))
+          || !hasInformativeFunctionTypeText(fn?.returnType);
+        if (!hasMalformedSignature) return true;
+        const fnName = String(fn?.name || '').trim();
+        const fnBodyKey = bodyKeyForFn(fn);
+        return !fallbackFns.some((candidate) => {
+          if (String(candidate?.name || '').trim() !== fnName) return false;
+          if (functionArity(candidate) !== functionArity(fn)) return false;
+          return bodyKeyForFn(candidate) === fnBodyKey;
+        });
+      });
 
       if (mergedFns.length > 0 || astOnlyFns.length > 0) {
         analysis.functions = [...mergedFns, ...astOnlyFns];
