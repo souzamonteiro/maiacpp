@@ -9993,11 +9993,14 @@ class Cpp98Compiler {
   constructor(filePath, options = {}) {
     this.filePath = filePath;
     this.options = options;
-    this.parseProbeTimeoutMs = Number.isFinite(options.parseProbeTimeoutMs)
-      ? Math.max(250, Math.floor(options.parseProbeTimeoutMs))
-            : (process.env.MAIACPP_PARSE_PROBE_TIMEOUT_MS 
-              ? Math.max(250, Number.parseInt(process.env.MAIACPP_PARSE_PROBE_TIMEOUT_MS, 10) || 180000)
-              : 180000);
+    const parseProbeTimeoutOverride = Number.isFinite(options.parseProbeTimeoutMs)
+      ? Number(options.parseProbeTimeoutMs)
+      : Number.parseInt(process.env.MAIACPP_PARSE_PROBE_TIMEOUT_MS || '', 10);
+    // Keep parser guardrails short by default so pathological inputs fail fast
+    // instead of stalling the whole Maia pipeline for minutes.
+    this.parseProbeTimeoutMs = Number.isFinite(parseProbeTimeoutOverride)
+      ? (parseProbeTimeoutOverride <= 0 ? 0 : Math.max(250, Math.floor(parseProbeTimeoutOverride)))
+      : 5000;
     this.parseProbeMinSourceLength = Number.isFinite(options.parseProbeMinSourceLength)
       ? Math.max(0, Math.floor(options.parseProbeMinSourceLength))
       : 0;
