@@ -10004,10 +10004,22 @@ class Cpp98Compiler {
     this.parseProbeMinSourceLength = Number.isFinite(options.parseProbeMinSourceLength)
       ? Math.max(0, Math.floor(options.parseProbeMinSourceLength))
       : 0;
+    const parseProbeMaxSourceLengthOverride = Number.isFinite(options.parseProbeMaxSourceLength)
+      ? Number(options.parseProbeMaxSourceLength)
+      : Number.parseInt(process.env.MAIACPP_PARSE_PROBE_MAX_SOURCE_LENGTH || '', 10);
+    // Large translation units already pay the full AST parse cost right after
+    // the probe. For those files the probe mostly duplicates work and can
+    // trigger false fallbacks before the real parser gets a chance to finish.
+    this.parseProbeMaxSourceLength = Number.isFinite(parseProbeMaxSourceLengthOverride)
+      ? (parseProbeMaxSourceLengthOverride <= 0 ? 0 : Math.max(1024, Math.floor(parseProbeMaxSourceLengthOverride)))
+      : 16000;
   }
 
   preflightParseWithTimeout(sourceText, candidateLabel = 'parser candidate') {
-    if (!sourceText || sourceText.length < this.parseProbeMinSourceLength || this.parseProbeTimeoutMs <= 0) {
+    if (!sourceText
+      || sourceText.length < this.parseProbeMinSourceLength
+      || (this.parseProbeMaxSourceLength > 0 && sourceText.length > this.parseProbeMaxSourceLength)
+      || this.parseProbeTimeoutMs <= 0) {
       return;
     }
 
@@ -11110,15 +11122,8 @@ if (require.main === module) {
 
     try {
       const probeSource = fs.readFileSync(probeFile, 'utf8');
-      const collector = new ParseTreeCollector();
-      const parser = new Parser(probeSource, collector);
-      
-      //parser.parse();
-      collector.parse(parser, probeSource);
-      
-      if (!collector.root) {
-        throw new Error('Nenhuma árvore de parse disponível');
-      }
+      const parser = new Parser(probeSource);
+      parser.parse();
       process.exit(0);
     } catch (_err) {
       process.exit(2);
