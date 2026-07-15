@@ -10012,7 +10012,7 @@ class Cpp98Compiler {
     // trigger false fallbacks before the real parser gets a chance to finish.
     this.parseProbeMaxSourceLength = Number.isFinite(parseProbeMaxSourceLengthOverride)
       ? (parseProbeMaxSourceLengthOverride <= 0 ? 0 : Math.max(1024, Math.floor(parseProbeMaxSourceLengthOverride)))
-      : 16000;
+      : 10000;
   }
 
   preflightParseWithTimeout(sourceText, candidateLabel = 'parser candidate') {
