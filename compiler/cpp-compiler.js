@@ -1300,7 +1300,7 @@ function inferGlobalFunctions(source) {
       if (methodCall) {
         const obj = env.get(methodCall[1]);
         if (obj && obj.kind === 'object') return { kind: 'int', value: obj.value | 0 };
-        return null;
+        return { consumed: m[0].length, local: { name: m[1], type: 'int', initRaw: String(m[2] || '').trim() } };
       }
 
       const arrowMethod = expr.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*->\s*(get|value)\s*\(\s*\)$/);
@@ -2723,6 +2723,7 @@ class CppToCTranspiler {
     this.em.line('extern int    __exc_matches(int thrown_type, int catch_type);');
     this.em.line('extern void*  __malloc(unsigned long size);');
     this.em.line('extern void   __free(void* ptr);');
+    this.em.line('extern int    sprintf(char* dest, const char* format, ...);');
     this.em.line();
     this.emitStdioPrelude(this.options.source || '');
     this.emitStringPrelude(this.options.source || '');
@@ -3695,6 +3696,15 @@ class CppToCTranspiler {
         && !fn.namespacePath?.length
         && !/::/.test(rawBodyText)
         && (Boolean(fn.resourceDeterministicHint) || this.mainReferencesTopLevelAliasesOrGlobals(rawBodyText));
+      const sourceLooksMaiaGenerated = (() => {
+        const source = String(this.options.source || '');
+        if (!source) return false;
+        const maiaHits = source.match(/\b__maia_[A-Za-z0-9_]+\b/g) || [];
+        if (maiaHits.length < 40) return false;
+        return source.includes('__maia_console_concat2(')
+          || source.includes('__console__log(')
+          || source.includes('__maia_runtime_alloc_value(');
+      })();
       const preferCStyleMain = skipStructuredMain;
       const hasStructuredCandidate = Boolean(
         fn.simpleIfReturn
@@ -5249,6 +5259,9 @@ class CppToCTranspiler {
   }
 
   emitStructuredLocals(locals) {
+    const localNames = new Set((locals || []).map((local) => local && local.name).filter(Boolean));
+    const rewriteLocalInitRaw = (expr) => this.rewriteRawExprWithBareFunctionRefs(expr, localNames);
+
     for (const local of locals || []) {
       if (local.type === 'int_ptr' || local.type === 'char_ptr' || local.type === 'double_ptr' || local.type === 'float_ptr' || /_ptr(?:_ptr)*$/.test(String(local.type || ''))) {
         // Handle new[] and new allocations
@@ -5269,7 +5282,7 @@ class CppToCTranspiler {
           this.em.line(`char* ${local.name} = "${local.initStr}";`);
         } else if (local.initRaw) {
           const cType = local.cType || (local.type === 'int_ptr' ? 'int*' : local.type === 'char_ptr' ? 'char*' : local.type === 'double_ptr' ? 'double*' : 'float*');
-          this.em.line(`${cType} ${local.name} = ${local.initRaw};`);
+          this.em.line(`${cType} ${local.name} = ${rewriteLocalInitRaw(local.initRaw)};`);
         } else {
           this.em.line(`${local.cType || (local.type === 'int_ptr' ? 'int*' : local.type === 'char_ptr' ? 'char*' : local.type === 'double_ptr' ? 'double*' : 'float*')} ${local.name} = 0;`);
         }
@@ -5332,11 +5345,13 @@ class CppToCTranspiler {
         this.em.line(`int ${local.name} = ${local.initCall}(${local.initCallArgs || ''});`);
       } else if (local.type === 'int' && local.initVar) {
         this.em.line(`int ${local.name} = ${local.initVar};`);
+      } else if (local.type === 'int' && local.initRaw) {
+        this.em.line(`int ${local.name} = ${rewriteLocalInitRaw(local.initRaw)};`);
       } else if (local.type === 'double') {
         if (local.initCall) {
           this.em.line(`double ${local.name} = ${local.initCall}(${local.initCallArgs});`);
         } else if (local.initRaw) {
-          this.em.line(`double ${local.name} = ${local.initRaw};`);
+          this.em.line(`double ${local.name} = ${rewriteLocalInitRaw(local.initRaw)};`);
         } else {
           this.em.line(`double ${local.name} = ${local.init || 0};`);
         }
@@ -5344,7 +5359,7 @@ class CppToCTranspiler {
         if (local.initCall) {
           this.em.line(`float ${local.name} = ${local.initCall}(${local.initCallArgs});`);
         } else if (local.initRaw) {
-          this.em.line(`float ${local.name} = ${local.initRaw};`);
+          this.em.line(`float ${local.name} = ${rewriteLocalInitRaw(local.initRaw)};`);
         } else {
           this.em.line(`float ${local.name} = ${local.init || 0};`);
         }
@@ -5355,6 +5370,70 @@ class CppToCTranspiler {
       }
     }
     if ((locals || []).length > 0) this.em.line();
+  }
+
+  rewriteRawExprWithBareFunctionRefs(expr, localNames = new Set()) {
+    const src = String(expr || '');
+    if (!src) return src;
+    const functions = Array.isArray(this.analysis?.functions) ? this.analysis.functions : [];
+    let out = '';
+    let i = 0;
+    let inString = false;
+    let inChar = false;
+    while (i < src.length) {
+      const ch = src[i];
+      const prev = i > 0 ? src[i - 1] : '';
+      if (inString) {
+        out += ch;
+        if (ch === '"' && prev !== '\\') inString = false;
+        i += 1;
+        continue;
+      }
+      if (inChar) {
+        out += ch;
+        if (ch === '\'' && prev !== '\\') inChar = false;
+        i += 1;
+        continue;
+      }
+      if (ch === '"') {
+        inString = true;
+        out += ch;
+        i += 1;
+        continue;
+      }
+      if (ch === '\'') {
+        inChar = true;
+        out += ch;
+        i += 1;
+        continue;
+      }
+      if (!/[A-Za-z_]/.test(ch)) {
+        out += ch;
+        i += 1;
+        continue;
+      }
+      const start = i;
+      i += 1;
+      while (i < src.length && /[A-Za-z0-9_]/.test(src[i])) i += 1;
+      const name = src.slice(start, i);
+      const nextSlice = src.slice(i);
+      const prevCh = start > 0 ? src[start - 1] : '';
+      if (prevCh === '.' || prevCh === ':'
+        || localNames.has(name)
+        || this.enumValueMap.has(name)
+        || /^\s*\(/.test(nextSlice)) {
+        out += name;
+        continue;
+      }
+      const candidates = functions.filter((fn) => fn && fn.name === name);
+      if (candidates.length !== 1) {
+        out += name;
+        continue;
+      }
+      const uniqueArity = (Array.isArray(candidates[0].params) ? candidates[0].params.length : 0) | 0;
+      out += this.resolveCMainCallee(name, uniqueArity);
+    }
+    return this.mangleRawCallExpr(out);
   }
 
   emitStructuredMain(plan) {
@@ -5422,6 +5501,14 @@ class CppToCTranspiler {
         }
         else if (op.arg.type === 'int') this.em.line(`printf("${op.fmtRaw}", ${op.arg.value | 0});`);
         else if (op.arg.type === 'var') this.em.line(`printf("${op.fmtRaw}", ${op.arg.name});`);
+      } else if (op.kind === 'console_log_literal') {
+        const text = String(op.text || '')
+          .replace(/\\/g, '\\\\')
+          .replace(/"/g, '\\"')
+          .replace(/\n/g, '\\n')
+          .replace(/\r/g, '\\r')
+          .replace(/\t/g, '\\t');
+        this.em.line(`__console__log("${text}");`);
       } else if (op.kind === 'cout_chain') {
         const items = Array.isArray(op.items) ? op.items : [];
         for (const item of items) {
@@ -5669,7 +5756,7 @@ class CppToCTranspiler {
         }
         this.em.line(`*${op.ptrName} = ${rhsText};`);
       } else if (op.kind === 'assign_raw') {
-        const mangledExpr = this.mangleRawCallExpr(op.expr);
+        const mangledExpr = this.rewriteRawExprWithBareFunctionRefs(op.expr);
         this.em.line(`${op.target} = ${mangledExpr};`);
       } else if (op.kind === 'assign_char_array_elem') {
         this.em.line(`${op.arrayName}[${op.indexStr}] = ${op.valueStr};`);
@@ -5865,7 +5952,12 @@ class CppToCTranspiler {
           this.em.line(`printf(".\\n");`);
         }
       } else if (op.kind === 'void_call') {
-        this.em.line(`${op.callee}(${op.rawArgs});`);
+        const rawArgsText = String(op.rawArgs || '').trim();
+        const argCount = rawArgsText.length === 0
+          ? 0
+          : rawArgsText.split(',').length;
+        const resolvedCallee = this.resolveCMainCallee(op.callee, argCount);
+        this.em.line(`${resolvedCallee}(${this.mangleRawCallExpr(op.rawArgs)});`);
       } else if (op.kind === 'return_void') {
         this.em.line('return;');
       } else if (op.kind === 'return') {
@@ -6292,6 +6384,15 @@ class CppToCTranspiler {
     }
 
     const inferredConstMap = new Map();
+    const sourceLooksMaiaGenerated = (() => {
+      const source = String(this.options.source || '');
+      if (!source) return false;
+      const maiaHits = source.match(/\b__maia_[A-Za-z0-9_]+\b/g) || [];
+      if (maiaHits.length < 40) return false;
+      return source.includes('__maia_console_concat2(')
+        || source.includes('__console__log(')
+        || source.includes('__maia_runtime_alloc_value(');
+    })();
     const functionPointerTypedefNames = new Set(this.extractFunctionPointerTypedefNames(this.options.source || ''));
     const functionPointerTypedefArity = new Map();
     {
@@ -6509,6 +6610,59 @@ class CppToCTranspiler {
       // If arg text exists but parseArg returned null, store as raw string arg
       const rawArg = (!arg && argText) ? argText : null;
       return { consumed: idx, op: { kind: 'printf', fmtRaw, arg, rawArg } };
+    };
+
+    const parseSimpleTryCatchLog = (text) => {
+      const src = String(text || '');
+      if (!src.startsWith('try')) return null;
+      const tryHead = src.match(/^try\s*\{/);
+      if (!tryHead) return null;
+      const tryOpen = tryHead[0].lastIndexOf('{');
+      const tryClose = findMatchingBrace(src, tryOpen);
+      if (tryClose < 0) return null;
+      const tryBody = src.slice(tryOpen + 1, tryClose).trim();
+      const afterTry = src.slice(tryClose + 1).trimStart();
+      const catchHead = afterTry.match(/^catch\s*\(\s*const\s+char\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*\{/);
+      if (!catchHead) return null;
+      const catchVar = catchHead[1];
+      const catchOpenOffset = afterTry.indexOf('{', catchHead[0].length - 1);
+      if (catchOpenOffset < 0) return null;
+      const catchCloseOffset = findMatchingBrace(afterTry, catchOpenOffset);
+      if (catchCloseOffset < 0) return null;
+      const catchBody = afterTry.slice(catchOpenOffset + 1, catchCloseOffset).trim();
+      const consumed = (src.length - afterTry.length) + catchCloseOffset + 1;
+
+      const throwMatch = tryBody.match(/^throw\s+(?:__new__Error|string)\s*\(\s*"((?:\\.|[^"\\])*)"\s*\)\s*;\s*$/);
+      if (!throwMatch) return null;
+      const thrownMessage = String(throwMatch[1] || '');
+
+      const concatLogMatch = catchBody.match(new RegExp(
+        '^const\\s+char\\*\\s+[A-Za-z_][A-Za-z0-9_]*\\s*=\\s*\\(const\\s+char\\*\\)__maia_console_concat2\\(\\s*"((?:\\\\.|[^"\\\\])*)"\\s*,\\s*__maia_console_to_cstr_string\\(\\(const\\s+char\\*\\)\\(' + catchVar + '\\)\\)\\s*\\)\\s*;\\s*__console__log\\(\\s*[A-Za-z_][A-Za-z0-9_]*\\s*\\)\\s*;\\s*$'
+      ));
+      if (concatLogMatch) {
+        return {
+          consumed,
+          op: {
+            kind: 'console_log_literal',
+            text: `${String(concatLogMatch[1] || '')}${thrownMessage}`
+          }
+        };
+      }
+
+      const directLogMatch = catchBody.match(new RegExp(
+        '^__console__log\\(\\s*' + catchVar + '\\s*\\)\\s*;\\s*$'
+      ));
+      if (directLogMatch) {
+        return {
+          consumed,
+          op: {
+            kind: 'console_log_literal',
+            text: thrownMessage
+          }
+        };
+      }
+
+      return null;
     };
 
     const splitTopLevelArgs = (text) => {
@@ -7030,8 +7184,12 @@ class CppToCTranspiler {
     };
     const parseLocalDouble = (text) => {
       const m = text.match(/^double\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([A-Za-z_][A-Za-z0-9_]*)\s*\(((?:[^")(]|"(?:\\.|[^"\\])*"|\([^)]*\))*)\)\s*;\s*/);
-      if (!m) return null;
-      return { consumed: m[0].length, local: { name: m[1], type: 'double', initCall: m[2], initCallArgs: (m[3] || '').trim() } };
+      if (m) {
+        return { consumed: m[0].length, local: { name: m[1], type: 'double', initCall: m[2], initCallArgs: (m[3] || '').trim() } };
+      }
+      const raw = text.match(/^double\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^;]+)\s*;\s*/);
+      if (!raw) return null;
+      return { consumed: raw[0].length, local: { name: raw[1], type: 'double', initRaw: String(raw[2] || '').trim() } };
     };
 
     const parseInc = (text) => {
@@ -7788,7 +7946,12 @@ class CppToCTranspiler {
       if (!m || m[1] === 'int') return null;
       const declaredType = String(m[1] || '').trim();
       const initArg = parseArg(m[3]);
-      if (!initArg) return null;
+      if (!initArg) {
+        if (declaredType === 'float' || declaredType === 'double') {
+          return { consumed: m[0].length, local: { name: m[2], type: 'double', initRaw: String(m[3] || '').trim() } };
+        }
+        return { consumed: m[0].length, local: { name: m[2], type: 'int', initRaw: String(m[3] || '').trim() } };
+      }
       if (declaredType === 'float' || declaredType === 'double') {
         const numericType = 'double';
         if (initArg.type === 'int') {
@@ -7800,9 +7963,11 @@ class CppToCTranspiler {
         if (initArg.type === 'var' || initArg.type === 'member') {
           return { consumed: m[0].length, local: { name: m[2], type: numericType, initRaw: initArg.type === 'member' ? initArg.text : initArg.name } };
         }
-        return null;
+        return { consumed: m[0].length, local: { name: m[2], type: numericType, initRaw: String(m[3] || '').trim() } };
       }
-      if (initArg.type !== 'int') return null;
+      if (initArg.type !== 'int') {
+        return { consumed: m[0].length, local: { name: m[2], type: 'int', initRaw: String(m[3] || '').trim() } };
+      }
       return { consumed: m[0].length, local: { name: m[2], type: 'int', init: initArg.value | 0 } };
     };
 
@@ -7866,6 +8031,51 @@ class CppToCTranspiler {
       const m = text.match(/^(?:const\s+)?char\s*\*\s*(?:const\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*"((?:\\.|[^"\\])*)"\s*;\s*/);
       if (!m) return null;
       return { consumed: m[0].length, local: { name: m[1], type: 'char_ptr', cType: 'char*', initStr: m[2] } };
+    };
+
+    // Generic scalar/pointer local with arbitrary initializer expression/call.
+    // This keeps structured-main lowering from dropping temporaries such as:
+    //   double value = (double)(a + b);
+    //   int flag = (int)(lhs == rhs);
+    //   const char* tmp = (const char*)__maia_console_concat2(...);
+    //   void* obj = __maia_obj_literal0();
+    const parseRawInitLocal = (text) => {
+      const m = text.match(/^((?:const\s+)?(?:int|float|double|[A-Za-z_][A-Za-z0-9_:]*)(?:\s*\*+)?)\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^;]+)\s*;\s*/);
+      if (!m) return null;
+      const rawType = String(m[1] || '').trim().replace(/\s+/g, ' ');
+      const name = String(m[2] || '').trim();
+      const initRaw = String(m[3] || '').trim();
+      if (!name || !initRaw) return null;
+
+      const normalizedType = rawType.replace(/\s*\*\s*/g, '*').trim();
+      const nonConstType = normalizedType.replace(/^const\s+/, '').trim();
+      if (nonConstType === 'int') {
+        return { consumed: m[0].length, local: { name, type: 'int', initRaw } };
+      }
+      if (nonConstType === 'double') {
+        return { consumed: m[0].length, local: { name, type: 'double', initRaw } };
+      }
+      if (nonConstType === 'float') {
+        return { consumed: m[0].length, local: { name, type: 'float', initRaw } };
+      }
+      if (!nonConstType.endsWith('*')) return null;
+
+      let localType = 'opaque_ptr';
+      if (nonConstType === 'char*') localType = 'char_ptr';
+      else if (nonConstType === 'int*') localType = 'int_ptr';
+      else if (nonConstType === 'double*') localType = 'double_ptr';
+      else if (nonConstType === 'float*') localType = 'float_ptr';
+      else if (nonConstType === 'void*') localType = 'void_ptr';
+
+      return {
+        consumed: m[0].length,
+        local: {
+          name,
+          type: localType,
+          cType: normalizedType,
+          initRaw
+        }
+      };
     };
 
     // Extract ONE statement as text (strips outer braces if present).
@@ -8418,6 +8628,68 @@ class CppToCTranspiler {
       return null;
     };
 
+    const shouldPreserveInitOrderForLocal = (local) => {
+      if (!sourceLooksMaiaGenerated || !local || typeof local !== 'object') return false;
+      const type = String(local.type || '').trim();
+      if (!type || /array|object|fn_ptr/.test(type)) return false;
+      return Object.prototype.hasOwnProperty.call(local, 'initRaw')
+        || Object.prototype.hasOwnProperty.call(local, 'initCall')
+        || Object.prototype.hasOwnProperty.call(local, 'initVar')
+        || Object.prototype.hasOwnProperty.call(local, 'initStr')
+        || Object.prototype.hasOwnProperty.call(local, 'init');
+    };
+
+    const lowerOrderedInitLocal = (local) => {
+      const declaredLocal = { ...local };
+      delete declaredLocal.init;
+      delete declaredLocal.initRaw;
+      delete declaredLocal.initCall;
+      delete declaredLocal.initCallArgs;
+      delete declaredLocal.initVar;
+      delete declaredLocal.initStr;
+
+      if (Object.prototype.hasOwnProperty.call(local, 'initRaw')) {
+        return { declaredLocal, op: { kind: 'assign_raw', target: local.name, expr: String(local.initRaw || '').trim() } };
+      }
+      if (Object.prototype.hasOwnProperty.call(local, 'initCall')) {
+        const argsText = String(local.initCallArgs || '').trim();
+        return {
+          declaredLocal,
+          op: {
+            kind: 'assign_raw',
+            target: local.name,
+            expr: `${local.initCall}(${argsText})`
+          }
+        };
+      }
+      if (Object.prototype.hasOwnProperty.call(local, 'initVar')) {
+        return { declaredLocal, op: { kind: 'assign_raw', target: local.name, expr: String(local.initVar || '').trim() } };
+      }
+      if (Object.prototype.hasOwnProperty.call(local, 'initStr')) {
+        return { declaredLocal, op: { kind: 'assign_raw', target: local.name, expr: `"${String(local.initStr || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"` } };
+      }
+      if (Object.prototype.hasOwnProperty.call(local, 'init')) {
+        const value = local.init;
+        if (typeof value === 'number') {
+          return {
+            declaredLocal,
+            op: {
+              kind: 'assign_value',
+              target: local.name,
+              value: {
+                type: String(local.type || '').includes('double') || String(local.type || '').includes('float')
+                  ? 'double'
+                  : 'int',
+                value
+              }
+            }
+          };
+        }
+        return { declaredLocal, op: { kind: 'assign_raw', target: local.name, expr: String(value || '0').trim() } };
+      }
+      return null;
+    };
+
     while (rest.length > 0) {
       // Multi-variable declarations return { locals: [...] } instead of { local: ... }
       const multiLocalWithInit = parseMultiVarWithInit(rest);
@@ -8451,19 +8723,27 @@ class CppToCTranspiler {
         parsePtrNoInitLocal,
         parseStringNoInitLocal,
         parseLocalConstCharPtrLit,
+        parseRawInitLocal,
         parseNewScalarAssign,
         parseNewArrayAssign,
         parsePtrAddrInit,
         parsePtrFromArrayInit
       ]);
       if (local) {
-        locals.push(local.local);
+        const orderedInitLocal = lowerOrderedInitLocal(local.local);
+        if (shouldPreserveInitOrderForLocal(local.local) && orderedInitLocal) {
+          locals.push(orderedInitLocal.declaredLocal);
+          ops.push(orderedInitLocal.op);
+        } else {
+          locals.push(local.local);
+        }
         rest = rest.slice(local.consumed).trim();
         continue;
       }
 
       const p = parseFirstMatch(rest, [
         parseAsmNoop,
+        parseSimpleTryCatchLog,
         parseCinChain,
         parseCoutGetNameLine,
         parseCoutChain,
@@ -8768,21 +9048,51 @@ class CppToCTranspiler {
   // Mangle all function calls in a raw expression string, adding (float) casts where needed.
   mangleRawCallExpr(expr) {
     const list = Array.isArray(this.analysis?.functions) ? this.analysis.functions : [];
-    return expr.replace(/\b([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)/g, (full, fname, argsText) => {
-      const resolved = this.resolveCMainCallee(fname, 1);
+    const splitTopLevelArgs = (raw) => {
+      const source = String(raw || '');
+      if (!source.trim()) return [];
+      const out = [];
+      let cur = '';
+      let depth = 0;
+      let inString = false;
+      for (let i = 0; i < source.length; i += 1) {
+        const ch = source[i];
+        if (ch === '"' && source[i - 1] !== '\\') {
+          inString = !inString;
+          cur += ch;
+          continue;
+        }
+        if (!inString) {
+          if (ch === '(') depth += 1;
+          else if (ch === ')') depth -= 1;
+          else if (ch === ',' && depth === 0) {
+            out.push(cur.trim());
+            cur = '';
+            continue;
+          }
+        }
+        cur += ch;
+      }
+      if (cur.trim()) out.push(cur.trim());
+      return out;
+    };
+
+    return String(expr || '').replace(/\b([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)/g, (full, fname, argsText) => {
+      const rawArgs = splitTopLevelArgs(argsText);
+      const resolved = this.resolveCMainCallee(fname, rawArgs.length);
       if (resolved === fname) return full;
-      // Find the resolved function to check param types
       const fn = list.find((f) => {
         if (!f || f.name !== fname) return false;
         const params = Array.isArray(f.params) ? f.params : [];
-        return params.length === 1;
+        return f.isVariadic ? rawArgs.length >= params.length : params.length === rawArgs.length;
       });
-      const param0Type = fn && Array.isArray(fn.params) && fn.params[0]
-        ? String(fn.params[0].type || '').trim()
-        : '';
-      const needFloatCast = param0Type === 'float';
-      const castedArg = needFloatCast ? `(float)(${argsText.trim()})` : argsText.trim();
-      return `${resolved}(${castedArg})`;
+      const castedArgs = rawArgs.map((argText, idx) => {
+        const paramType = fn && Array.isArray(fn.params) && fn.params[idx]
+          ? String(fn.params[idx].type || '').trim()
+          : '';
+        return paramType === 'float' ? `(float)(${String(argText || '').trim()})` : String(argText || '').trim();
+      });
+      return `${resolved}(${castedArgs.join(', ')})`;
     });
   }
 
@@ -8838,7 +9148,76 @@ class CppToCTranspiler {
           || list.find((f) => f.name === baseName && matchesArity(f));
       }
     }
-    if (!fn) return baseName;
+    if (!fn && /^_+/.test(baseName)) {
+      const strippedBaseName = baseName.replace(/^_+/, '');
+      if (strippedBaseName && strippedBaseName !== baseName) {
+        const retryName = nsPath.length > 0
+          ? `${nsPath.join('::')}::${strippedBaseName}`
+          : strippedBaseName;
+        const retried = this.resolveCMainCallee(retryName, arityOrArgs);
+        if (retried !== strippedBaseName && retried !== retryName) {
+          return retried;
+        }
+      }
+    }
+
+    if (!fn) {
+      const source = String(this.options?.source || '');
+      const escapedName = String(baseName || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const definitionPattern = new RegExp(
+        `(?:^|\\n)\\s*(?:static\\s+)?[A-Za-z_][A-Za-z0-9_:\\s\\*]*\\b${escapedName}\\s*\\(([^)]*)\\)\\s*\\{`,
+        'g'
+      );
+      const splitTopLevelArgs = (raw) => {
+        const sourceText = String(raw || '').trim();
+        if (!sourceText || sourceText === 'void') return [];
+        const out = [];
+        let cur = '';
+        let depth = 0;
+        let inString = false;
+        for (let i = 0; i < sourceText.length; i += 1) {
+          const ch = sourceText[i];
+          if (ch === '"' && sourceText[i - 1] !== '\\') {
+            inString = !inString;
+            cur += ch;
+            continue;
+          }
+          if (!inString) {
+            if (ch === '(') depth += 1;
+            else if (ch === ')') depth -= 1;
+            else if (ch === ',' && depth === 0) {
+              out.push(cur.trim());
+              cur = '';
+              continue;
+            }
+          }
+          cur += ch;
+        }
+        if (cur.trim()) out.push(cur.trim());
+        return out;
+      };
+      const extractParamType = (paramDecl) => {
+        const text = String(paramDecl || '').trim();
+        if (!text) return '';
+        return text
+          .replace(/\b[A-Za-z_][A-Za-z0-9_]*\s*(?:\[\s*\])?\s*$/, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+      };
+      let match;
+      while ((match = definitionPattern.exec(source)) !== null) {
+        const rawParams = splitTopLevelArgs(match[1] || '');
+        if (rawParams.length !== arity) {
+          continue;
+        }
+        const sigTypes = rawParams.map((param) => {
+          const typeText = extractParamType(param);
+          return { kind: this.typeKindFromText(typeText), name: typeText };
+        });
+        return mangle(baseName, sigTypes, null, []);
+      }
+      return baseName;
+    }
     const sigTypes = (fn.params || []).map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
     return mangle(fn.name, sigTypes, null, fn.namespacePath || []);
   }
@@ -9421,7 +9800,6 @@ class CppToCTranspiler {
         };
 
         if (['if', 'for', 'while', 'switch', 'return', 'sizeof'].includes(callee)) return match;
-        if (callee.startsWith('__')) return match;
         if (['printf', 'scanf', 'strlen', 'strcmp', 'strcpy', 'strcat', 'strncpy', 'strstr', 'strchr', 'strrchr', 'sprintf'].includes(callee)) {
           return match;
         }
@@ -9476,6 +9854,7 @@ class CppToCTranspiler {
           return rawArg;
         });
 
+        if (callee.startsWith('__') && (!mangled || mangled === callee)) return match;
         if (!mangled || mangled === callee) return `${callee}(${rewrittenArgs.join(', ')})`;
         return `${mangled}(${rewrittenArgs.join(', ')})`;
       });
@@ -10015,6 +10394,16 @@ class Cpp98Compiler {
       : 10000;
   }
 
+  shouldPreferSimpleAnalyzer(sourceText) {
+    const source = String(sourceText || '');
+    if (!source) return false;
+    const maiaHits = source.match(/\b__maia_[A-Za-z0-9_]+\b/g) || [];
+    if (maiaHits.length < 40) return false;
+    return source.includes('__maia_console_concat2(')
+      || source.includes('__console__log(')
+      || source.includes('__maia_runtime_alloc_value(');
+  }
+
   preflightParseWithTimeout(sourceText, candidateLabel = 'parser candidate') {
     if (!sourceText
       || sourceText.length < this.parseProbeMinSourceLength
@@ -10053,21 +10442,72 @@ class Cpp98Compiler {
     }
   }
 
+  preflightCollectWithTimeout(sourceText, candidateLabel = 'collector candidate') {
+    if (!sourceText
+      || sourceText.length < this.parseProbeMinSourceLength
+      || (this.parseProbeMaxSourceLength > 0 && sourceText.length > this.parseProbeMaxSourceLength)
+      || this.parseProbeTimeoutMs <= 0) {
+      return;
+    }
+
+    const tmpFile = path.join(
+      os.tmpdir(),
+      `maiacpp-collect-probe-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}.cpp`
+    );
+
+    try {
+      fs.writeFileSync(tmpFile, sourceText, 'utf8');
+      const probeResult = spawnSync(
+        process.execPath,
+        [__filename, '--collect-probe', tmpFile],
+        {
+          encoding: 'utf8',
+          timeout: this.parseProbeTimeoutMs
+        }
+      );
+
+      if (probeResult.error && probeResult.error.code === 'ETIMEDOUT') {
+        throw new Error(`Collector timeout (${this.parseProbeTimeoutMs}ms) during ${candidateLabel}`);
+      }
+    } finally {
+      try {
+        if (fs.existsSync(tmpFile)) {
+          fs.unlinkSync(tmpFile);
+        }
+      } catch (_err) {
+        // Best-effort temp cleanup.
+      }
+    }
+  }
+
   compile() {
+    const debugProfile = process.env.MAIACPP_PROFILE === '1';
+    const startedAt = Date.now();
+    const mark = (label) => {
+      if (!debugProfile) return;
+      console.error(`[maiacpp-profile] ${label}: ${Date.now() - startedAt}ms`);
+    };
     let source = fs.readFileSync(this.filePath, 'utf8');
+    mark('read source');
     
     // Apply preprocessing pipeline
     const preprocessor = new CppPreprocessor(path.dirname(this.filePath));
     source = preprocessor.preprocess(source, this.filePath);
+    mark('preprocess');
     
     const analysis = this.analyze(source);
+    mark('analyze');
     const transpiler = new CppToCTranspiler(analysis, {
       filePath: this.filePath,
       source,
       allowDeterministicFunctionFolding: this.options.allowDeterministicFunctionFolding,
       emitLoweringDiagnostics: this.options.emitLoweringDiagnostics
     });
-    return this.normalizeGeneratedC89(transpiler.transpile());
+    const transpiled = transpiler.transpile();
+    mark('transpile');
+    const normalized = this.normalizeGeneratedC89(transpiled);
+    mark('normalize');
+    return normalized;
   }
 
   normalizeGeneratedC89(code) {
@@ -10229,6 +10669,20 @@ class Cpp98Compiler {
     // C89 has no nullptr literal.
     out = out.replace(/\bnullptr\b/g, '0');
 
+    // Structured-body normalization can temporarily collapse type tokens
+    // (for example `constchar*`) while rebuilding declarations/casts.
+    // Repair them globally before MaiaC parsing.
+    out = out
+      .replace(/\bconstchar\*/g, 'const char*')
+      .replace(/\bconstdouble\b/g, 'const double')
+      .replace(/\bconstfloat\b/g, 'const float')
+      .replace(/\bconstlong\b/g, 'const long')
+      .replace(/\bconstint\b/g, 'const int')
+      .replace(/\bconstshort\b/g, 'const short')
+      .replace(/\bconstchar\b/g, 'const char')
+      .replace(/\bunsignedint\b/g, 'unsigned int')
+      .replace(/\bunsignedlong\b/g, 'unsigned long');
+
     // Lower JS-style string + numeric concatenations in console logs to C-safe formatting.
     // Without this, generated C performs pointer arithmetic and prints corrupted output.
     out = out
@@ -10360,37 +10814,185 @@ class Cpp98Compiler {
     }
     out = lines.join('\n');
 
+    const stringLikeRuntimeFns = new Set();
+    out = out.replace(
+      /int\s+(maia_fn_[A-Za-z0-9_]+(?:__[A-Za-z0-9_]+)?)\s*\(([^)]*)\)\s*\{([\s\S]*?)\n\}/g,
+      (match, fnName, paramsText, bodyText) => {
+        const body = String(bodyText || '');
+        if (!/return\s+\(int\)\(/.test(body)) return match;
+        if (!/\(const char\*\)|__maia_runtime_value_get_property/.test(body)) return match;
+        stringLikeRuntimeFns.add(String(fnName || '').trim());
+        const rewrittenBody = body.replace(/return\s+\(int\)\(/, 'return (char*)(');
+        return `char* ${fnName}(${paramsText}) {${rewrittenBody}\n}`;
+      }
+    );
+
+    if (stringLikeRuntimeFns.size > 0) {
+      for (const fnName of stringLikeRuntimeFns) {
+        const escaped = String(fnName).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        out = out.replace(new RegExp(`(^|\\n)(\\s*extern\\s+)?int\\s+${escaped}\\s*\\(`, 'g'), `$1$2char* ${fnName}(`);
+        out = out.replace(new RegExp(`(^|\\n)(\\s*extern\\s+)?const\\s+char\\*\\s+${escaped}\\s*\\(`, 'g'), `$1$2char* ${fnName}(`);
+
+        const stringTempNames = new Set();
+        out = out.replace(
+          new RegExp(`\\bdouble\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*=\\s*\\(double\\)\\(${escaped}\\(([^;]*)\\)\\);`, 'g'),
+          (_match, tempName, argsText) => {
+            stringTempNames.add(String(tempName || '').trim());
+            return `char* ${tempName} = (char*)(${fnName}(${argsText}));`;
+          }
+        );
+        out = out.replace(
+          new RegExp(`\\bint\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*=\\s*\\(int\\)\\(${escaped}\\(([^;]*)\\)\\);`, 'g'),
+          (_match, tempName, argsText) => {
+            stringTempNames.add(String(tempName || '').trim());
+            return `char* ${tempName} = (char*)(${fnName}(${argsText}));`;
+          }
+        );
+
+        for (const tempName of stringTempNames) {
+          const tempEscaped = String(tempName).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          out = out.replace(
+            new RegExp(`__maia_console_to_cstr_number\\(\\(double\\)\\(${tempEscaped}\\)\\)`, 'g'),
+            `__maia_console_to_cstr_string((const char*)(${tempName}))`
+          );
+        }
+      }
+    }
+
+    const emittedHelperNameMap = new Map();
+    out.replace(/\b(maia_[A-Za-z0-9_]+(?:__[A-Za-z0-9_]+)?)\s*\(/g, (_match, emittedName) => {
+      const baseName = String(emittedName || '').replace(/__(?:[A-Za-z_][A-Za-z0-9_]*)$/, '');
+      const sourceStyleName = `__${baseName}`;
+      if (!emittedHelperNameMap.has(sourceStyleName)) {
+        emittedHelperNameMap.set(sourceStyleName, emittedName);
+      }
+      return _match;
+    });
+    for (const [sourceStyleName, emittedName] of emittedHelperNameMap.entries()) {
+      const sourceEscaped = String(sourceStyleName).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      out = out.replace(new RegExp(`\\b${sourceEscaped}\\s*\\(`, 'g'), `${emittedName}(`);
+    }
+    const localHelperAliasMap = new Map();
+    out.replace(
+      /(?:^|\n)\s*(?:extern\s+)?(?:[A-Za-z_][A-Za-z0-9_\s\*]*?)\s+(maia_[A-Za-z0-9_]+(?:__[A-Za-z0-9_]+)?)\s*\(/g,
+      (_match, emittedName) => {
+        const helperName = String(emittedName || '').trim();
+        const baseName = helperName.replace(/__(?:[A-Za-z_][A-Za-z0-9_]*)$/, '');
+        localHelperAliasMap.set(`__${helperName}`, helperName);
+        localHelperAliasMap.set(`__${baseName}`, helperName);
+        return _match;
+      }
+    );
+    for (const [sourceStyleName, emittedName] of localHelperAliasMap.entries()) {
+      const sourceEscaped = String(sourceStyleName).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      out = out.replace(new RegExp(`\\b${sourceEscaped}\\s*\\(`, 'g'), `${emittedName}(`);
+    }
+    if (/\bReflect__pvpvl\s*\(/.test(out)) {
+      out = out.replace(/\b__Reflect\s*\(/g, 'Reflect__pvpvl(');
+    }
+    if (stringLikeRuntimeFns.size > 0) {
+      for (const fnName of stringLikeRuntimeFns) {
+        const escaped = String(fnName).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        out = out.replace(new RegExp(`(^|\\n)(\\s*extern\\s+)?int\\s+${escaped}\\s*\\(`, 'g'), `$1$2char* ${fnName}(`);
+        out = out.replace(new RegExp(`(^|\\n)(\\s*extern\\s+)?const\\s+char\\*\\s+${escaped}\\s*\\(`, 'g'), `$1$2char* ${fnName}(`);
+      }
+    }
+    const localCharPtrHelpers = new Set();
+    out.replace(/\bchar\*\s+(maia_fn_[A-Za-z0-9_]+(?:__[A-Za-z0-9_]+)?)\s*\(/g, (_match, fnName) => {
+      localCharPtrHelpers.add(String(fnName || '').trim());
+      return _match;
+    });
+    for (const fnName of localCharPtrHelpers) {
+      const escaped = String(fnName).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      out = out.replace(new RegExp(`(^|\\n)(\\s*extern\\s+)const\\s+char\\*\\s+${escaped}\\s*\\(`, 'g'), `$1$2char* ${fnName}(`);
+    }
+
+    out = out.replace(
+      /(?:^|\n)\s*int\s+(__maia_console_value_tmp[0-9]+)\s*=\s*([^;]+);\s*\n\s*const char\*\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*\(const char\*\)__maia_console_concat2\("([^"]*)",\s*maia_console_to_cstr_bool__i\(\(int\)\(\1\)\)\);\s*/g,
+      (_match, _tempName, callExpr, concatName, labelText) => `\n  const char* ${concatName} = (const char*)__maia_console_concat2("${labelText}", maia_console_to_cstr_bool__i(${String(callExpr || '').trim()}));\n`
+    );
+    out = out.replace(
+      /\(void\)\s*snprintf\(\s*([^,]+?)\s*,\s*256\s*,\s*"%.17g"\s*,\s*([^)]+?)\s*\)\s*;/g,
+      '(void)sprintf($1, "%.17g", $2);'
+    );
+
+    const intReturningFns = new Set();
+    out.replace(/(?:^|\n)\s*(?:extern\s+)?int\s+([A-Za-z_][A-Za-z0-9_]*)\s*\([^)]*\)\s*(?:;|\{)/g, (_match, fnName) => {
+      intReturningFns.add(String(fnName || '').trim());
+      return _match;
+    });
+    for (const fnName of intReturningFns) {
+      const escaped = String(fnName).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      out = out.replace(
+        new RegExp(`\\bdouble\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*=\\s*\\(double\\)\\(${escaped}\\(([^;]*)\\)\\);`, 'g'),
+        `int $1 = (int)(${fnName}($2));`
+      );
+    }
+    out = out.replace(
+      /\bint\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*\(int\)\(([A-Za-z_][A-Za-z0-9_]*)\(([^;]*)\)\);/g,
+      (match, localName, fnName, argsText) => (
+        intReturningFns.has(String(fnName || '').trim())
+          ? `int ${localName} = ${fnName}(${argsText});`
+          : match
+      )
+    );
+
+    out = out
+      .replace(/\bconstchar\*/g, 'const char*')
+      .replace(/\bconstdouble\b/g, 'const double')
+      .replace(/\bconstfloat\b/g, 'const float')
+      .replace(/\bconstlong\b/g, 'const long')
+      .replace(/\bconstint\b/g, 'const int')
+      .replace(/\bconstshort\b/g, 'const short')
+      .replace(/\bconstchar\b/g, 'const char')
+      .replace(/\bunsignedint\b/g, 'unsigned int')
+      .replace(/\bunsignedlong\b/g, 'unsigned long');
+
     return out;
   }
 
   collectParseTree(source) {
+    const debugProfile = process.env.MAIACPP_PROFILE === '1';
+    const startedAt = Date.now();
+    const mark = (label) => {
+      if (!debugProfile) return;
+      console.error(`[maiacpp-profile] collect/${label}: ${Date.now() - startedAt}ms`);
+    };
     if (!(this.options && this.options.astStrict)) {
       const parseSources = [];
       const normalized = normalizeForParser(source);
+      mark('normalizeForParser');
 
+      parseSources.push({ text: source, label: 'Parser: ok' });
       if (normalized !== source) {
         parseSources.push({ text: normalized, label: 'Parser: ok (namespace normalized)' });
       }
-      parseSources.push({ text: source, label: 'Parser: ok' });
 
       let lastErr = null;
 
       for (let i = 0; i < parseSources.length; i += 1) {
         const candidate = parseSources[i];
         try {
+          mark(`candidate-${i}-start`);
           this.preflightParseWithTimeout(candidate.text, candidate.label || 'parser candidate');
+          mark(`candidate-${i}-preflight`);
+          this.preflightCollectWithTimeout(candidate.text, candidate.label || 'collector candidate');
+          mark(`candidate-${i}-collect-probe`);
           const collector = new ParseTreeCollector();
           const parser = new Parser(candidate.text, collector);
 
           //parser.parse();
           collector.parse(parser, candidate.text);
+          mark(`candidate-${i}-parse`);
 
           if (!collector.root) {
             throw new Error('Nenhuma árvore de parse disponível');
           }
 
+          mark(`candidate-${i}-done`);
           return { collector, candidate, usedNormalized: candidate.text !== source };
         } catch (err) {
+          mark(`candidate-${i}-failed`);
           lastErr = err;
         }
       }
@@ -10400,9 +11002,11 @@ class Cpp98Compiler {
 
     const collector = new ParseTreeCollector();
     const parser = new Parser(source, collector);
+    mark('strict-parser-created');
     
     //parser.parse();
     collector.parse(parser, source);
+    mark('strict-parse');
 
     if (!collector.root) {
       throw new Error('Nenhuma árvore de parse disponível');
@@ -10440,24 +11044,40 @@ class Cpp98Compiler {
     console.log(`Parsing: ${this.filePath}`);
     let lastErr = null;
     const astStrict = !!(this.options && this.options.astStrict);
+    if (!astStrict && this.shouldPreferSimpleAnalyzer(source)) {
+      console.log('Usando fallback simples (Maia-generated source).');
+      return new SimpleAnalyzer(this.filePath).analyze();
+    }
+    const debugProfile = process.env.MAIACPP_PROFILE === '1';
+    const startedAt = Date.now();
+    const mark = (label) => {
+      if (!debugProfile) return;
+      console.error(`[maiacpp-profile] analyze/${label}: ${Date.now() - startedAt}ms`);
+    };
 
     try {
       const { collector, candidate, usedNormalized } = this.collectParseTree(source);
+      mark('collectParseTree');
       console.log(candidate.label);
       const sema = new SemanticAnalyzer(collector.root, { source });
       const analysis = sema.analyze();
+      mark('semantic');
       if (!astStrict || (this.options && this.options.sourceHints)) {
         this.applySourceClassHints(analysis, source, { usedNormalized });
+        mark('sourceHints');
       }
       return analysis;
     } catch (err) {
+      mark('primary-failed');
       lastErr = err;
     }
 
     console.log(`Parser falhou (${lastErr ? lastErr.message : 'erro desconhecido'}).`);
     if (!astStrict || (this.options && this.options.legacyFallback)) {
       console.log('Usando fallback simples.');
-      return new SimpleAnalyzer(this.filePath).analyze();
+      const fallback = new SimpleAnalyzer(this.filePath).analyze();
+      mark('legacyFallback');
+      return fallback;
     }
     throw lastErr || new Error('Falha ao analisar AST');
   }
@@ -11130,6 +11750,24 @@ if (require.main === module) {
     }
   }
 
+  if (args[0] === '--collect-probe') {
+    const probeFile = args[1] ? path.resolve(args[1]) : null;
+    if (!probeFile || !fs.existsSync(probeFile)) {
+      console.error('Erro: arquivo de probe invalido para --collect-probe');
+      process.exit(2);
+    }
+
+    try {
+      const probeSource = fs.readFileSync(probeFile, 'utf8');
+      const collector = new ParseTreeCollector();
+      const parser = new Parser(probeSource, collector);
+      collector.parse(parser, probeSource);
+      process.exit(0);
+    } catch (_err) {
+      process.exit(2);
+    }
+  }
+
   if (!args.length) {
     console.log('Uso: node cpp-compiler.js <arquivo.cpp> [--output arquivo.c] [--ast-show] [--ast-xml-out arquivo.xml] [--ast-json-out arquivo.json] [--verbose] [--ast-strict] [--source-hints] [--legacy-fallback] [--legacy-function-hints] [--no-legacy-function-hints] [--allow-deterministic-function-folding] [--no-deterministic-function-folding] [--no-lowering-diagnostics]');
     process.exit(1);
@@ -11189,6 +11827,7 @@ if (require.main === module) {
     } else {
       console.log(code);
     }
+
   } catch (err) {
     console.error(`Erro: ${err.message}`);
     process.exit(1);
