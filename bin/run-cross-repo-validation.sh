@@ -17,9 +17,9 @@ Runs a fail-fast cross-repo validation gate for:
 
 Options:
   --maiacpp-root PATH   MaiaCpp repo root (default: auto)
-  --maiac-root PATH     MaiaC repo root (default: ../maiac or ./maiac)
-  --maiawasm-root PATH  MaiaWASM repo root (default: ../maiawasm or ./maiawasm)
-  --maiacc-root PATH    MaiaCC repo root (default: ../maiacc or ./maiacc)
+  --maiac-root PATH     MaiaC repo root (default: ./maiac)
+  --maiawasm-root PATH  MaiaWASM repo root (default: ./maiawasm)
+  --maiacc-root PATH    MaiaCC repo root (default: ./maiacc)
   --log-dir PATH        Output log directory (default: out/reports/cross-repo-validation-<timestamp>)
   -h, --help            Show this help
 EOF
@@ -77,8 +77,7 @@ MAIACPP_ROOT="$(cd "$MAIACPP_ROOT" && pwd -P)"
 
 resolve_repo_root() {
   local override="$1"
-  local sibling="$2"
-  local submodule="$3"
+  local submodule="$2"
 
   if [[ -n "$override" ]]; then
     if [[ -d "$override" ]]; then
@@ -93,26 +92,21 @@ resolve_repo_root() {
     return 0
   fi
 
-  if [[ -d "$sibling" ]]; then
-    cd "$sibling" && pwd -P
-    return 0
-  fi
-
   return 1
 }
 
-if ! MAIAC_ROOT="$(resolve_repo_root "$MAIAC_ROOT_OVERRIDE" "$DEFAULT_PARENT/maiac" "$MAIACPP_ROOT/maiac")"; then
-  echo "Error: could not resolve MaiaC root. Use --maiac-root." >&2
+if ! MAIAC_ROOT="$(resolve_repo_root "$MAIAC_ROOT_OVERRIDE" "$MAIACPP_ROOT/maiac")"; then
+  echo "Error: could not resolve MaiaC root from MaiaCpp submodule. Use --maiac-root." >&2
   exit 3
 fi
 
-if ! MAIAWASM_ROOT="$(resolve_repo_root "$MAIAWASM_ROOT_OVERRIDE" "$DEFAULT_PARENT/maiawasm" "$MAIACPP_ROOT/maiawasm")"; then
-  echo "Error: could not resolve MaiaWASM root. Use --maiawasm-root." >&2
+if ! MAIAWASM_ROOT="$(resolve_repo_root "$MAIAWASM_ROOT_OVERRIDE" "$MAIACPP_ROOT/maiawasm")"; then
+  echo "Error: could not resolve MaiaWASM root from MaiaCpp submodule. Use --maiawasm-root." >&2
   exit 3
 fi
 
-if ! MAIACC_ROOT="$(resolve_repo_root "$MAIACC_ROOT_OVERRIDE" "$DEFAULT_PARENT/maiacc" "$MAIACPP_ROOT/maiacc")"; then
-  echo "Error: could not resolve MaiaCC root. Use --maiacc-root." >&2
+if ! MAIACC_ROOT="$(resolve_repo_root "$MAIACC_ROOT_OVERRIDE" "$MAIACPP_ROOT/maiacc")"; then
+  echo "Error: could not resolve MaiaCC root from MaiaCpp submodule. Use --maiacc-root." >&2
   exit 3
 fi
 
