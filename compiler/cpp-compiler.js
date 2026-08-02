@@ -697,6 +697,9 @@ function inferSimpleLocalInitReturnFromBody(bodyText, params) {
   const declBlock = m[1] || '';
   const returnExpr = (m[2] || '').trim();
   if (!returnExpr) return null;
+  // Leave ternary returns to the structured/main lowering paths. The
+  // local-init shortcut is only reliable for plain return expressions.
+  if (returnExpr.includes('?') || returnExpr.includes(':')) return null;
   if (/::|->|\.|\[|\]/.test(returnExpr)) return null;
   if (/\b[A-Za-z_][A-Za-z0-9_]*\s*\(/.test(returnExpr)) return null;
 
@@ -7945,6 +7948,7 @@ class CppToCTranspiler {
       const m = text.match(/^([A-Za-z_][A-Za-z0-9_]*)\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^;]+);\s*/);
       if (!m || m[1] === 'int') return null;
       const declaredType = String(m[1] || '').trim();
+      if (['return', 'delete', 'if', 'for', 'while', 'switch', 'break', 'continue', 'else', 'new', 'throw'].includes(declaredType)) return null;
       const initArg = parseArg(m[3]);
       if (!initArg) {
         if (declaredType === 'float' || declaredType === 'double') {
@@ -8046,6 +8050,7 @@ class CppToCTranspiler {
       const name = String(m[2] || '').trim();
       const initRaw = String(m[3] || '').trim();
       if (!name || !initRaw) return null;
+      if (['return', 'delete', 'if', 'for', 'while', 'switch', 'break', 'continue', 'else', 'new', 'throw'].includes(rawType)) return null;
 
       const normalizedType = rawType.replace(/\s*\*\s*/g, '*').trim();
       const nonConstType = normalizedType.replace(/^const\s+/, '').trim();
