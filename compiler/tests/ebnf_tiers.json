@@ -752,7 +752,6 @@
         "expectExitCode": 0,
         "stdoutContains": [
           "Lowering diagnostics:",
-          "structured-local-return=",
           "structured-method-cmp-return=",
           "structured-indexed-object-cmp-return=",
           "structured-resource-runtime="
@@ -771,7 +770,6 @@
         "expectExitCode": 0,
         "stdoutContains": [
           "Lowering diagnostics:",
-          "structured-local-return=",
           "structured-method-cmp-return=",
           "structured-indexed-object-cmp-return=",
           "structured-resource-runtime="

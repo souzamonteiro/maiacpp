@@ -1976,8 +1976,6 @@ class SemanticAnalyzer {
   enterNamespaceIfNeeded(node) {
     if (!node || node.kind !== 'nonterminal') return false;
     const namespaceNodeNames = new Set([
-      'namespaceDefinition',
-      'namedNamespaceDefinition',
       'originalNamespaceDefinition',
       'extensionNamespaceDefinition',
       'unnamedNamespaceDefinition'
