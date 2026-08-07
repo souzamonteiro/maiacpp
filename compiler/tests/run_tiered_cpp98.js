@@ -40,8 +40,49 @@ function parseConformanceMatrix(matrixPath) {
   return { total, done, partial, missing, weighted, weightedPct, entries };
 }
 
+function formatDurationMs(durationMs) {
+  if (!Number.isFinite(durationMs) || durationMs < 0) return '0ms';
+  if (durationMs < 1000) return `${durationMs}ms`;
+  const seconds = durationMs / 1000;
+  if (seconds < 60) return `${seconds.toFixed(seconds >= 10 ? 1 : 2)}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remSeconds = seconds - (minutes * 60);
+  return `${minutes}m${String(remSeconds.toFixed(1)).replace(/\.0$/, '')}s`;
+}
+
+function buildReport(planPath, matrixPath, matrix, tierResults) {
+  const summary = {
+    tier1: summarizeTier(tierResults.tier1),
+    tier2: summarizeTier(tierResults.tier2),
+    tier3: summarizeTier(tierResults.tier3)
+  };
+  const matrixTracking = summarizeMatrixTracking(matrix, tierResults);
+
+  return {
+    generatedAt: new Date().toISOString(),
+    planPath,
+    matrixPath,
+    matrixCoverage: {
+      totalFamilies: matrix.total,
+      done: matrix.done,
+      partial: matrix.partial,
+      missing: matrix.missing,
+      weightedImplementedPct: matrix.weightedPct
+    },
+    tierSummary: summary,
+    matrixTracking,
+    tierResults
+  };
+}
+
+function writeReport(outPath, report) {
+  fs.mkdirSync(path.dirname(outPath), { recursive: true });
+  fs.writeFileSync(outPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+}
+
 function runCase(testCase, repoRoot, tmpDir) {
   const cmd = (testCase.command || []).map((arg) => String(arg).replace('{tmpDir}', tmpDir));
+  const startedAt = Date.now();
   const proc = spawnSync(cmd[0], cmd.slice(1), { cwd: repoRoot, encoding: 'utf8' });
   const stdout = proc.stdout || '';
   const stderr = proc.stderr || '';
@@ -68,6 +109,7 @@ function runCase(testCase, repoRoot, tmpDir) {
     matrixFamily: testCase.matrixFamily,
     command: cmd,
     exitCode: proc.status,
+    durationMs: Date.now() - startedAt,
     ok: errors.length === 0,
     errors,
     stdoutPreview: stdoutLines.slice(Math.max(0, stdoutLines.length - 8)).join('\n'),
@@ -75,14 +117,50 @@ function runCase(testCase, repoRoot, tmpDir) {
   };
 }
 
-function runTiers(plan, repoRoot) {
+function runTiers(plan, repoRoot, options = {}) {
   const results = { tier1: [], tier2: [], tier3: [] };
+  const reportContext = options.reportContext || null;
+  const totalCasesByTier = {
+    tier1: ((plan.tiers || {}).tier1 || []).length,
+    tier2: ((plan.tiers || {}).tier2 || []).length,
+    tier3: ((plan.tiers || {}).tier3 || []).length
+  };
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'maiacpp_tiers_'));
   try {
     for (const tierName of ['tier1', 'tier2', 'tier3']) {
-      for (const testCase of ((plan.tiers || {})[tierName] || [])) {
-        results[tierName].push(runCase(testCase, repoRoot, tempDir));
+      const cases = ((plan.tiers || {})[tierName] || []);
+      if (cases.length === 0) {
+        console.log(`[tiered] ${tierName}: no cases`);
+        continue;
       }
+      console.log(`[tiered] ${tierName}: starting ${cases.length} case(s)`);
+      for (let index = 0; index < cases.length; index += 1) {
+        const testCase = cases[index];
+        const label = `${tierName} ${index + 1}/${cases.length}`;
+        console.log(`[tiered] ${label}: ${testCase.id}`);
+        const result = runCase(testCase, repoRoot, tempDir);
+        results[tierName].push(result);
+        const status = result.ok ? 'ok' : 'fail';
+        console.log(`[tiered] ${label}: ${status} (${formatDurationMs(result.durationMs)})`);
+        if (!result.ok) {
+          for (const error of result.errors) {
+            console.log(`[tiered] ${label}: ${error}`);
+          }
+        }
+        if (reportContext) {
+          const report = buildReport(
+            reportContext.planPath,
+            reportContext.matrixPath,
+            reportContext.matrix,
+            results
+          );
+          writeReport(reportContext.outPath, report);
+        }
+      }
+      const tierSummary = summarizeTier(results[tierName]);
+      console.log(
+        `[tiered] ${tierName}: ${tierSummary.ok}/${totalCasesByTier[tierName]} passed (${tierSummary.passRatePct}%)`
+      );
     }
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
@@ -145,33 +223,18 @@ function main() {
 
   const plan = JSON.parse(fs.readFileSync(planPath, 'utf8'));
   const matrix = parseConformanceMatrix(matrixPath);
-  const tierResults = runTiers(plan, repoRoot);
-
-  const summary = {
-    tier1: summarizeTier(tierResults.tier1),
-    tier2: summarizeTier(tierResults.tier2),
-    tier3: summarizeTier(tierResults.tier3)
-  };
-  const matrixTracking = summarizeMatrixTracking(matrix, tierResults);
-
-  const report = {
-    generatedAt: new Date().toISOString(),
+  const reportContext = {
     planPath: path.relative(repoRoot, planPath),
     matrixPath: path.relative(repoRoot, matrixPath),
-    matrixCoverage: {
-      totalFamilies: matrix.total,
-      done: matrix.done,
-      partial: matrix.partial,
-      missing: matrix.missing,
-      weightedImplementedPct: matrix.weightedPct
-    },
-    tierSummary: summary,
-    matrixTracking,
-    tierResults
+    matrix,
+    outPath
   };
-
-  fs.mkdirSync(path.dirname(outPath), { recursive: true });
-  fs.writeFileSync(outPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+  const startedAt = Date.now();
+  const tierResults = runTiers(plan, repoRoot, { reportContext });
+  const report = buildReport(reportContext.planPath, reportContext.matrixPath, matrix, tierResults);
+  writeReport(outPath, report);
+  const summary = report.tierSummary;
+  const matrixTracking = report.matrixTracking;
 
   console.log('Tiered C++98 Report');
   console.log(`- Matrix weighted coverage: ${matrix.weightedPct}% (${matrix.done} done, ${matrix.partial} partial, ${matrix.missing} missing)`);
@@ -179,6 +242,7 @@ function main() {
   console.log(`- Tier 2: ${summary.tier2.ok}/${summary.tier2.total} passed`);
   console.log(`- Tier 3: ${summary.tier3.ok}/${summary.tier3.total} passed`);
   console.log(`- Matrix families tracked by tier cases: ${matrixTracking.trackedFamilies}/${matrixTracking.totalFamilies} (${matrixTracking.trackedPct}%)`);
+  console.log(`- Total duration: ${formatDurationMs(Date.now() - startedAt)}`);
   console.log(`- Report JSON: ${path.relative(repoRoot, outPath)}`);
 
   if (summary.tier1.failed > 0 || summary.tier2.failed > 0) process.exit(1);
