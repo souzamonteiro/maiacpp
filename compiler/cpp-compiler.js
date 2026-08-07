@@ -1165,6 +1165,12 @@ function inferGlobalFunctions(source) {
       .replace(/\/\/.*$/gm, '')
       .trim();
 
+    // Keep validation examples that route through intermediate function calls
+    // observable in generated output instead of collapsing them to a literal.
+    if (/\b(?:int|long|short|char|float|double)\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*[A-Za-z_][A-Za-z0-9_]*\s*\([^;]*\)\s*;/.test(clean)) {
+      return null;
+    }
+
     function trimOuterParens(text) {
       let t = String(text || '').trim();
       let changed = true;

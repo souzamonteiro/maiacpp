@@ -3,11 +3,15 @@
   "mustContainCompiler": [
     "int run_class_tests(void)",
     "int run_template_tests(void)",
-    "int run_function_pointer_tests(void)"
+    "int run_function_pointer_tests(void)",
+    "int s = execute__iiN8BinaryOp(7, 3, add__ii);",
+    "int m = execute__iiN8BinaryOp(7, 3, multiply__ii);",
+    "return (s == 10 && m == 21) ? 1 : 0;"
   ],
   "mustNotContainCompiler": [
     "int run_class_tests(void) {\n  return (int)0;",
     "int run_template_tests(void) {\n  return (int)0;",
-    "int run_function_pointer_tests(void) {\n  return (int)0;"
+    "int run_function_pointer_tests(void) {\n  return (int)0;",
+    "int run_function_pointer_tests(void) {\n  return 1;"
   ]
 }

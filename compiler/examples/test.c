@@ -15,6 +15,7 @@ extern void   __exc_clear(void);
 extern int    __exc_matches(int thrown_type, int catch_type);
 extern void*  __malloc(unsigned long size);
 extern void   __free(void* ptr);
+extern int    sprintf(char* dest, const char* format, ...);
 
 /* String and memory function declarations (MaiaC-compatible, no #include needed) */
 extern unsigned int strlen(const char* s);
@@ -589,10 +590,10 @@ int main(void) {
   return 1;
 }
 
-/* Lowering diagnostics: 7 event(s) (structured-indexed-object-cmp-return=1, structured-io-runtime=2, structured-local-return=1, structured-method-cmp-return=1, structured-resource-runtime=2) */
+/* Lowering diagnostics: 7 event(s) (structured-cstyle-body=1, structured-indexed-object-cmp-return=1, structured-io-runtime=2, structured-method-cmp-return=1, structured-resource-runtime=2) */
 /* - run_class_tests: structured-method-cmp-return (method) */
 /* - run_template_tests: structured-indexed-object-cmp-return (2 assignment(s)) */
-/* - run_function_pointer_tests: structured-local-return (2 local(s)) */
+/* - run_function_pointer_tests: structured-cstyle-body (3 stmt(s)) */
 /* - run_cast_tests: structured-resource-runtime (cast-static-runtime) */
 /* - run_new_delete_tests: structured-resource-runtime (new-delete-runtime) */
 /* - run_cout_stress_tests: structured-io-runtime (structured-io-runtime) */

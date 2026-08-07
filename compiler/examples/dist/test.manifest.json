@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-07-31T19:28:58.137Z",
-  "input": "/var/folders/6p/871hys095mq5mm7078sqplx40000gn/T/tmp.DrOX6htqRP/test.c",
+  "generatedAt": "2026-08-07T14:54:28.637Z",
+  "input": "/var/folders/6p/871hys095mq5mm7078sqplx40000gn/T/tmp.pJ9WX9LPut/test.c",
   "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/dist",
   "appName": "test",
   "artifacts": {
@@ -16,5 +16,5 @@
   "copiedLibraries": [],
   "runtimeProvidedHeaders": [],
   "missingLibraries": [],
-  "sourceBytes": 13599
+  "sourceBytes": 13596
 }

@@ -66,15 +66,21 @@
   </main>
 
   <script src="./browser-memory-file-store.js"></script>
-  <script src="./test.js?v=1779402181137"></script>
   <script>
     (function () {
+      const defaultAppName = "test";
+      const params = new URLSearchParams(window.location.search);
+      const requestedWasm = params.get('wasm');
+      const requestedApp = params.get('app');
+      const selectedStem = requestedApp
+        || (requestedWasm ? requestedWasm.replace(/^.*\//, '').replace(/\.wasm$/i, '') : '')
+        || defaultAppName;
+      const storagePrefix = 'maiac:' + selectedStem + ':vfs:';
       const runBtn = document.getElementById('run');
       const clearBtn = document.getElementById('clear-vfs');
       const persistBox = document.getElementById('persist-vfs');
       const statusEl = document.getElementById('status');
       const outputEl = document.getElementById('output');
-      const storagePrefix = 'maiac:test:vfs:';
 
       function write(text) {
         outputEl.textContent += String(text);
@@ -158,13 +164,36 @@
         };
       }
 
+      function loadScript(src) {
+        return new Promise(function (resolve, reject) {
+          const script = document.createElement('script');
+          script.src = src;
+          script.async = false;
+          script.onload = function () { resolve(); };
+          script.onerror = function () { reject(new Error('Failed to load ' + src)); };
+          document.head.appendChild(script);
+        });
+      }
+
+      async function loadManifestForStem(stem) {
+        const candidates = ['./' + stem + '.manifest.json', './manifest.json'];
+        for (const candidate of candidates) {
+          try {
+            const response = await fetch(candidate, { cache: 'no-store' });
+            if (response.ok) {
+              return await response.json();
+            }
+          } catch (_) {}
+        }
+        return {};
+      }
+
       async function runApp() {
         outputEl.textContent = '';
         statusEl.textContent = 'Running...';
 
         try {
-          const manifestResponse = await fetch('./manifest.json');
-          const manifest = await manifestResponse.json();
+          const manifest = await loadManifestForStem(selectedStem);
           const runtimeBridgeMeta = manifest
             && manifest.asyncRuntime
             && Array.isArray(manifest.asyncRuntime.resumeBridges)
@@ -176,7 +205,14 @@
             scheduleStateEnd: Number.isInteger(item.scheduleStateEnd) ? item.scheduleStateEnd : null
           })).filter((item) => typeof item.bridgeSymbol === 'string' && item.bridgeSymbol.length > 0);
           const availableBridgeSymbols = runtimeBridgeEntries.map((item) => item.bridgeSymbol);
-          const response = await fetch('./test.wasm');
+          const wasmAsset = requestedWasm || ((manifest.artifacts && manifest.artifacts.wasm) || (selectedStem + '.wasm'));
+          const wrapperAsset = (manifest.artifacts && manifest.artifacts.wrapper) || (selectedStem + '.js');
+          await loadScript('./' + wrapperAsset + '?v=' + Date.now());
+          if (typeof createImports !== 'function') {
+            throw new Error('Wrapper did not expose createImports(): ' + wrapperAsset);
+          }
+
+          const response = await fetch('./' + wasmAsset);
           const bytes = await response.arrayBuffer();
           let memoryRef = null;
           const imports = createImports(
