@@ -80,8 +80,99 @@ function writeReport(outPath, report) {
   fs.writeFileSync(outPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
 }
 
-function runCase(testCase, repoRoot, tmpDir) {
+function collectOutputFlagPaths(cmd) {
+  const outputFlags = new Set([
+    '--ast-json-out',
+    '--ast-xml-out'
+  ]);
+  const outputs = [];
+  for (let i = 0; i < cmd.length - 1; i += 1) {
+    if (!outputFlags.has(cmd[i])) continue;
+    outputs.push({ flag: cmd[i], path: cmd[i + 1] });
+    i += 1;
+  }
+  return outputs;
+}
+
+function buildCacheKey(cmd) {
+  if (cmd[0] !== 'node' || cmd[1] !== './compiler/cpp-compiler.js') {
+    return null;
+  }
+  const normalized = [];
+  for (let i = 0; i < cmd.length; i += 1) {
+    normalized.push(cmd[i]);
+    if ((cmd[i] === '--ast-json-out' || cmd[i] === '--ast-xml-out') && i + 1 < cmd.length) {
+      normalized.push('<OUT>');
+      i += 1;
+    }
+  }
+  if (!normalized.includes('<OUT>')) {
+    return null;
+  }
+  return normalized.join('\u0000');
+}
+
+function writeCachedArtifacts(cachedArtifacts, currentOutputs) {
+  if (!Array.isArray(cachedArtifacts) || cachedArtifacts.length === 0) return;
+  const byFlag = new Map(cachedArtifacts.map((artifact) => [artifact.flag, artifact]));
+  for (const output of currentOutputs) {
+    const cachedArtifact = byFlag.get(output.flag);
+    if (!cachedArtifact) continue;
+    fs.mkdirSync(path.dirname(output.path), { recursive: true });
+    fs.writeFileSync(output.path, cachedArtifact.contents, 'utf8');
+  }
+}
+
+function rewriteOutputPaths(text, cachedArtifacts, currentOutputs) {
+  let out = String(text || '');
+  if (!Array.isArray(cachedArtifacts) || !Array.isArray(currentOutputs)) {
+    return out;
+  }
+  const currentByFlag = new Map(currentOutputs.map((entry) => [entry.flag, entry.path]));
+  for (const artifact of cachedArtifacts) {
+    const currentPath = currentByFlag.get(artifact.flag);
+    if (!currentPath || artifact.path === currentPath) continue;
+    out = out.split(artifact.path).join(currentPath);
+  }
+  return out;
+}
+
+function cloneCachedResult(cachedEntry, currentOutputs) {
+  writeCachedArtifacts(cachedEntry.artifacts, currentOutputs);
+  const stdout = rewriteOutputPaths(cachedEntry.stdout, cachedEntry.artifacts, currentOutputs);
+  const stderr = rewriteOutputPaths(cachedEntry.stderr, cachedEntry.artifacts, currentOutputs);
+  const stdoutLines = stdout.split(/\r?\n/);
+  const stderrLines = stderr.split(/\r?\n/);
+
+  return {
+    exitCode: cachedEntry.exitCode,
+    durationMs: 0,
+    cacheHit: true,
+    cachedDurationMs: cachedEntry.durationMs,
+    ok: cachedEntry.ok,
+    errors: [...cachedEntry.errors],
+    stdout,
+    stderr,
+    stdoutPreview: stdoutLines.slice(Math.max(0, stdoutLines.length - 8)).join('\n'),
+    stderrPreview: stderrLines.slice(Math.max(0, stderrLines.length - 8)).join('\n')
+  };
+}
+
+function runCase(testCase, repoRoot, tmpDir, cache = new Map()) {
   const cmd = (testCase.command || []).map((arg) => String(arg).replace('{tmpDir}', tmpDir));
+  const cacheKey = buildCacheKey(cmd);
+  const currentOutputs = collectOutputFlagPaths(cmd);
+  if (cacheKey && cache.has(cacheKey)) {
+    const cached = cloneCachedResult(cache.get(cacheKey), currentOutputs);
+    return {
+      id: testCase.id,
+      family: testCase.family || 'unclassified',
+      matrixFamily: testCase.matrixFamily,
+      command: cmd,
+      ...cached
+    };
+  }
+
   const startedAt = Date.now();
   const proc = spawnSync(cmd[0], cmd.slice(1), { cwd: repoRoot, encoding: 'utf8' });
   const stdout = proc.stdout || '';
@@ -102,24 +193,50 @@ function runCase(testCase, repoRoot, tmpDir) {
 
   const stdoutLines = stdout.split(/\r?\n/);
   const stderrLines = stderr.split(/\r?\n/);
+  const artifacts = currentOutputs
+    .filter((output) => fs.existsSync(output.path))
+    .map((output) => ({
+      flag: output.flag,
+      path: output.path,
+      contents: fs.readFileSync(output.path, 'utf8')
+    }));
 
-  return {
+  const result = {
     id: testCase.id,
     family: testCase.family || 'unclassified',
     matrixFamily: testCase.matrixFamily,
     command: cmd,
     exitCode: proc.status,
     durationMs: Date.now() - startedAt,
+    cacheHit: false,
+    cachedDurationMs: null,
     ok: errors.length === 0,
     errors,
+    stdout,
+    stderr,
     stdoutPreview: stdoutLines.slice(Math.max(0, stdoutLines.length - 8)).join('\n'),
     stderrPreview: stderrLines.slice(Math.max(0, stderrLines.length - 8)).join('\n')
   };
+
+  if (cacheKey && result.ok) {
+    cache.set(cacheKey, {
+      exitCode: result.exitCode,
+      durationMs: result.durationMs,
+      ok: result.ok,
+      errors: [...result.errors],
+      stdout,
+      stderr,
+      artifacts
+    });
+  }
+
+  return result;
 }
 
 function runTiers(plan, repoRoot, options = {}) {
   const results = { tier1: [], tier2: [], tier3: [] };
   const reportContext = options.reportContext || null;
+  const cache = new Map();
   const totalCasesByTier = {
     tier1: ((plan.tiers || {}).tier1 || []).length,
     tier2: ((plan.tiers || {}).tier2 || []).length,
@@ -138,10 +255,13 @@ function runTiers(plan, repoRoot, options = {}) {
         const testCase = cases[index];
         const label = `${tierName} ${index + 1}/${cases.length}`;
         console.log(`[tiered] ${label}: ${testCase.id}`);
-        const result = runCase(testCase, repoRoot, tempDir);
+        const result = runCase(testCase, repoRoot, tempDir, cache);
         results[tierName].push(result);
         const status = result.ok ? 'ok' : 'fail';
-        console.log(`[tiered] ${label}: ${status} (${formatDurationMs(result.durationMs)})`);
+        const durationText = result.cacheHit
+          ? `cached from ${formatDurationMs(result.cachedDurationMs)} baseline`
+          : formatDurationMs(result.durationMs);
+        console.log(`[tiered] ${label}: ${status} (${durationText})`);
         if (!result.ok) {
           for (const error of result.errors) {
             console.log(`[tiered] ${label}: ${error}`);
