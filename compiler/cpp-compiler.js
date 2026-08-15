@@ -9778,7 +9778,8 @@ class CppToCTranspiler {
         }
         return match;
       });
-      const rewrittenCalls = src.replace(/\b([A-Za-z_][A-Za-z0-9_:]*)\s*\(([^()]*)\)/g, (match, name, argsRaw) => {
+      const normalizedUnaryParens = src.replace(/([+\-])\s*\(\s*([A-Za-z_][A-Za-z0-9_]*|\d+(?:\.\d+)?)\s*\)/g, '$1$2');
+      const rewrittenCalls = normalizedUnaryParens.replace(/\b([A-Za-z_][A-Za-z0-9_:]*)\s*\(([^()]*)\)/g, (match, name, argsRaw) => {
         const callee = String(name || '').trim();
         if (!callee) return match;
         const splitTopLevelArgs = (raw) => {
