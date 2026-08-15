@@ -279,6 +279,16 @@ function stripUsingNamespaceDirectives(source) {
   return String(source || '').replace(/\busing\s+namespace\s+[^;]+;/g, '');
 }
 
+function looksLikeMaiaGeneratedSourceText(sourceText) {
+  const source = String(sourceText || '');
+  if (!source) return false;
+  const maiaHits = source.match(/\b__maia_[A-Za-z0-9_]+\b/g) || [];
+  if (maiaHits.length < 8) return false;
+  return source.includes('__maia_console_concat2(')
+    || source.includes('__console__log(')
+    || source.includes('__maia_runtime_alloc_value(');
+}
+
 function extractNamespaceNames(source) {
   const names = new Set();
   const rx = /\bnamespace\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{/g;
@@ -3703,16 +3713,8 @@ class CppToCTranspiler {
         && !fn.namespacePath?.length
         && !/::/.test(rawBodyText)
         && (Boolean(fn.resourceDeterministicHint) || this.mainReferencesTopLevelAliasesOrGlobals(rawBodyText));
-      const sourceLooksMaiaGenerated = (() => {
-        const source = String(this.options.source || '');
-        if (!source) return false;
-        const maiaHits = source.match(/\b__maia_[A-Za-z0-9_]+\b/g) || [];
-        if (maiaHits.length < 40) return false;
-        return source.includes('__maia_console_concat2(')
-          || source.includes('__console__log(')
-          || source.includes('__maia_runtime_alloc_value(');
-      })();
-      const preferCStyleMain = skipStructuredMain;
+      const sourceLooksMaiaGenerated = looksLikeMaiaGeneratedSourceText(this.options.source || '');
+      const preferCStyleMain = skipStructuredMain || sourceLooksMaiaGenerated;
       const hasStructuredCandidate = Boolean(
         fn.simpleIfReturn
         || fn.simpleLocalInitReturn
@@ -9892,7 +9894,7 @@ class CppToCTranspiler {
       if (srcLines.length === 0) return srcLines;
 
       const declared = new Set();
-      const hoisted = [];
+      const hoisted = new Map();
 
       const noteDeclaration = (line) => {
         const m = String(line || '').match(/^\s*int\s+([^;]+);\s*$/);
@@ -9907,18 +9909,19 @@ class CppToCTranspiler {
       for (const line of srcLines) noteDeclaration(line);
 
       const out = srcLines.map((line) => {
-        const converted = String(line || '').replace(/for\s*\(\s*int\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^;]+);/g, (match, name, initExpr) => {
+        const converted = String(line || '').replace(/for\s*\(\s*((?:const\s+)?(?:int|double|float|long|short|char|bool))\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^;]+);/g, (match, typeName, name, initExpr) => {
           const varName = String(name || '').trim();
-          if (!declared.has(varName) && !hoisted.includes(varName)) {
-            hoisted.push(varName);
+          const normalizedType = String(typeName || '').trim();
+          if (!declared.has(varName) && !hoisted.has(varName)) {
+            hoisted.set(varName, normalizedType);
           }
           return `for (${varName} = ${String(initExpr || '').trim()};`;
         });
         return converted;
       });
 
-      if (hoisted.length === 0) return out;
-      const declLines = hoisted.map((name) => `int ${name};`);
+      if (hoisted.size === 0) return out;
+      const declLines = Array.from(hoisted.entries()).map(([name, typeName]) => `${typeName} ${name};`);
       return [...declLines, ...out];
     };
 
@@ -10404,13 +10407,11 @@ class Cpp98Compiler {
   }
 
   shouldPreferSimpleAnalyzer(sourceText) {
-    const source = String(sourceText || '');
-    if (!source) return false;
-    const maiaHits = source.match(/\b__maia_[A-Za-z0-9_]+\b/g) || [];
-    if (maiaHits.length < 40) return false;
-    return source.includes('__maia_console_concat2(')
-      || source.includes('__console__log(')
-      || source.includes('__maia_runtime_alloc_value(');
+    return looksLikeMaiaGeneratedSourceText(sourceText);
+  }
+
+  looksLikeMaiaGeneratedSource(sourceText) {
+    return looksLikeMaiaGeneratedSourceText(sourceText);
   }
 
   preflightParseWithTimeout(sourceText, candidateLabel = 'parser candidate') {
@@ -10967,6 +10968,7 @@ class Cpp98Compiler {
       if (!debugProfile) return;
       console.error(`[maiacpp-profile] collect/${label}: ${Date.now() - startedAt}ms`);
     };
+    const skipParseProbes = this.looksLikeMaiaGeneratedSource(source);
     if (!(this.options && this.options.astStrict)) {
       const parseSources = [];
       const normalized = normalizeForParser(source);
@@ -10983,10 +10985,12 @@ class Cpp98Compiler {
         const candidate = parseSources[i];
         try {
           mark(`candidate-${i}-start`);
-          this.preflightParseWithTimeout(candidate.text, candidate.label || 'parser candidate');
-          mark(`candidate-${i}-preflight`);
-          this.preflightCollectWithTimeout(candidate.text, candidate.label || 'collector candidate');
-          mark(`candidate-${i}-collect-probe`);
+          if (!skipParseProbes) {
+            this.preflightParseWithTimeout(candidate.text, candidate.label || 'parser candidate');
+            mark(`candidate-${i}-preflight`);
+            this.preflightCollectWithTimeout(candidate.text, candidate.label || 'collector candidate');
+            mark(`candidate-${i}-collect-probe`);
+          }
           const collector = new ParseTreeCollector();
           const parser = new Parser(candidate.text, collector);
 
@@ -11053,10 +11057,6 @@ class Cpp98Compiler {
     console.log(`Parsing: ${this.filePath}`);
     let lastErr = null;
     const astStrict = !!(this.options && this.options.astStrict);
-    if (!astStrict && this.shouldPreferSimpleAnalyzer(source)) {
-      console.log('Usando fallback simples (Maia-generated source).');
-      return new SimpleAnalyzer(this.filePath).analyze();
-    }
     const debugProfile = process.env.MAIACPP_PROFILE === '1';
     const startedAt = Date.now();
     const mark = (label) => {
