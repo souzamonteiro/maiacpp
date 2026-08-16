@@ -9652,7 +9652,7 @@ class CppToCTranspiler {
       for (const rawLine of String(text || '').split('\n')) {
         const line = String(rawLine || '')
           .replace(/^(\s*)return(?=[A-Za-z_(])/, '$1return ')
-          .replace(/\bnew(?=(?:int|char|double|float)\b)/g, 'new ')
+          .replace(/\bnew(?=(?:int|char|double|float|long)\b)/g, 'new ')
           .replace(/\bdelete(?=(?:\[\s*\]|[A-Za-z_]))/g, 'delete ');
         const trimmed = line.trim();
         if (!trimmed) {
@@ -9660,7 +9660,7 @@ class CppToCTranspiler {
           continue;
         }
 
-        const newArrayDecl = line.match(/^(\s*)(int|char|double|float)\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*new\s*(int|char|double|float)\s*\[\s*([^\]]+)\s*\]\s*;\s*$/);
+        const newArrayDecl = line.match(/^(\s*)(int|char|double|float|long)\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*new\s*(int|char|double|float|long)\s*\[\s*([^\]]+)\s*\]\s*;\s*$/);
         if (newArrayDecl && newArrayDecl[2] === newArrayDecl[4]) {
           const indent = newArrayDecl[1];
           const baseType = newArrayDecl[2];
@@ -9670,7 +9670,7 @@ class CppToCTranspiler {
           continue;
         }
 
-        const newScalarDecl = line.match(/^(\s*)(int|char|double|float)\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*new\s*(int|char|double|float)\s*(?:\(\s*([^)]*)\s*\))?\s*;\s*$/);
+        const newScalarDecl = line.match(/^(\s*)(int|char|double|float|long)\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*new\s*(int|char|double|float|long)\s*(?:\(\s*([^)]*)\s*\))?\s*;\s*$/);
         if (newScalarDecl && newScalarDecl[2] === newScalarDecl[4]) {
           const indent = newScalarDecl[1];
           const baseType = newScalarDecl[2];
