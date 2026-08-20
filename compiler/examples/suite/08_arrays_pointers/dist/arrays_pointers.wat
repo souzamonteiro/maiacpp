@@ -7,9 +7,11 @@
   (import "env" "__exc_pop" (func $imp___exc_pop))
   (import "env" "__exc_active" (func $imp___exc_active (result i32)))
   (import "env" "__exc_type" (func $imp___exc_type (result i32)))
+  (import "env" "__exc_data" (func $imp___exc_data (result i32)))
   (import "env" "__exc_throw" (func $imp___exc_throw (param i32 i32)))
   (import "env" "__exc_clear" (func $imp___exc_clear))
   (import "env" "__exc_matches" (func $imp___exc_matches (param i32 i32) (result i32)))
+  (import "env" "__malloc" (func $imp___malloc (param i32) (result i32)))
   (import "env" "__free" (func $imp___free (param i32)))
   (import "env" "printf" (func $imp_printf (param f64 f64 f64 f64 f64 f64 f64 f64) (result i32)))
 

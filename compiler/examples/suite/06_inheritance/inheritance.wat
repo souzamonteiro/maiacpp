@@ -7,9 +7,11 @@
   (import "env" "__exc_pop" (func $imp___exc_pop))
   (import "env" "__exc_active" (func $imp___exc_active (result i32)))
   (import "env" "__exc_type" (func $imp___exc_type (result i32)))
+  (import "env" "__exc_data" (func $imp___exc_data (result i32)))
   (import "env" "__exc_throw" (func $imp___exc_throw (param i32 i32)))
   (import "env" "__exc_clear" (func $imp___exc_clear))
   (import "env" "__exc_matches" (func $imp___exc_matches (param i32 i32) (result i32)))
+  (import "env" "__malloc" (func $imp___malloc (param i32) (result i32)))
   (import "env" "__free" (func $imp___free (param i32)))
   (import "env" "printf" (func $imp_printf (param f64 f64 f64 f64 f64 f64 f64 f64) (result i32)))
 
@@ -186,7 +188,7 @@
   )
 
   ;; function Rectangle_area
-  (func $Rectangle_area (param $self i32) (result f64)
+  (func $Rectangle_area (param $self i32) (result i32)
     (local $__frame i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
@@ -224,12 +226,13 @@
     i32.add
     f64.load
     f64.mul
+    i32.trunc_f64_s
     local.get $__parent_frame
     global.set $__frame_ptr
     local.get $__frame
     global.set $__stack_ptr
     return
-    f64.const 0
+    i32.const 0
     local.get $__parent_frame
     global.set $__frame_ptr
     local.get $__frame
@@ -311,7 +314,7 @@
   )
 
   ;; function Circle_area
-  (func $Circle_area (param $self i32) (result f64)
+  (func $Circle_area (param $self i32) (result i32)
     (local $__frame i32)
     (local $__parent_frame i32)
     global.get $__frame_ptr
@@ -351,12 +354,13 @@
     i32.add
     f64.load
     f64.mul
+    i32.trunc_f64_s
     local.get $__parent_frame
     global.set $__frame_ptr
     local.get $__frame
     global.set $__stack_ptr
     return
-    f64.const 0
+    i32.const 0
     local.get $__parent_frame
     global.set $__frame_ptr
     local.get $__frame
@@ -385,11 +389,11 @@
     f64.const 4
     f64.const 3
     call $Rectangle_init__dd
-    i32.const 0
     local.get $__frame
     i32.const 0
     i32.add
     call $Rectangle_area
+    f64.convert_i32_s
     f64.const 12
     f64.eq
     i32.eqz

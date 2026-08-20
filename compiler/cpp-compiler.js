@@ -3014,7 +3014,11 @@ class CppToCTranspiler {
 
     const ptrMatch = normalized.match(/(\*+)$/);
     const ptrSuffix = ptrMatch ? ptrMatch[1] : '';
-    const base = ptrSuffix ? normalized.slice(0, -ptrSuffix.length).trim() : normalized;
+    const rawBase = ptrSuffix ? normalized.slice(0, -ptrSuffix.length).trim() : normalized;
+    const base = rawBase
+      .replace(/\b(?:static|extern|inline|virtual|friend|constexpr|mutable)\b/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
     if (!base) return 'void*';  // unknown empty base → opaque pointer
 
     const builtinWords = new Set(['signed', 'unsigned', 'short', 'long', 'int', 'char', 'float', 'double', 'void']);
@@ -11165,6 +11169,9 @@ class Cpp98Compiler {
       if (currentParams.length !== hintParams.length) return true;
       if (currentParams.some((param) => !hasInformativeFunctionTypeText(param?.type))) return true;
       if (!hasInformativeFunctionTypeText(current?.returnType)) return true;
+      const currentReturn = String(current?.returnType || '').trim();
+      const hintReturn = String(hint?.returnType || '').trim();
+      if (currentReturn === 'int' && hasInformativeFunctionTypeText(hintReturn) && hintReturn !== 'int') return true;
       return false;
     };
     const pickFunctionHintByBody = (fnList, targetFn) => {
