@@ -4,7 +4,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-python3 tests/run_fixtures.py --parser cpp-compiler.js --mode compiler
+node tests/run_fixtures.js --fixtures-dir ./tests/fixtures --parser ./cpp-compiler.js --mode compiler
+node tests/check_parser_expression_performance.js
 
 echo ""
 echo "Running smoke cases..."

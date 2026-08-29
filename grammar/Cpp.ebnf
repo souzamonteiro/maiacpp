@@ -419,14 +419,12 @@ throwExpression ::= 'throw' assignmentExpression?
 
 expression ::= assignmentExpression ( ',' assignmentExpression )*
 
-assignmentExpression ::= conditionalExpression assignmentOperator assignmentExpression
-                       | conditionalExpression
+assignmentExpression ::= conditionalExpression ( assignmentOperator assignmentExpression )?
                        | throwExpression
 
 assignmentOperator ::= '=' | '*=' | '/=' | '%=' | '+=' | '-=' | '<<=' | '>>=' | '&=' | '^=' | '|='
 
-conditionalExpression ::= logicalOrExpression '?' expression ':' conditionalExpression
-                        | logicalOrExpression
+conditionalExpression ::= logicalOrExpression ( '?' expression ':' conditionalExpression )?
 
 constantExpression ::= conditionalExpression
 

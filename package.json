@@ -34,6 +34,7 @@
     "report:tiers": "node ./compiler/tests/run_tiered_cpp98.js",
     "compare:cpp-vs-pipeline": "node ./compiler/tests/compare_cpp_vs_pipeline.js --file ./compiler/test_cpp98_extended.cpp",
     "check:fixtures": "node ./compiler/tests/run_fixtures.js --fixtures-dir ./compiler/tests/fixtures --parser ./compiler/cpp-compiler.js --mode compiler",
+    "check:parser:performance": "node ./compiler/tests/check_parser_expression_performance.js",
     "check:equiv:extended": "node ./compiler/tests/compare_cpp_vs_pipeline.js --file ./compiler/test_cpp98_extended.cpp",
     "check:equiv:namespace": "node ./compiler/tests/compare_cpp_vs_pipeline.js --file ./compiler/tests/equivalence/401_namespace_overload.cpp",
     "check:equiv:object-memory": "node ./compiler/tests/compare_cpp_vs_pipeline.js --file ./compiler/tests/equivalence/402_object_memory.cpp",

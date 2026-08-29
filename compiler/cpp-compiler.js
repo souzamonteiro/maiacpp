@@ -2138,7 +2138,17 @@ class SemanticAnalyzer {
   text(node) {
     if (!node) return '';
     if (node.kind === 'terminal') return node.value || '';
-    return (node.children || []).map((c) => this.text(c)).join('');
+    const fragments = (node.children || [])
+      .map((child) => this.text(child))
+      .filter((text) => text.length > 0);
+    let out = '';
+    for (const fragment of fragments) {
+      if (out && /[A-Za-z0-9_]$/.test(out) && /^[A-Za-z0-9_]/.test(fragment)) {
+        out += ' ';
+      }
+      out += fragment;
+    }
+    return out;
   }
 }
 
@@ -3298,16 +3308,18 @@ class CppToCTranspiler {
         emittedCtorLowering = true;
       } else if (!emittedCtorLowering
         && ctorParams.length === 1
-        && normalizeTypeText(ctorParams[0]?.type || '') === `${name}*`) {
+        && ([name, `${name}*`].includes(normalizeTypeText(ctorParams[0]?.type || '')))) {
         const sourceName = String(ctorParams[0]?.name || 'other').trim();
         if (sourceName) {
+          const sourceIsPointer = normalizeTypeText(ctorParams[0]?.type || '') === `${name}*`;
+          const sourceRef = sourceIsPointer ? `${sourceName}->` : `${sourceName}.`;
           if (Array.isArray(cls.bases) && cls.bases.length > 0) {
-            this.em.line(`self->__base = ${sourceName}->__base;`);
+            this.em.line(`self->__base = ${sourceRef}__base;`);
           }
           for (const member of (cls.members || [])) {
             const memberName = String(member?.name || '').trim();
             if (!memberName || memberName.includes('[')) continue;
-            this.em.line(`self->${memberName} = ${sourceName}->${memberName};`);
+            this.em.line(`self->${memberName} = ${sourceRef}${memberName};`);
           }
           emittedCtorLowering = true;
         }
@@ -9782,8 +9794,7 @@ class CppToCTranspiler {
         }
         return match;
       });
-      const normalizedUnaryParens = src.replace(/([+\-])\s*\(\s*([A-Za-z_][A-Za-z0-9_]*|\d+(?:\.\d+)?)\s*\)/g, '$1$2');
-      const rewrittenCalls = normalizedUnaryParens.replace(/\b([A-Za-z_][A-Za-z0-9_:]*)\s*\(([^()]*)\)/g, (match, name, argsRaw) => {
+      const rewrittenCalls = src.replace(/\b([A-Za-z_][A-Za-z0-9_:]*)\s*\(([^()]*)\)/g, (match, name, argsRaw) => {
         const callee = String(name || '').trim();
         if (!callee) return match;
         const splitTopLevelArgs = (raw) => {
@@ -10998,6 +11009,7 @@ class Cpp98Compiler {
           }
           const collector = new ParseTreeCollector();
           const parser = new Parser(candidate.text, collector);
+          mark(`candidate-${i}-parser-created`);
 
           //parser.parse();
           collector.parse(parser, candidate.text);
@@ -11307,7 +11319,9 @@ class Cpp98Compiler {
           returnType: (!fn.returnType || preferHintedSignature) ? hinted.returnType : fn.returnType,
           params: (!Array.isArray(fn.params) || preferHintedSignature) ? hinted.params : fn.params,
           lowering: fn.lowering || hinted.lowering || null,
-          bodyText: fn.bodyText || hinted.bodyText || '',
+          bodyText: bodyKeyForFn(fn) && bodyKeyForFn(fn) === bodyKeyForFn(hinted)
+            ? hinted.bodyText
+            : (fn.bodyText || hinted.bodyText || ''),
           isVariadic: hasInformativeTrueBoolean(fn.isVariadic) || hasInformativeTrueBoolean(hinted.isVariadic),
           simpleVariadicIntSum: hasInformativeTrueBoolean(fn.simpleVariadicIntSum) || hasInformativeTrueBoolean(hinted.simpleVariadicIntSum),
           simpleReturnExpr: (() => {
@@ -11431,7 +11445,9 @@ class Cpp98Compiler {
             returnType: (!method.returnType || preferHint) ? hint.returnType : method.returnType,
             params: (!Array.isArray(method.params) || preferHint) ? hint.params : method.params,
             lowering: method.lowering || hint.lowering || null,
-            bodyText: method.bodyText || hint.bodyText || ''
+            bodyText: bodyKeyFor(method.bodyText) && bodyKeyFor(method.bodyText) === bodyKeyFor(hint.bodyText)
+              ? hint.bodyText
+              : (method.bodyText || hint.bodyText || '')
           };
         });
 
@@ -11443,7 +11459,9 @@ class Cpp98Compiler {
             ...ctor,
             params: (!Array.isArray(ctor.params) || preferHint) ? hint.params : ctor.params,
             lowering: ctor.lowering || hint.lowering || null,
-            bodyText: ctor.bodyText || hint.bodyText || ''
+            bodyText: bodyKeyFor(ctor.bodyText) && bodyKeyFor(ctor.bodyText) === bodyKeyFor(hint.bodyText)
+              ? hint.bodyText
+              : (ctor.bodyText || hint.bodyText || '')
           };
         });
       }
