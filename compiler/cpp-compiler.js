@@ -9402,6 +9402,42 @@ class CppToCTranspiler {
 
     if (!rawBody.trim()) return null;
 
+    const lowerImmediateStringThrowCatch = (text) => {
+      let source = String(text || '');
+      let searchFrom = 0;
+      while (searchFrom < source.length) {
+        const tryMatch = /\btry\s*\{/.exec(source.slice(searchFrom));
+        if (!tryMatch) break;
+
+        const tryStart = searchFrom + tryMatch.index;
+        const tryOpen = tryStart + tryMatch[0].lastIndexOf('{');
+        const tryClose = findMatchingBrace(source, tryOpen);
+        if (tryClose < 0) return null;
+
+        const afterTry = source.slice(tryClose + 1);
+        const catchMatch = /^\s*catch\s*\(\s*const\s+char\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*\{/.exec(afterTry);
+        if (!catchMatch) return null;
+
+        const catchOpen = tryClose + 1 + catchMatch[0].lastIndexOf('{');
+        const catchClose = findMatchingBrace(source, catchOpen);
+        if (catchClose < 0) return null;
+
+        const throwBody = source.slice(tryOpen + 1, tryClose).trim();
+        const throwMatch = throwBody.match(/^throw\s+__new__Error\s*\(\s*("(?:\\.|[^"\\])*")\s*\)\s*;$/);
+        if (!throwMatch) return null;
+
+        const errorName = catchMatch[1];
+        const catchBody = source.slice(catchOpen + 1, catchClose).trim();
+        const lowered = `{ const char* ${errorName} = __new__Error(${throwMatch[1]}); ${catchBody} }`;
+        source = `${source.slice(0, tryStart)}${lowered}${source.slice(catchClose + 1)}`;
+        searchFrom = tryStart + lowered.length;
+      }
+      return source;
+    };
+
+    rawBody = lowerImmediateStringThrowCatch(rawBody);
+    if (rawBody === null) return null;
+
     const compactBody = cleanFunctionBodyText(rawBody);
     // Generic template bodies that still reference symbolic T should not be emitted as C text.
     if (/\bT\b/.test(rawBody) && String(fn?.name || '').toLowerCase().includes('swap')) {
