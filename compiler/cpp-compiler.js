@@ -9921,7 +9921,25 @@ class CppToCTranspiler {
         if (!mangled || mangled === callee) return `${callee}(${rewrittenArgs.join(', ')})`;
         return `${mangled}(${rewrittenArgs.join(', ')})`;
       });
-      return rewriteStringLiteralComparisons(rewrittenCalls);
+      const knownFunctions = Array.isArray(allFns) ? allFns : [];
+      const rewrittenFunctionRefs = rewrittenCalls.replace(
+        /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\b([A-Za-z_][A-Za-z0-9_]*)\b/g,
+        (token, functionName, offset, sourceText) => {
+          if (!functionName) return token;
+          const before = offset > 0 ? sourceText[offset - 1] : '';
+          const after = sourceText.slice(offset + token.length);
+          if (before === '.' || before === ':' || /^\s*\(/.test(after)) return token;
+          const candidates = knownFunctions.filter((candidate) => candidate && candidate.name === functionName);
+          if (candidates.length === 0) return token;
+          const picked = candidates.find((candidate) => (candidate.namespacePath || []).length === 0) || candidates[0];
+          const signature = (picked.params || []).map((param) => ({
+            kind: this.typeKindFromText(param.type),
+            name: param.type
+          }));
+          return mangle(picked.name, signature, null, picked.namespacePath || []);
+        }
+      );
+      return rewriteStringLiteralComparisons(rewrittenFunctionRefs);
     };
 
     const discardStandaloneCallResult = (statementText) => {
