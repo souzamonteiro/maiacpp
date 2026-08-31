@@ -9428,7 +9428,7 @@ class CppToCTranspiler {
 
         const errorName = catchMatch[1];
         const catchBody = source.slice(catchOpen + 1, catchClose).trim();
-        const lowered = `{ const char* ${errorName} = __new__Error(${throwMatch[1]}); ${catchBody} }`;
+        const lowered = `{ const char* ${errorName} = ${throwMatch[1]}; ${catchBody} }`;
         source = `${source.slice(0, tryStart)}${lowered}${source.slice(catchClose + 1)}`;
         searchFrom = tryStart + lowered.length;
       }
@@ -9822,15 +9822,25 @@ class CppToCTranspiler {
 
     const rewriteCalls = (text) => {
       const src = String(text || '');
+      const protectedLiterals = [];
+      const protectedSource = src.replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g, (literal) => {
+        const placeholder = `__maia_literal_placeholder_${protectedLiterals.length}__`;
+        protectedLiterals.push(literal);
+        return placeholder;
+      });
+      const restoreLiterals = (value) => String(value || '').replace(
+        /__maia_literal_placeholder_(\d+)__/g,
+        (_match, index) => protectedLiterals[Number(index)] || _match
+      );
       const localClassTypes = new Map();
-      src.replace(/(?:^|[;\n])\s*([A-Za-z_][A-Za-z0-9_:]*)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:\([^;]*\))?\s*;/g, (match, typeName, localName) => {
+      protectedSource.replace(/(?:^|[;\n])\s*([A-Za-z_][A-Za-z0-9_:]*)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:\([^;]*\))?\s*;/g, (match, typeName, localName) => {
         const normalizedType = normalizeTypeText(typeName || '');
         if (this.analysis?.classes instanceof Map && this.analysis.classes.has(normalizedType)) {
           localClassTypes.set(String(localName || '').trim(), normalizedType);
         }
         return match;
       });
-      const rewrittenCalls = src.replace(/\b([A-Za-z_][A-Za-z0-9_:]*)\s*\(([^()]*)\)/g, (match, name, argsRaw) => {
+      const rewrittenCalls = protectedSource.replace(/\b([A-Za-z_][A-Za-z0-9_:]*)\s*\(([^()]*)\)/g, (match, name, argsRaw) => {
         const callee = String(name || '').trim();
         if (!callee) return match;
         const splitTopLevelArgs = (raw) => {
@@ -9939,7 +9949,7 @@ class CppToCTranspiler {
           return mangle(picked.name, signature, null, picked.namespacePath || []);
         }
       );
-      return rewriteStringLiteralComparisons(rewrittenFunctionRefs);
+      return rewriteStringLiteralComparisons(restoreLiterals(rewrittenFunctionRefs));
     };
 
     const discardStandaloneCallResult = (statementText) => {
