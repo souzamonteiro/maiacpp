@@ -9237,7 +9237,14 @@ class CppToCTranspiler {
       };
       let match;
       while ((match = definitionPattern.exec(source)) !== null) {
-        const rawParams = splitTopLevelArgs(match[1] || '');
+        const rawParamText = String(match[1] || '').trim();
+        const rawParams = splitTopLevelArgs(rawParamText);
+        // C++ permits `void f(void)` as a no-argument declaration.  The
+        // declaration lowering keeps `void` in its mangled signature, so the
+        // fallback resolver must use the same representation for `f()`.
+        if (rawParamText === 'void' && arity === 0) {
+          return mangle(baseName, [{ kind: 'void', name: 'void' }], null, []);
+        }
         if (rawParams.length !== arity) {
           continue;
         }
