@@ -3037,6 +3037,10 @@ class CppToCTranspiler {
     // MaiaC C89 parser does not support multi-level pointers (**).
     // Always cap pointer depth at one level ('*') in the emitted C.
     const safePtrSuffix = ptrSuffix.length > 0 ? '*' : '';
+    const structTypeMatch = base.match(/^struct\s+([A-Za-z_][A-Za-z0-9_]*)$/);
+    if (structTypeMatch && this.knownTypeNames.has(structTypeMatch[1])) {
+      return `${structTypeMatch[1]}${safePtrSuffix}`;
+    }
     if (isBuiltinPhrase || this.knownTypeNames.has(base)) {
       return `${base}${safePtrSuffix}`;
     }
