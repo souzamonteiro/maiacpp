@@ -8,28 +8,6 @@
       "children": [
         {
           "kind": "terminal",
-          "token": "Comment",
-          "value": "/* Complete MaiaCpp Runtime Validation Test */"
-        }
-      ]
-    },
-    {
-      "kind": "nonterminal",
-      "name": "translationUnitItem",
-      "children": [
-        {
-          "kind": "terminal",
-          "token": "Comment",
-          "value": "/* This test mirrors the intent of the MaiaC exhaustive example while staying\n    inside the subset that MaiaCpp can currently transpile into real executable C.\n    The goal is to exercise observable runtime behavior instead of returning\n    placeholder constants. Coverage includes:\n    - namespaces and overload-resolution-sensitive calls\n    - arithmetic, relational, logical and bitwise operators\n    - compound assignments and pointer writes\n    - for/while/do-while control flow\n    - class ctor/const methods and template operator[]\n    - function pointers\n    - dynamic/static casts\n    - new/delete and placement new\n    - cout chains with int/double/char literals and variables\n*/"
-        }
-      ]
-    },
-    {
-      "kind": "nonterminal",
-      "name": "translationUnitItem",
-      "children": [
-        {
-          "kind": "terminal",
           "token": "PreprocessingDirective",
           "value": "#include <stdio.h>\n"
         }
@@ -977,6 +955,11 @@
                               "kind": "terminal",
                               "token": "TOKEN_typename",
                               "value": "typename"
+                            },
+                            {
+                              "kind": "terminal",
+                              "token": "Identifier",
+                              "value": "T"
                             }
                           ]
                         }
@@ -26212,23 +26195,6 @@
                               "name": "statement",
                               "children": [
                                 {
-                                  "kind": "terminal",
-                                  "token": "Comment",
-                                  "value": "/* Local variable declarations */"
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "kind": "nonterminal",
-                          "name": "blockItem",
-                          "children": [
-                            {
-                              "kind": "nonterminal",
-                              "name": "statement",
-                              "children": [
-                                {
                                   "kind": "nonterminal",
                                   "name": "declarationStatement",
                                   "children": [
@@ -29671,23 +29637,6 @@
                                       "value": ";"
                                     }
                                   ]
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "kind": "nonterminal",
-                          "name": "blockItem",
-                          "children": [
-                            {
-                              "kind": "nonterminal",
-                              "name": "statement",
-                              "children": [
-                                {
-                                  "kind": "terminal",
-                                  "token": "Comment",
-                                  "value": "/* Arithmetic operators test */"
                                 }
                               ]
                             }
@@ -33685,23 +33634,6 @@
                                       "value": ";"
                                     }
                                   ]
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "kind": "nonterminal",
-                          "name": "blockItem",
-                          "children": [
-                            {
-                              "kind": "nonterminal",
-                              "name": "statement",
-                              "children": [
-                                {
-                                  "kind": "terminal",
-                                  "token": "Comment",
-                                  "value": "/* Compound assignment operators test */"
                                 }
                               ]
                             }
@@ -38385,23 +38317,6 @@
                                       "value": ";"
                                     }
                                   ]
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "kind": "nonterminal",
-                          "name": "blockItem",
-                          "children": [
-                            {
-                              "kind": "nonterminal",
-                              "name": "statement",
-                              "children": [
-                                {
-                                  "kind": "terminal",
-                                  "token": "Comment",
-                                  "value": "/* Relational operators test */"
                                 }
                               ]
                             }
@@ -43283,23 +43198,6 @@
                               "name": "statement",
                               "children": [
                                 {
-                                  "kind": "terminal",
-                                  "token": "Comment",
-                                  "value": "/* Logical operators test */"
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "kind": "nonterminal",
-                          "name": "blockItem",
-                          "children": [
-                            {
-                              "kind": "nonterminal",
-                              "name": "statement",
-                              "children": [
-                                {
                                   "kind": "nonterminal",
                                   "name": "expressionStatement",
                                   "children": [
@@ -45153,23 +45051,6 @@
                                       "value": ";"
                                     }
                                   ]
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "kind": "nonterminal",
-                          "name": "blockItem",
-                          "children": [
-                            {
-                              "kind": "nonterminal",
-                              "name": "statement",
-                              "children": [
-                                {
-                                  "kind": "terminal",
-                                  "token": "Comment",
-                                  "value": "/* Bitwise operators test */"
                                 }
                               ]
                             }
@@ -49307,23 +49188,6 @@
                               "name": "statement",
                               "children": [
                                 {
-                                  "kind": "terminal",
-                                  "token": "Comment",
-                                  "value": "/* Pointer operators test */"
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "kind": "nonterminal",
-                          "name": "blockItem",
-                          "children": [
-                            {
-                              "kind": "nonterminal",
-                              "name": "statement",
-                              "children": [
-                                {
                                   "kind": "nonterminal",
                                   "name": "expressionStatement",
                                   "children": [
@@ -50302,23 +50166,6 @@
                                       "value": ";"
                                     }
                                   ]
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "kind": "nonterminal",
-                          "name": "blockItem",
-                          "children": [
-                            {
-                              "kind": "nonterminal",
-                              "name": "statement",
-                              "children": [
-                                {
-                                  "kind": "terminal",
-                                  "token": "Comment",
-                                  "value": "/* Control flow test */"
                                 }
                               ]
                             }
@@ -54421,23 +54268,6 @@
                                       "value": ";"
                                     }
                                   ]
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "kind": "nonterminal",
-                          "name": "blockItem",
-                          "children": [
-                            {
-                              "kind": "nonterminal",
-                              "name": "statement",
-                              "children": [
-                                {
-                                  "kind": "terminal",
-                                  "token": "Comment",
-                                  "value": "/* cout chain stress test */"
                                 }
                               ]
                             }
