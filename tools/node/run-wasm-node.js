@@ -9,8 +9,31 @@ function usage() {
 }
 
 function createEnvImports() {
-  let heap = 1024;
+  let heapTop = null;
   let memoryRef = null;
+  let instanceRef = null;
+
+  function allocate(size) {
+    if (!memoryRef) return 0;
+    const requested = Math.max(1, Number(size) >>> 0);
+    const alignDown = (value) => Math.floor(value / 8) * 8;
+    if (heapTop === null) heapTop = memoryRef.buffer.byteLength;
+
+    const stackGlobal = instanceRef && instanceRef.exports && instanceRef.exports.__stack_ptr;
+    const stackFloor = stackGlobal && Number.isFinite(stackGlobal.value)
+      ? Math.max(1024, stackGlobal.value)
+      : 1024;
+    let pointer = alignDown(heapTop - requested);
+    if (pointer < stackFloor) {
+      const missingBytes = stackFloor - pointer;
+      memoryRef.grow(Math.ceil(missingBytes / 65536) + 1);
+      heapTop = memoryRef.buffer.byteLength;
+      pointer = alignDown(heapTop - requested);
+    }
+
+    heapTop = pointer;
+    return pointer;
+  }
 
   function getMemory() { return memoryRef; }
 
@@ -22,12 +45,7 @@ function createEnvImports() {
     ...c89Hosts,
     // MaiaCpp-specific bridge symbols not exposed by the C89 host bundle.
     printf: (formatPtr, a1, a2, a3, a4, a5, a6, a7) => c89Hosts.fprintf(2, formatPtr, a1, a2, a3, a4, a5, a6, a7),
-    __malloc: (size) => {
-      const ptr = heap;
-      const n = Number(size) >>> 0;
-      heap += Math.max(1, n);
-      return ptr;
-    },
+    __malloc: allocate,
     __free: () => {},
     __exc_push: () => {},
     __exc_pop: () => {},
@@ -41,8 +59,10 @@ function createEnvImports() {
 
   return {
     env,
-    setMemory: (mem) => {
+    setMemory: (mem, instance) => {
       memoryRef = mem || null;
+      instanceRef = instance || null;
+      heapTop = memoryRef ? memoryRef.buffer.byteLength : null;
     }
   };
 }
@@ -64,7 +84,7 @@ async function main() {
   const host = createEnvImports();
   const imports = { env: host.env };
   const { instance } = await WebAssembly.instantiate(bytes, imports);
-  host.setMemory(instance.exports.memory || null);
+  host.setMemory(instance.exports.memory || null, instance);
 
   const mainFn = instance.exports.main;
   const startFn = instance.exports._start;

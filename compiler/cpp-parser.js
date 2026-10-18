@@ -6,7 +6,7 @@ class Lexer {
     this.charClassDepth = 0;
     this.templateDepth = 0;
     this.templateBraceDepthStack = [];
-    this.tokenPatterns = [    { type: 'TOKEN_try', regex: /^try/ },    { type: 'TOKEN__3A_', regex: /^:/ },    { type: 'TOKEN__2C_', regex: /^,/ },    { type: 'TOKEN__28_', regex: /^\(/ },    { type: 'TOKEN__29_', regex: /^\)/ },    { type: 'TOKEN__3A__3A_', regex: /^::/ },    { type: 'TOKEN__3B_', regex: /^;/ },    { type: 'TOKEN_friend', regex: /^friend/ },    { type: 'TOKEN_typedef', regex: /^typedef/ },    { type: 'TOKEN_auto', regex: /^auto/ },    { type: 'TOKEN_register', regex: /^register/ },    { type: 'TOKEN_static', regex: /^static/ },    { type: 'TOKEN_extern', regex: /^extern/ },    { type: 'TOKEN_mutable', regex: /^mutable/ },    { type: 'TOKEN_inline', regex: /^inline/ },    { type: 'TOKEN_virtual', regex: /^virtual/ },    { type: 'TOKEN_explicit', regex: /^explicit/ },    { type: 'TOKEN__3C_', regex: /^</ },    { type: 'TOKEN__3E_', regex: /^>/ },    { type: 'TOKEN_template', regex: /^template/ },    { type: 'TOKEN_char', regex: /^char/ },    { type: 'TOKEN_wchar_5F_t', regex: /^wchar_t/ },    { type: 'TOKEN_bool', regex: /^bool/ },    { type: 'TOKEN_short', regex: /^short/ },    { type: 'TOKEN_int', regex: /^int/ },    { type: 'TOKEN_long', regex: /^long/ },    { type: 'TOKEN_signed', regex: /^signed/ },    { type: 'TOKEN_unsigned', regex: /^unsigned/ },    { type: 'TOKEN_float', regex: /^float/ },    { type: 'TOKEN_double', regex: /^double/ },    { type: 'TOKEN_void', regex: /^void/ },    { type: 'TOKEN_enum', regex: /^enum/ },    { type: 'TOKEN_typename', regex: /^typename/ },    { type: 'TOKEN_class', regex: /^class/ },    { type: 'TOKEN_struct', regex: /^struct/ },    { type: 'TOKEN_union', regex: /^union/ },    { type: 'TOKEN_const', regex: /^const/ },    { type: 'TOKEN_volatile', regex: /^volatile/ },    { type: 'TOKEN__7B_', regex: /^\{/ },    { type: 'TOKEN__7D_', regex: /^\}/ },    { type: 'TOKEN_private', regex: /^private/ },    { type: 'TOKEN_protected', regex: /^protected/ },    { type: 'TOKEN_public', regex: /^public/ },    { type: 'TOKEN__3D_', regex: /^=/ },    { type: 'TOKEN_namespace', regex: /^namespace/ },    { type: 'TOKEN_using', regex: /^using/ },    { type: 'TOKEN_asm', regex: /^asm/ },    { type: 'TOKEN__5B_', regex: /^\[/ },    { type: 'TOKEN__5D_', regex: /^\]/ },    { type: 'TOKEN__2A_', regex: /^\*/ },    { type: 'TOKEN__26_', regex: /^&/ },    { type: 'TOKEN__7E_', regex: /^~/ },    { type: 'TOKEN_operator', regex: /^operator/ },    { type: 'TOKEN_new', regex: /^new/ },    { type: 'TOKEN_delete', regex: /^delete/ },    { type: 'TOKEN__2B_', regex: /^\+/ },    { type: 'TOKEN__2D_', regex: /^-/ },    { type: 'TOKEN__2F_', regex: /^\// },    { type: 'TOKEN__25_', regex: /^%/ },    { type: 'TOKEN__5E_', regex: /^\^/ },    { type: 'TOKEN__7C_', regex: /^\|/ },    { type: 'TOKEN__21_', regex: /^!/ },    { type: 'TOKEN__2B__3D_', regex: /^\+=/ },    { type: 'TOKEN__2D__3D_', regex: /^-=/ },    { type: 'TOKEN__2A__3D_', regex: /^\*=/ },    { type: 'TOKEN__2F__3D_', regex: /^\/=/ },    { type: 'TOKEN__25__3D_', regex: /^%=/ },    { type: 'TOKEN__5E__3D_', regex: /^\^=/ },    { type: 'TOKEN__26__3D_', regex: /^&=/ },    { type: 'TOKEN__7C__3D_', regex: /^\|=/ },    { type: 'TOKEN__3C__3C_', regex: /^<</ },    { type: 'TOKEN__3E__3E_', regex: /^>>/ },    { type: 'TOKEN__3E__3E__3D_', regex: /^>>=/ },    { type: 'TOKEN__3C__3C__3D_', regex: /^<<=/ },    { type: 'TOKEN__3D__3D_', regex: /^==/ },    { type: 'TOKEN__21__3D_', regex: /^!=/ },    { type: 'TOKEN__3C__3D_', regex: /^<=/ },    { type: 'TOKEN__3E__3D_', regex: /^>=/ },    { type: 'TOKEN__26__26_', regex: /^&&/ },    { type: 'TOKEN__7C__7C_', regex: /^\|\|/ },    { type: 'TOKEN__2B__2B_', regex: /^\+\+/ },    { type: 'TOKEN__2D__2D_', regex: /^--/ },    { type: 'TOKEN__2D__3E__2A_', regex: /^->\*/ },    { type: 'TOKEN__2D__3E_', regex: /^->/ },    { type: 'TOKEN__2E__2E__2E_', regex: /^\.\.\./ },    { type: 'TOKEN_throw', regex: /^throw/ },    { type: 'TOKEN_export', regex: /^export/ },    { type: 'TOKEN_case', regex: /^case/ },    { type: 'TOKEN_default', regex: /^default/ },    { type: 'TOKEN_if', regex: /^if/ },    { type: 'TOKEN_else', regex: /^else/ },    { type: 'TOKEN_switch', regex: /^switch/ },    { type: 'TOKEN_while', regex: /^while/ },    { type: 'TOKEN_do', regex: /^do/ },    { type: 'TOKEN_for', regex: /^for/ },    { type: 'TOKEN_goto', regex: /^goto/ },    { type: 'TOKEN_continue', regex: /^continue/ },    { type: 'TOKEN_break', regex: /^break/ },    { type: 'TOKEN_return', regex: /^return/ },    { type: 'TOKEN_catch', regex: /^catch/ },    { type: 'TOKEN__3F_', regex: /^\?/ },    { type: 'TOKEN__2E__2A_', regex: /^\.\*/ },    { type: 'TOKEN_sizeof', regex: /^sizeof/ },    { type: 'TOKEN_dynamic_5F_cast', regex: /^dynamic_cast/ },    { type: 'TOKEN_static_5F_cast', regex: /^static_cast/ },    { type: 'TOKEN_reinterpret_5F_cast', regex: /^reinterpret_cast/ },    { type: 'TOKEN_const_5F_cast', regex: /^const_cast/ },    { type: 'TOKEN_typeid', regex: /^typeid/ },    { type: 'TOKEN__2E_', regex: /^\./ },    { type: 'TOKEN_this', regex: /^this/ },    { type: 'TOKEN_false', regex: /^false/ },    { type: 'TOKEN_true', regex: /^true/ },    { type: 'Identifier', regex: /^(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])(?:(?:(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])|[0-9]|·|[\u0300-\u036f]|[\u203f-\u2040]))*/ },    { type: 'IntegerConstant', regex: /^(?:0(?:(?:[xX](?:[0-9a-fA-F])+|[bB](?:[01])+|(?:[0-7])+))?(?:(?:[uU](?:[lL](?:[lL])?)?|[lL](?:[lL])?(?:[uU])?))?|[1-9](?:[0-9])*(?:(?:[uU](?:[lL](?:[lL])?)?|[lL](?:[lL])?(?:[uU])?))?)/ },    { type: 'FloatingConstant', regex: /^(?:(?:(?:[0-9])+\.(?:[0-9])*(?:[eE](?:[+-])?(?:[0-9])+)?(?:[fFlL])?|\.(?:[0-9])+(?:[eE](?:[+-])?(?:[0-9])+)?(?:[fFlL])?|(?:[0-9])+[eE](?:[+-])?(?:[0-9])+(?:[fFlL])?|(?:[0-9])+[fFlL])|(?:0[xX](?:(?:[0-9a-fA-F])+\.(?:[0-9a-fA-F])*|\.(?:[0-9a-fA-F])+|(?:[0-9a-fA-F])+)[pP](?:[+-])?(?:[0-9])+(?:[fFlL])?|0[xX](?:(?:[0-9a-fA-F])+\.(?:[0-9a-fA-F])*|\.(?:[0-9a-fA-F])+|(?:[0-9a-fA-F])+)[pP](?:[+-])?(?:[0-9])+(?:[fFlL])?))/ },    { type: 'CharacterConstant', regex: /^(?:\\\\)?'(?:(?:[!-~]| |(?:\\['"\\?\\\\abfnrtv]|\\[0-7](?:[0-7])?(?:[0-7])?|\\x(?:[0-9a-fA-F])+|(?:\\u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]|\\U[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]))))+'/ },    { type: 'StringLiteral', regex: /^"(?:(?:(?:\\['"\\?\\\\abfnrtv]|\\[0-7](?:[0-7])?(?:[0-7])?|\\x(?:[0-9a-fA-F])+|(?:\\u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]|\\U[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]))|[\u0021-\u0021]|[\u0023-\u005b]|[\u005d-\u007e]| |\u0009))*"/ },    { type: 'skip', regex: /^(?:[\u0009\u000A\u000D\u0020]+|\/\/[^\n]*\n?|\/\*(?!\s*ws\s*:)[\s\S]*?\*\/)+/, skip: true },    { type: 'Comment', regex: /^(?:\/\*(?:(?:(?:[^*])|(?:\*(?:[^/]))))*\*\/|\/\/(?:(?:\u0009|[\u0020-\ud7ff]|[\ue000-\ufffd]))*(?:(?:\u000a|\u000d|\u000d\u000a)))/ },    { type: 'PreprocessingDirective', regex: /^(?:(?:#(?:(?: |\u0009|\u000b|\u000c))*define(?:(?: |\u0009|\u000b|\u000c))+(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])(?:(?:(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])|[0-9]|·|[\u0300-\u036f]|[\u203f-\u2040]))*(?:(?:(?:(?:(?: |\u0009|\u000b|\u000c))+(?:(?:[\u0020-\u007e]|\u0009))+))?(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a))|\((?:(?: |\u0009|\u000b|\u000c))*(?:(?:(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])(?:(?:(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])|[0-9]|·|[\u0300-\u036f]|[\u203f-\u2040]))*(?:(?:(?:(?: |\u0009|\u000b|\u000c))*,(?:(?: |\u0009|\u000b|\u000c))*(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])(?:(?:(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])|[0-9]|·|[\u0300-\u036f]|[\u203f-\u2040]))*))*(?:(?:(?:(?: |\u0009|\u000b|\u000c))*,(?:(?: |\u0009|\u000b|\u000c))*\.\.\.))?|\.\.\.))?(?:(?: |\u0009|\u000b|\u000c))*\)(?:(?:(?:(?: |\u0009|\u000b|\u000c))+(?:(?:[\u0020-\u007e]|\u0009))+))?(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a)))|#(?:(?: |\u0009|\u000b|\u000c))*undef(?:(?: |\u0009|\u000b|\u000c))+(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])(?:(?:(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])|[0-9]|·|[\u0300-\u036f]|[\u203f-\u2040]))*(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a))|#(?:(?: |\u0009|\u000b|\u000c))*include(?:(?: |\u0009|\u000b|\u000c))+(?:<(?:(?:[\u0020-\u003d]|[\u003f-\u007e]|\u0009))+>|"(?:(?:[\u0020-\u0021]|[\u0023-\u007e]|\u0009))*")(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a))|#(?:(?: |\u0009|\u000b|\u000c))*line(?:(?: |\u0009|\u000b|\u000c))+(?:0(?:(?:[xX](?:[0-9a-fA-F])+|[bB](?:[01])+|(?:[0-7])+))?(?:(?:[uU](?:[lL](?:[lL])?)?|[lL](?:[lL])?(?:[uU])?))?|[1-9](?:[0-9])*(?:(?:[uU](?:[lL](?:[lL])?)?|[lL](?:[lL])?(?:[uU])?))?)(?:(?:(?:(?: |\u0009|\u000b|\u000c))+(?:<(?:(?:[\u0020-\u003d]|[\u003f-\u007e]|\u0009))+>|"(?:(?:[\u0020-\u0021]|[\u0023-\u007e]|\u0009))*")))?(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a))|#(?:(?: |\u0009|\u000b|\u000c))*error(?:(?:(?:(?: |\u0009|\u000b|\u000c))+(?:(?:[\u0020-\u007e]|\u0009))+))?(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a))|#(?:(?: |\u0009|\u000b|\u000c))*pragma(?:(?:(?:(?: |\u0009|\u000b|\u000c))+(?:(?:[\u0020-\u007e]|\u0009))+))?(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a)))|(?:#(?:(?: |\u0009|\u000b|\u000c))*if(?:(?: |\u0009|\u000b|\u000c))+(?:(?:(?:[\u0020-\u007e]|\u0009))+)?(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a))|#(?:(?: |\u0009|\u000b|\u000c))*ifdef(?:(?: |\u0009|\u000b|\u000c))+(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])(?:(?:(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])|[0-9]|·|[\u0300-\u036f]|[\u203f-\u2040]))*(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a))|#(?:(?: |\u0009|\u000b|\u000c))*ifndef(?:(?: |\u0009|\u000b|\u000c))+(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])(?:(?:(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])|[0-9]|·|[\u0300-\u036f]|[\u203f-\u2040]))*(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a)))|#(?:(?: |\u0009|\u000b|\u000c))*elif(?:(?: |\u0009|\u000b|\u000c))+(?:(?:(?:[\u0020-\u007e]|\u0009))+)?(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a))|#(?:(?: |\u0009|\u000b|\u000c))*else(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a))|#(?:(?: |\u0009|\u000b|\u000c))*endif(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a))|#(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a)))/ },    ];
+    this.tokenPatterns = [    { type: 'TOKEN_try', regex: /^try/ },    { type: 'TOKEN__3A_', regex: /^:/ },    { type: 'TOKEN__2C_', regex: /^,/ },    { type: 'TOKEN__28_', regex: /^\(/ },    { type: 'TOKEN__29_', regex: /^\)/ },    { type: 'TOKEN__3A__3A_', regex: /^::/ },    { type: 'TOKEN__3B_', regex: /^;/ },    { type: 'TOKEN_friend', regex: /^friend/ },    { type: 'TOKEN_typedef', regex: /^typedef/ },    { type: 'TOKEN__5F__5F_attribute_5F__5F_', regex: /^__attribute__/ },    { type: 'TOKEN_auto', regex: /^auto/ },    { type: 'TOKEN_register', regex: /^register/ },    { type: 'TOKEN_static', regex: /^static/ },    { type: 'TOKEN_extern', regex: /^extern/ },    { type: 'TOKEN_mutable', regex: /^mutable/ },    { type: 'TOKEN_inline', regex: /^inline/ },    { type: 'TOKEN_virtual', regex: /^virtual/ },    { type: 'TOKEN_explicit', regex: /^explicit/ },    { type: 'TOKEN__3C_', regex: /^</ },    { type: 'TOKEN__3E_', regex: /^>/ },    { type: 'TOKEN_template', regex: /^template/ },    { type: 'TOKEN_char', regex: /^char/ },    { type: 'TOKEN_wchar_5F_t', regex: /^wchar_t/ },    { type: 'TOKEN_bool', regex: /^bool/ },    { type: 'TOKEN_short', regex: /^short/ },    { type: 'TOKEN_int', regex: /^int/ },    { type: 'TOKEN_long', regex: /^long/ },    { type: 'TOKEN_signed', regex: /^signed/ },    { type: 'TOKEN_unsigned', regex: /^unsigned/ },    { type: 'TOKEN_float', regex: /^float/ },    { type: 'TOKEN_double', regex: /^double/ },    { type: 'TOKEN_void', regex: /^void/ },    { type: 'TOKEN_enum', regex: /^enum/ },    { type: 'TOKEN_typename', regex: /^typename/ },    { type: 'TOKEN_class', regex: /^class/ },    { type: 'TOKEN_struct', regex: /^struct/ },    { type: 'TOKEN_union', regex: /^union/ },    { type: 'TOKEN_const', regex: /^const/ },    { type: 'TOKEN_volatile', regex: /^volatile/ },    { type: 'TOKEN__7B_', regex: /^\{/ },    { type: 'TOKEN__7D_', regex: /^\}/ },    { type: 'TOKEN_private', regex: /^private/ },    { type: 'TOKEN_protected', regex: /^protected/ },    { type: 'TOKEN_public', regex: /^public/ },    { type: 'TOKEN__3D_', regex: /^=/ },    { type: 'TOKEN_namespace', regex: /^namespace/ },    { type: 'TOKEN_using', regex: /^using/ },    { type: 'TOKEN_asm', regex: /^asm/ },    { type: 'TOKEN__5B_', regex: /^\[/ },    { type: 'TOKEN__5D_', regex: /^\]/ },    { type: 'TOKEN__2A_', regex: /^\*/ },    { type: 'TOKEN__26_', regex: /^&/ },    { type: 'TOKEN__7E_', regex: /^~/ },    { type: 'TOKEN_operator', regex: /^operator/ },    { type: 'TOKEN_new', regex: /^new/ },    { type: 'TOKEN_delete', regex: /^delete/ },    { type: 'TOKEN__2B_', regex: /^\+/ },    { type: 'TOKEN__2D_', regex: /^-/ },    { type: 'TOKEN__2F_', regex: /^\// },    { type: 'TOKEN__25_', regex: /^%/ },    { type: 'TOKEN__5E_', regex: /^\^/ },    { type: 'TOKEN__7C_', regex: /^\|/ },    { type: 'TOKEN__21_', regex: /^!/ },    { type: 'TOKEN__2B__3D_', regex: /^\+=/ },    { type: 'TOKEN__2D__3D_', regex: /^-=/ },    { type: 'TOKEN__2A__3D_', regex: /^\*=/ },    { type: 'TOKEN__2F__3D_', regex: /^\/=/ },    { type: 'TOKEN__25__3D_', regex: /^%=/ },    { type: 'TOKEN__5E__3D_', regex: /^\^=/ },    { type: 'TOKEN__26__3D_', regex: /^&=/ },    { type: 'TOKEN__7C__3D_', regex: /^\|=/ },    { type: 'TOKEN__3C__3C_', regex: /^<</ },    { type: 'TOKEN__3E__3E_', regex: /^>>/ },    { type: 'TOKEN__3E__3E__3D_', regex: /^>>=/ },    { type: 'TOKEN__3C__3C__3D_', regex: /^<<=/ },    { type: 'TOKEN__3D__3D_', regex: /^==/ },    { type: 'TOKEN__21__3D_', regex: /^!=/ },    { type: 'TOKEN__3C__3D_', regex: /^<=/ },    { type: 'TOKEN__3E__3D_', regex: /^>=/ },    { type: 'TOKEN__26__26_', regex: /^&&/ },    { type: 'TOKEN__7C__7C_', regex: /^\|\|/ },    { type: 'TOKEN__2B__2B_', regex: /^\+\+/ },    { type: 'TOKEN__2D__2D_', regex: /^--/ },    { type: 'TOKEN__2D__3E__2A_', regex: /^->\*/ },    { type: 'TOKEN__2D__3E_', regex: /^->/ },    { type: 'TOKEN__2E__2E__2E_', regex: /^\.\.\./ },    { type: 'TOKEN_throw', regex: /^throw/ },    { type: 'TOKEN_export', regex: /^export/ },    { type: 'TOKEN_case', regex: /^case/ },    { type: 'TOKEN_default', regex: /^default/ },    { type: 'TOKEN_if', regex: /^if/ },    { type: 'TOKEN_else', regex: /^else/ },    { type: 'TOKEN_switch', regex: /^switch/ },    { type: 'TOKEN_while', regex: /^while/ },    { type: 'TOKEN_do', regex: /^do/ },    { type: 'TOKEN_for', regex: /^for/ },    { type: 'TOKEN_goto', regex: /^goto/ },    { type: 'TOKEN_continue', regex: /^continue/ },    { type: 'TOKEN_break', regex: /^break/ },    { type: 'TOKEN_return', regex: /^return/ },    { type: 'TOKEN_catch', regex: /^catch/ },    { type: 'TOKEN__3F_', regex: /^\?/ },    { type: 'TOKEN__2E__2A_', regex: /^\.\*/ },    { type: 'TOKEN_sizeof', regex: /^sizeof/ },    { type: 'TOKEN_dynamic_5F_cast', regex: /^dynamic_cast/ },    { type: 'TOKEN_static_5F_cast', regex: /^static_cast/ },    { type: 'TOKEN_reinterpret_5F_cast', regex: /^reinterpret_cast/ },    { type: 'TOKEN_const_5F_cast', regex: /^const_cast/ },    { type: 'TOKEN_typeid', regex: /^typeid/ },    { type: 'TOKEN__2E_', regex: /^\./ },    { type: 'TOKEN_this', regex: /^this/ },    { type: 'TOKEN_false', regex: /^false/ },    { type: 'TOKEN_true', regex: /^true/ },    { type: 'Identifier', regex: /^(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])(?:(?:(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])|[0-9]|·|[\u0300-\u036f]|[\u203f-\u2040]))*/ },    { type: 'IntegerConstant', regex: /^(?:0(?:(?:[xX](?:[0-9a-fA-F])+|[bB](?:[01])+|(?:[0-7])+))?(?:(?:[uU](?:[lL](?:[lL])?)?|[lL](?:[lL])?(?:[uU])?))?|[1-9](?:[0-9])*(?:(?:[uU](?:[lL](?:[lL])?)?|[lL](?:[lL])?(?:[uU])?))?)/ },    { type: 'FloatingConstant', regex: /^(?:(?:(?:[0-9])+\.(?:[0-9])*(?:[eE](?:[+-])?(?:[0-9])+)?(?:[fFlL])?|\.(?:[0-9])+(?:[eE](?:[+-])?(?:[0-9])+)?(?:[fFlL])?|(?:[0-9])+[eE](?:[+-])?(?:[0-9])+(?:[fFlL])?|(?:[0-9])+[fFlL])|(?:0[xX](?:(?:[0-9a-fA-F])+\.(?:[0-9a-fA-F])*|\.(?:[0-9a-fA-F])+|(?:[0-9a-fA-F])+)[pP](?:[+-])?(?:[0-9])+(?:[fFlL])?|0[xX](?:(?:[0-9a-fA-F])+\.(?:[0-9a-fA-F])*|\.(?:[0-9a-fA-F])+|(?:[0-9a-fA-F])+)[pP](?:[+-])?(?:[0-9])+(?:[fFlL])?))/ },    { type: 'CharacterConstant', regex: /^(?:\\\\)?'(?:(?:[!-~]| |(?:\\['"\\?\\\\abfnrtv]|\\[0-7](?:[0-7])?(?:[0-7])?|\\x(?:[0-9a-fA-F])+|(?:\\u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]|\\U[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]))))+'/ },    { type: 'StringLiteral', regex: /^"(?:(?:(?:\\['"\\?\\\\abfnrtv]|\\[0-7](?:[0-7])?(?:[0-7])?|\\x(?:[0-9a-fA-F])+|(?:\\u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]|\\U[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]))|[\u0021-\u0021]|[\u0023-\u005b]|[\u005d-\u007e]| |\u0009))*"/ },    { type: 'skip', regex: /^(?:[\u0009\u000A\u000D\u0020]+|\/\/[^\n]*\n?|\/\*(?!\s*ws\s*:)[\s\S]*?\*\/)+/, skip: true },    { type: 'Comment', regex: /^(?:\/\*(?:(?:(?:[^*])|(?:\*(?:[^/]))))*\*\/|\/\/(?:(?:\u0009|[\u0020-\ud7ff]|[\ue000-\ufffd]))*(?:(?:\u000a|\u000d|\u000d\u000a)))/ },    { type: 'PreprocessingDirective', regex: /^(?:(?:#(?:(?: |\u0009|\u000b|\u000c))*define(?:(?: |\u0009|\u000b|\u000c))+(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])(?:(?:(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])|[0-9]|·|[\u0300-\u036f]|[\u203f-\u2040]))*(?:(?:(?:(?:(?: |\u0009|\u000b|\u000c))+(?:(?:[\u0020-\u007e]|\u0009))+))?(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a))|\((?:(?: |\u0009|\u000b|\u000c))*(?:(?:(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])(?:(?:(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])|[0-9]|·|[\u0300-\u036f]|[\u203f-\u2040]))*(?:(?:(?:(?: |\u0009|\u000b|\u000c))*,(?:(?: |\u0009|\u000b|\u000c))*(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])(?:(?:(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])|[0-9]|·|[\u0300-\u036f]|[\u203f-\u2040]))*))*(?:(?:(?:(?: |\u0009|\u000b|\u000c))*,(?:(?: |\u0009|\u000b|\u000c))*\.\.\.))?|\.\.\.))?(?:(?: |\u0009|\u000b|\u000c))*\)(?:(?:(?:(?: |\u0009|\u000b|\u000c))+(?:(?:[\u0020-\u007e]|\u0009))+))?(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a)))|#(?:(?: |\u0009|\u000b|\u000c))*undef(?:(?: |\u0009|\u000b|\u000c))+(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])(?:(?:(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])|[0-9]|·|[\u0300-\u036f]|[\u203f-\u2040]))*(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a))|#(?:(?: |\u0009|\u000b|\u000c))*include(?:(?: |\u0009|\u000b|\u000c))+(?:<(?:(?:[\u0020-\u003d]|[\u003f-\u007e]|\u0009))+>|"(?:(?:[\u0020-\u0021]|[\u0023-\u007e]|\u0009))*")(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a))|#(?:(?: |\u0009|\u000b|\u000c))*line(?:(?: |\u0009|\u000b|\u000c))+(?:0(?:(?:[xX](?:[0-9a-fA-F])+|[bB](?:[01])+|(?:[0-7])+))?(?:(?:[uU](?:[lL](?:[lL])?)?|[lL](?:[lL])?(?:[uU])?))?|[1-9](?:[0-9])*(?:(?:[uU](?:[lL](?:[lL])?)?|[lL](?:[lL])?(?:[uU])?))?)(?:(?:(?:(?: |\u0009|\u000b|\u000c))+(?:<(?:(?:[\u0020-\u003d]|[\u003f-\u007e]|\u0009))+>|"(?:(?:[\u0020-\u0021]|[\u0023-\u007e]|\u0009))*")))?(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a))|#(?:(?: |\u0009|\u000b|\u000c))*error(?:(?:(?:(?: |\u0009|\u000b|\u000c))+(?:(?:[\u0020-\u007e]|\u0009))+))?(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a))|#(?:(?: |\u0009|\u000b|\u000c))*pragma(?:(?:(?:(?: |\u0009|\u000b|\u000c))+(?:(?:[\u0020-\u007e]|\u0009))+))?(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a)))|(?:#(?:(?: |\u0009|\u000b|\u000c))*if(?:(?: |\u0009|\u000b|\u000c))+(?:(?:(?:[\u0020-\u007e]|\u0009))+)?(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a))|#(?:(?: |\u0009|\u000b|\u000c))*ifdef(?:(?: |\u0009|\u000b|\u000c))+(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])(?:(?:(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])|[0-9]|·|[\u0300-\u036f]|[\u203f-\u2040]))*(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a))|#(?:(?: |\u0009|\u000b|\u000c))*ifndef(?:(?: |\u0009|\u000b|\u000c))+(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])(?:(?:(?:[A-Z]|_|[a-z]|[\u00c0-\u00d6]|[\u00d8-\u00f6]|[\u00f8-\u02ff]|[\u0370-\u037d]|[\u037f-\u1fff]|[\u200c-\u200d]|[\u2070-\u218f]|[\u2c00-\u2fef]|[\u3001-\ud7ff]|[\uf900-\ufdcf]|[\ufdf0-\ufffd])|[0-9]|·|[\u0300-\u036f]|[\u203f-\u2040]))*(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a)))|#(?:(?: |\u0009|\u000b|\u000c))*elif(?:(?: |\u0009|\u000b|\u000c))+(?:(?:(?:[\u0020-\u007e]|\u0009))+)?(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a))|#(?:(?: |\u0009|\u000b|\u000c))*else(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a))|#(?:(?: |\u0009|\u000b|\u000c))*endif(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a))|#(?:(?: |\u0009|\u000b|\u000c))*(?:(?:\u000a|\u000d|\u000d\u000a)))/ },    ];
   }
 
   isTemplateSpanPattern(pos, kind) {
@@ -1226,7 +1226,17 @@ class Parser {
       }
     }
     if (!_matched) {
-      throw new Error(`Expected one of: 5 alternatives`);
+      const _ruleMark = this.markEventState();
+      try {
+    this.parseattributeSpecifier();
+        _matched = true;
+      } catch (e) {
+        this.position = _ruleStart;
+        this.restoreEventState(_ruleMark);
+      }
+    }
+    if (!_matched) {
+      throw new Error(`Expected one of: 6 alternatives`);
     }
 
       __ok = true;
@@ -1240,6 +1250,174 @@ class Parser {
         }
         if (!__ok && typeof this.eventHandler.abortNonterminal === 'function') {
           this.eventHandler.abortNonterminal('declarationQualifier', this.position);
+        }
+      }
+    }
+  }
+  parseattributeSpecifier() {
+    const __memoStart = this.position;
+    const __memoKey = 'attributeSpecifier@' + __memoStart;
+    if (this.failureMemo.has(__memoKey)) {
+      throw new Error('Previously failed rule attributeSpecifier at position ' + __memoStart);
+    }
+    if (this.eventHandler && typeof this.eventHandler.startNonterminal === 'function') {
+      this.eventHandler.startNonterminal('attributeSpecifier', this.position);
+    }
+    let __ok = false;
+    try {
+    this.consume('TOKEN__5F__5F_attribute_5F__5F_');
+    this.consume('TOKEN__28_');
+    this.consume('TOKEN__28_');
+    this.parseattributeList();
+    this.consume('TOKEN__29_');
+    this.consume('TOKEN__29_');
+
+      __ok = true;
+    } finally {
+      if (!__ok) {
+        this.failureMemo.add(__memoKey);
+      }
+      if (this.eventHandler) {
+        if (__ok && typeof this.eventHandler.endNonterminal === 'function') {
+          this.eventHandler.endNonterminal('attributeSpecifier', this.position);
+        }
+        if (!__ok && typeof this.eventHandler.abortNonterminal === 'function') {
+          this.eventHandler.abortNonterminal('attributeSpecifier', this.position);
+        }
+      }
+    }
+  }
+  parseattributeList() {
+    const __memoStart = this.position;
+    const __memoKey = 'attributeList@' + __memoStart;
+    if (this.failureMemo.has(__memoKey)) {
+      throw new Error('Previously failed rule attributeList at position ' + __memoStart);
+    }
+    if (this.eventHandler && typeof this.eventHandler.startNonterminal === 'function') {
+      this.eventHandler.startNonterminal('attributeList', this.position);
+    }
+    let __ok = false;
+    try {
+    this.parseattribute();
+    // Group *
+    while (true) {
+      const _loopStart = this.position;
+      const _loopMark = this.markEventState();
+      try {
+    this.consume('TOKEN__2C_');
+    this.parseattribute();
+      } catch (e) {
+        this.position = _loopStart;
+        this.restoreEventState(_loopMark);
+        break;
+      }
+      if (this.position === _loopStart) break;
+    }
+
+      __ok = true;
+    } finally {
+      if (!__ok) {
+        this.failureMemo.add(__memoKey);
+      }
+      if (this.eventHandler) {
+        if (__ok && typeof this.eventHandler.endNonterminal === 'function') {
+          this.eventHandler.endNonterminal('attributeList', this.position);
+        }
+        if (!__ok && typeof this.eventHandler.abortNonterminal === 'function') {
+          this.eventHandler.abortNonterminal('attributeList', this.position);
+        }
+      }
+    }
+  }
+  parseattribute() {
+    const __memoStart = this.position;
+    const __memoKey = 'attribute@' + __memoStart;
+    if (this.failureMemo.has(__memoKey)) {
+      throw new Error('Previously failed rule attribute at position ' + __memoStart);
+    }
+    if (this.eventHandler && typeof this.eventHandler.startNonterminal === 'function') {
+      this.eventHandler.startNonterminal('attribute', this.position);
+    }
+    let __ok = false;
+    try {
+    this.consume('Identifier');
+    // Group ?
+    {
+      const _optStart = this.position;
+      const _optMark = this.markEventState();
+      try {
+    this.consume('TOKEN__28_');
+    // Optional: try parsing attributeArgumentList
+    {
+      const savePos = this.position;
+      const saveMark = this.markEventState();
+      try {
+        this.parseattributeArgumentList();
+      } catch(e) {
+        this.position = savePos;
+        this.restoreEventState(saveMark);
+      }
+    }
+    this.consume('TOKEN__29_');
+      } catch (e) {
+        this.position = _optStart;
+        this.restoreEventState(_optMark);
+      }
+    }
+
+      __ok = true;
+    } finally {
+      if (!__ok) {
+        this.failureMemo.add(__memoKey);
+      }
+      if (this.eventHandler) {
+        if (__ok && typeof this.eventHandler.endNonterminal === 'function') {
+          this.eventHandler.endNonterminal('attribute', this.position);
+        }
+        if (!__ok && typeof this.eventHandler.abortNonterminal === 'function') {
+          this.eventHandler.abortNonterminal('attribute', this.position);
+        }
+      }
+    }
+  }
+  parseattributeArgumentList() {
+    const __memoStart = this.position;
+    const __memoKey = 'attributeArgumentList@' + __memoStart;
+    if (this.failureMemo.has(__memoKey)) {
+      throw new Error('Previously failed rule attributeArgumentList at position ' + __memoStart);
+    }
+    if (this.eventHandler && typeof this.eventHandler.startNonterminal === 'function') {
+      this.eventHandler.startNonterminal('attributeArgumentList', this.position);
+    }
+    let __ok = false;
+    try {
+    this.parseassignmentExpression();
+    // Group *
+    while (true) {
+      const _loopStart = this.position;
+      const _loopMark = this.markEventState();
+      try {
+    this.consume('TOKEN__2C_');
+    this.parseassignmentExpression();
+      } catch (e) {
+        this.position = _loopStart;
+        this.restoreEventState(_loopMark);
+        break;
+      }
+      if (this.position === _loopStart) break;
+    }
+
+      __ok = true;
+    } finally {
+      if (!__ok) {
+        this.failureMemo.add(__memoKey);
+      }
+      if (this.eventHandler) {
+        if (__ok && typeof this.eventHandler.endNonterminal === 'function') {
+          this.eventHandler.endNonterminal('attributeArgumentList', this.position);
+        }
+        if (!__ok && typeof this.eventHandler.abortNonterminal === 'function') {
+          this.eventHandler.abortNonterminal('attributeArgumentList', this.position);
         }
       }
     }

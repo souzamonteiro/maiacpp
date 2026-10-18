@@ -1,0 +1,7 @@
+{
+  "shouldParse": true,
+  "mustContainCompiler": [
+    "Parser: ok",
+    "/* Target: C89 */"
+  ]
+}

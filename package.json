@@ -1,6 +1,6 @@
 {
   "name": "maiacpp",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "MaiaCpp (WebCpp): C++98 to C transpiler integrated with MaiaC.",
   "author": "The MaiaScript Team (https://www.maiascript.com)",
   "license": "Apache-2.0",
@@ -29,7 +29,8 @@
   ],
   "scripts": {
     "build:libs": "node ./tools/build-libs.js",
-    "test": "bash ./bin/webcpp.sh --file ./compiler/examples/test.cpp --ast-json-out ./out/test.ast.json --c-out ./out/test.c",
+    "test": "bash ./bin/webcpp.sh --file ./compiler/examples/test.cpp --ast-json-out ./out/test.ast.json --c-out ./out/test.c && npm run check:maiaCC-parser-wasm",
+    "check:maiaCC-parser-wasm": "node ./compiler/tests/test-maiacc-cpp98-parser-wasm.js",
     "compile:test": "bash ./bin/webcpp.sh --file ./compiler/examples/test.cpp --c-out ./out/test.c",
     "report:tiers": "node ./compiler/tests/run_tiered_cpp98.js",
     "compare:cpp-vs-pipeline": "node ./compiler/tests/compare_cpp_vs_pipeline.js --file ./compiler/test_cpp98_extended.cpp",

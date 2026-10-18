@@ -108,6 +108,8 @@ Options:
 	--out-dir DIR          Output directory used with --all (default: ./out).
 	--wat                  Also emit WAT via MaiaC webc (at MaiaC output base).
 	--no-validate          Skip WAT/WASM validation in MaiaC webc.
+	--no-legacy-function-hints  Disable source-based lowering hints for generated C++.
+	--ast-strict          Use AST-only parsing and semantic analysis.
 	--resolve-system-includes  Enable system include expansion in MaiaC webc.
 	--no-system-includes   Disable system include expansion in MaiaC webc.
 	--dist                 Create distributable folder via MaiaC webc.
@@ -155,6 +157,8 @@ WEBC_DIST_RUN=0
 WEBC_DIST_NAME=""
 WEBC_OUT_BASE=""
 WEBC_RUN=0
+CPP_NO_LEGACY_FUNCTION_HINTS=0
+CPP_AST_STRICT=0
 
 while [[ $# -gt 0 ]]; do
 	case "$1" in
@@ -212,6 +216,14 @@ while [[ $# -gt 0 ]]; do
 			;;
 		--no-validate)
 			WEBC_VALIDATE=0
+			shift
+			;;
+		--no-legacy-function-hints)
+			CPP_NO_LEGACY_FUNCTION_HINTS=1
+			shift
+			;;
+		--ast-strict)
+			CPP_AST_STRICT=1
 			shift
 			;;
 		--resolve-system-includes)
@@ -354,6 +366,12 @@ if [[ -n "$C_OUT" || -n "$JS_OUT" || -n "$WAT_OUT" || -n "$WASM_OUT" || "$WEBC_W
 
 	if [[ -n "$CPP_C_OUT" ]]; then
 		CMD=(node "$COMPILER_JS" "$INPUT_FILE" --output "$CPP_C_OUT")
+		if [[ "$CPP_AST_STRICT" -eq 1 ]]; then
+			CMD+=(--ast-strict)
+		fi
+		if [[ "$CPP_NO_LEGACY_FUNCTION_HINTS" -eq 1 ]]; then
+			CMD+=(--no-legacy-function-hints)
+		fi
 		"${CMD[@]}"
 	fi
 

@@ -49,6 +49,12 @@ declarationQualifier ::= storageClassSpecifier
                        | 'friend'
                        | 'typedef'
                        | cvQualifier
+                       | attributeSpecifier
+
+attributeSpecifier ::= '__attribute__' '(' '(' attributeList ')' ')'
+attributeList ::= attribute (',' attribute)*
+attribute ::= Identifier ('(' attributeArgumentList? ')')?
+attributeArgumentList ::= assignmentExpression (',' assignmentExpression)*
 
 declarationTypeSpecifier ::= builtinSimpleTypeSpecifier+
                            | userSimpleTypeSpecifier

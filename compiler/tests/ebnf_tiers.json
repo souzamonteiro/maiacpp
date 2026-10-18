@@ -585,7 +585,7 @@
         ],
         "expectExitCode": 0,
         "stdoutContains": [
-          "All fixtures passed: 45"
+          "All fixtures passed: 46"
         ]
       },
       {

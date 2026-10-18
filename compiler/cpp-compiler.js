@@ -469,6 +469,19 @@ function normalizeTypeText(type) {
     .replace(/\s+/g, ' ')
     .trim();
   if (!t) return 'int';
+  const fixedWidthTypeAliases = {
+    int8_t: 'signed char',
+    uint8_t: 'unsigned char',
+    int16_t: 'short',
+    uint16_t: 'unsigned short',
+    int32_t: 'int',
+    uint32_t: 'unsigned int',
+    int64_t: 'long',
+    uint64_t: 'unsigned long',
+    intptr_t: 'int',
+    uintptr_t: 'unsigned int'
+  };
+  if (fixedWidthTypeAliases[t]) return fixedWidthTypeAliases[t];
   if (t.endsWith('&')) {
     // non-const reference → pointer (mutable ref)
     if (isConstRef) return t.slice(0, -1).trim();  // const T& → T (pass by value)
@@ -1665,6 +1678,10 @@ class SemanticAnalyzer {
     this.globals = new SymbolTable();
     this.classes = new Map();
     this.functions = [];
+    this.hostImports = [];
+    this.globalVariables = [];
+    this.runtimeTokens = new Set();
+    this.cLinkageDepth = 0;
     this.namespaceStack = [];
   }
 
@@ -1673,20 +1690,45 @@ class SemanticAnalyzer {
     return {
       symbols: this.globals,
       classes: this.classes,
-      functions: this.functions
+      functions: this.functions,
+      hostImports: this.hostImports,
+      globalVariables: this.globalVariables,
+      runtimeTokens: this.runtimeTokens
     };
   }
 
   walk(node) {
     if (!node) return;
+    if (node.kind === 'terminal') this.runtimeTokens.add(node.value);
 
     const enteredNamespace = this.enterNamespaceIfNeeded(node);
+    const enteredCLinkage = this.enterCLinkageIfNeeded(node);
 
     if (node.kind === 'nonterminal' && node.name === 'externalDeclaration') {
-      const fn = this.extractGlobalFunction(node);
+      const hostImport = this.extractHostImport(node);
+      if (hostImport) this.hostImports.push(hostImport);
+
+      this.globalVariables.push(...this.extractGlobalVariables(node));
+
+      const fn = this.extractGlobalFunction(node, this.cLinkageDepth > 0);
       if (fn) {
         this.functions.push(fn);
         this.globals.define(fn.name, new Symbol(SymbolKind.FUNCTION, fn.name, new FunctionType(BUILTIN_TYPES.int, [])));
+      }
+    }
+
+    if (node.kind === 'nonterminal' && node.name === 'linkageSpecification') {
+      const declaration = this.findDirectChildNonterminal(node, 'declaration');
+      if (declaration) {
+        const fn = this.extractGlobalFunction({
+          kind: 'nonterminal',
+          name: 'externalDeclaration',
+          children: [declaration]
+        }, true);
+        if (fn) {
+          this.functions.push(fn);
+          this.globals.define(fn.name, new Symbol(SymbolKind.FUNCTION, fn.name, new FunctionType(BUILTIN_TYPES.int, [])));
+        }
       }
     }
 
@@ -1704,9 +1746,18 @@ class SemanticAnalyzer {
       this.walk(child);
     }
 
+    if (enteredCLinkage) this.cLinkageDepth -= 1;
     if (enteredNamespace) {
       this.namespaceStack.pop();
     }
+  }
+
+  enterCLinkageIfNeeded(node) {
+    if (!node || node.kind !== 'nonterminal' || node.name !== 'linkageSpecification') return false;
+    const linkage = this.findFirstTerminal(node, 'StringLiteral');
+    if (!linkage || String(linkage.value || '').replace(/"/g, '') !== 'C') return false;
+    this.cLinkageDepth += 1;
+    return true;
   }
 
   extractClassName(node) {
@@ -1881,28 +1932,32 @@ class SemanticAnalyzer {
 
   extractDeclaratorType(specifiersNode, declaratorNode) {
     const base = this.text(specifiersNode).trim();
-    let ptr = this.extractPointerSuffix(declaratorNode);
-    if (!ptr) {
-      const declaratorText = this.text(declaratorNode);
-      const starCount = (declaratorText.match(/\*/g) || []).length;
-      const refCount = (declaratorText.match(/&/g) || []).length;
-      if (starCount > 0) ptr += '*'.repeat(starCount);
-      if (refCount > 0) ptr += '&'.repeat(refCount);
-    }
+    const ptr = this.extractPointerSuffix(declaratorNode);
     return normalizeTypeText(`${base} ${ptr}`.trim());
   }
 
   extractPointerSuffix(node) {
     if (!node) return '';
     let out = '';
-    if (node.kind === 'nonterminal' && node.name === 'ptrOperator') {
-      const stars = this.findAllTerminals(node, 'TOKEN__2A_').length;
-      const refs = this.findAllTerminals(node, 'TOKEN__26_').length;
-      out += '*'.repeat(stars);
-      out += '&'.repeat(refs);
-    }
-    for (const child of node.children || []) {
-      out += this.extractPointerSuffix(child);
+    const collectPrefix = (current) => {
+      if (!current || current.kind !== 'nonterminal') return;
+      if (current.name === 'pointer' || current.name === 'ptrOperator') {
+        const stars = this.findAllTerminals(current, 'TOKEN__2A_').length;
+        const refs = this.findAllTerminals(current, 'TOKEN__26_').length;
+        out += '*'.repeat(stars) + '&'.repeat(refs);
+        return;
+      }
+      for (const child of current.children || []) {
+        if (child && child.kind === 'nonterminal' && child.name === 'directDeclarator') break;
+        if (child && child.kind === 'nonterminal') collectPrefix(child);
+      }
+    };
+    collectPrefix(node);
+    if (!out) {
+      for (const child of node.children || []) {
+        if (child && child.kind === 'nonterminal' && child.name === 'directDeclarator') break;
+        if (child && child.kind === 'nonterminal') out += this.extractPointerSuffix(child);
+      }
     }
     return out;
   }
@@ -2022,11 +2077,16 @@ class SemanticAnalyzer {
     return null;
   }
 
-  extractGlobalFunction(node) {
+  extractGlobalFunction(node, cLinkage = false) {
     // For plain functions: externalDeclaration → declaration
     // For templates: externalDeclaration → templateDeclaration → declaration
     // For explicit specializations: externalDeclaration → explicitSpecialization → declaration
     let declaration = this.findDirectChildNonterminal(node, 'declaration');
+    const linkage = this.findDirectChildNonterminal(node, 'linkageSpecification');
+    if (!declaration && linkage) {
+      declaration = this.findDirectChildNonterminal(linkage, 'declaration');
+      cLinkage = true;
+    }
     if (!declaration) {
       const wrapper = this.findDirectChildNonterminal(node, 'templateDeclaration')
         || this.findDirectChildNonterminal(node, 'explicitSpecialization');
@@ -2039,7 +2099,11 @@ class SemanticAnalyzer {
     const functionBody = this.findDirectChildNonterminal(declaration, 'functionBody');
     if (!functionBody) return null;
 
-    const declarator = this.findDirectChildNonterminal(declaration, 'declarator');
+    const initDeclarator = this.findDirectChildNonterminal(
+      this.findDirectChildNonterminal(declaration, 'initDeclaratorList'),
+      'initDeclarator');
+    const declarator = this.findDirectChildNonterminal(declaration, 'declarator')
+      || this.findDirectChildNonterminal(initDeclarator, 'declarator');
     if (!declarator) return null;
 
     const name = this.extractDeclaratorName(declarator);
@@ -2047,7 +2111,8 @@ class SemanticAnalyzer {
     if (['if', 'for', 'while', 'switch', 'catch'].includes(name)) return null;
 
     const specifiers = this.findFirstNonterminal(declaration, 'declarationSpecifiers');
-    const returnType = normalizeTypeText(this.text(specifiers));
+    const typeSpecifier = this.findDirectChildNonterminal(specifiers, 'declarationTypeSpecifier');
+    const returnType = this.extractDeclaratorType(typeSpecifier || specifiers, declarator);
     const params = this.extractParametersFromDeclarator(declarator);
     const bodyText = this.text(functionBody);
 
@@ -2055,8 +2120,10 @@ class SemanticAnalyzer {
       name,
       returnType,
       params,
+      cLinkage,
       namespacePath: [...this.namespaceStack],
       bodyText,
+      bodyAst: functionBody,
       simpleReturnExpr: inferSimpleReturnExprFromBody(bodyText, params),
       simpleReturnCall: inferSimpleReturnCallFromBody(bodyText),
       simpleIfReturn: inferSimpleIfReturnFromBody(bodyText, params),
@@ -2066,6 +2133,105 @@ class SemanticAnalyzer {
       resourceDeterministicHint: inferResourceDeterministicReturnHintFromBody(bodyText, params),
       deterministicNoParamI32Return: null
     };
+  }
+
+  extractHostImport(node) {
+    const declaration = this.findDirectChildNonterminal(node, 'declaration');
+    if (!declaration || this.findDirectChildNonterminal(declaration, 'functionBody')) return null;
+
+    const initDeclarator = this.findDirectChildNonterminal(
+      this.findDirectChildNonterminal(declaration, 'initDeclaratorList'),
+      'initDeclarator');
+    const declarator = this.findDirectChildNonterminal(declaration, 'declarator')
+      || this.findDirectChildNonterminal(initDeclarator, 'declarator');
+    if (!declarator) return null;
+    const name = this.extractDeclaratorName(declarator);
+    if (!name) return null;
+
+    let moduleName = '';
+    let fieldName = '';
+    for (const attribute of this.findAllNonterminals(declaration, 'attribute')) {
+      const attributeName = this.findFirstTerminal(attribute, 'Identifier')?.value;
+      if (attributeName !== 'import_module' && attributeName !== 'import_name') continue;
+      const argumentList = this.findDirectChildNonterminal(attribute, 'attributeArgumentList');
+      const literal = this.findFirstTerminal(argumentList, 'StringLiteral');
+      if (!literal) continue;
+      let value;
+      try {
+        value = JSON.parse(literal.value);
+      } catch (_error) {
+        continue;
+      }
+      if (attributeName === 'import_module') moduleName = value;
+      else fieldName = value;
+    }
+
+    const hasImportAttribute = Boolean(moduleName || fieldName);
+    if (!hasImportAttribute && !name.startsWith('__')) return null;
+    if (hasImportAttribute && (!moduleName || !fieldName)) return null;
+
+    const specifiers = this.findDirectChildNonterminal(declaration, 'declarationSpecifiers');
+    const typeSpecifier = this.findDirectChildNonterminal(specifiers, 'declarationTypeSpecifier');
+    const returnType = this.extractDeclaratorType(typeSpecifier || specifiers, declarator) || 'int';
+    const params = this.extractParametersFromDeclarator(declarator);
+    const toIdentifierPart = (value) => String(value).replace(/[^A-Za-z0-9_]/g, '_');
+    const cName = hasImportAttribute
+      ? `__${moduleName.split('.').map(toIdentifierPart).join('__')}__${toIdentifierPart(fieldName)}`
+      : name;
+
+    return {
+      name,
+      cName,
+      moduleName: moduleName || 'env',
+      fieldName: fieldName || name,
+      returnType,
+      params
+    };
+  }
+
+  extractGlobalVariables(node) {
+    const declaration = this.findDirectChildNonterminal(node, 'declaration');
+    if (!declaration || this.findDirectChildNonterminal(declaration, 'functionBody')) return [];
+
+    const specifiers = this.findDirectChildNonterminal(declaration, 'declarationSpecifiers');
+    if (!specifiers || this.findAllTerminals(specifiers, 'TOKEN_typedef').length > 0) return [];
+    const typeSpecifier = this.findDirectChildNonterminal(specifiers, 'declarationTypeSpecifier');
+    const type = this.extractDeclaratorType(typeSpecifier || specifiers, null);
+    if (!type) return [];
+
+    const storage = this.findAllTerminals(specifiers, 'TOKEN_static').length > 0 ? 'static' : '';
+    const isConst = this.findAllTerminals(specifiers, 'TOKEN_const').length > 0;
+    const initList = this.findDirectChildNonterminal(declaration, 'initDeclaratorList');
+    const variables = [];
+    for (const initDeclarator of this.findAllNonterminals(initList, 'initDeclarator')) {
+      const declarator = this.findDirectChildNonterminal(initDeclarator, 'declarator');
+      if (!declarator) continue;
+      const suffixes = this.findAllNonterminals(declarator, 'directDeclaratorSuffix');
+      if (suffixes.some((suffix) => this.findFirstTerminal(suffix, 'TOKEN__28_'))) continue;
+
+      const name = this.extractDeclaratorName(declarator);
+      if (!name) continue;
+      const initializer = this.findDirectChildNonterminal(initDeclarator, 'initializer');
+      const initializerClause = this.findDirectChildNonterminal(initializer, 'initializerClause');
+      const expression = this.findDirectChildNonterminal(initializerClause, 'assignmentExpression');
+      const initializerTerminals = this.findAllTerminals(expression);
+      let initializerText = null;
+      if (initializerTerminals.length > 0) {
+        const values = initializerTerminals.map((terminal) => terminal.value);
+        initializerText = values.join(' ');
+      }
+
+      variables.push({
+        name,
+        type,
+        storage,
+        isConst,
+        arraySuffix: this.extractArraySuffix(declarator),
+        initializerText,
+        initializerAst: expression
+      });
+    }
+    return variables;
   }
 
   extractDeclaratorName(node) {
@@ -2629,6 +2795,7 @@ class CppToCTranspiler {
     this.em = new CEmitter();
     this.ambiguityEvents = [];
     this.loweringEvents = [];
+    this.astStrict = options.astStrict === true;
     this.allowDeterministicFunctionFolding = options.allowDeterministicFunctionFolding !== false;
     this.emitLoweringDiagnostics = options.emitLoweringDiagnostics !== false;
     this.enumValueMap = extractSimpleEnumValues(options.source || '');
@@ -2643,7 +2810,7 @@ class CppToCTranspiler {
   transpile() {
     this.emitHeaders();
     this.emitSourceTypedefs();
-    this.emitSourceGlobalDeclarations(this.options.source || '');
+    this.emitSourceGlobalDeclarations();
     this.emitClasses();
     this.emitGlobalFunctionStubs();
     this.emitLoweringDiagnosticsSummary();
@@ -2651,37 +2818,113 @@ class CppToCTranspiler {
     return this.em.code();
   }
 
-  emitSourceGlobalDeclarations(sourceText) {
-    const src = String(sourceText || '');
+  emitSourceGlobalDeclarations() {
+    const globals = Array.isArray(this.analysis.globalVariables) ? this.analysis.globalVariables : [];
     const emitted = new Set();
-    const text = stripFunctionBlocks(stripClassLikeBlocks(src))
-      .replace(/\/\*[\s\S]*?\*\//g, '')
-      .replace(/\/\/.*$/gm, '');
-
-    const declRx = /(?:^|\n)\s*(?:(static)\s+)?(?:(const)\s+)?(unsigned\s+long|unsigned\s+int|long|short|int|float|double|char)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:=\s*([^;]+))?\s*;/g;
-    let dm;
-    while ((dm = declRx.exec(text)) !== null) {
-      const storage = dm[1] ? 'static ' : '';
-      const constKw = dm[2] ? 'const ' : '';
-      const type = normalizeTypeText(dm[3] || '');
-      const name = dm[4];
+    for (const global of globals) {
+      const name = String(global.name || '').trim();
       if (!name || emitted.has(name)) continue;
-      const initRaw = String(dm[5] || '').trim();
-
-      if (!initRaw) {
-        this.em.line(`${storage}${constKw}${type} ${name};`);
-        emitted.add(name);
+      const type = this.sanitizeTypeForC(global.type || 'int');
+      const initializer = global.initializerAst
+        ? this.renderAstCExpression(global.initializerAst)
+        : null;
+      if (global.initializerAst && initializer === null) {
+        this.loweringEvents.push({
+          functionName: name,
+          kind: 'stub-fallback',
+          detail: 'unsupported-global-initializer'
+        });
         continue;
       }
-
-      if (/^[-+]?\d+$/.test(initRaw)
-        || /^[-+]?(?:\d+\.\d*|\d*\.\d+)(?:[eE][-+]?\d+)?[fFlL]?$/.test(initRaw)
-        || /^'(?:\\.|[^'\\])'$/.test(initRaw)) {
-        this.em.line(`${storage}${constKw}${type} ${name} = ${initRaw};`);
-        emitted.add(name);
-      }
+      const storage = global.storage === 'static' ? 'static ' : '';
+      const constQualifier = global.isConst ? 'const ' : '';
+      const suffix = String(global.arraySuffix || '');
+      this.em.line(`${storage}${constQualifier}${type} ${name}${suffix}${initializer !== null ? ` = ${initializer}` : ''};`);
+      emitted.add(name);
     }
     if (emitted.size > 0) this.em.line();
+  }
+
+  renderAstCExpression(node, currentFunction = null) {
+    const directChild = (parent, name) => (parent && parent.children || []).find((child) =>
+      child && child.kind === 'nonterminal' && child.name === name) || null;
+    const c89LoweredCastTokens = new Set([
+      'TOKEN_static_5F_cast', 'TOKEN_const_5F_cast', 'TOKEN_reinterpret_5F_cast'
+    ]);
+    const collectTerminals = (current, out = []) => {
+      if (!current) return out;
+      if (current.kind === 'terminal') {
+        out.push(current);
+        return out;
+      }
+      for (const child of current.children || []) collectTerminals(child, out);
+      return out;
+    };
+    const typeText = (typeNode) => collectTerminals(typeNode).map((terminal) => terminal.value).join(' ').trim();
+    const render = (current) => {
+      if (!current) return null;
+      if (current.kind === 'terminal') return current.value;
+      if (current.name === 'postfixExpression') {
+        const primary = directChild(current, 'primaryExpression');
+        const identifier = directChild(primary, 'idExpression');
+        const callSuffix = (current.children || []).find((child) => child && child.name === 'postfixSuffix'
+          && (child.children || []).some((part) => part && part.kind === 'terminal' && part.value === '('));
+        if (identifier && callSuffix) {
+          const identifierText = collectTerminals(identifier)
+            .filter((terminal) => terminal.token === 'Identifier')
+            .map((terminal) => terminal.value)
+            .join('::');
+          const argumentList = directChild(callSuffix, 'argumentExpressionList');
+          const argumentsAst = (argumentList?.children || []).filter((child) =>
+            child && child.kind === 'nonterminal' && child.name === 'assignmentExpression');
+          const renderedArgs = argumentsAst.map(render);
+          if (renderedArgs.some((argument) => argument === null)) return null;
+          const candidates = (this.analysis.functions || []).filter((candidate) => {
+            if (candidate.name !== identifierText) return false;
+            const params = candidate.params || [];
+            return params.length === argumentsAst.length
+              || (argumentsAst.length === 0 && params.length === 1
+                && normalizeTypeText(params[0]?.type || '') === 'void');
+          });
+          let callee = identifierText;
+          if (candidates.length === 1) {
+            const target = candidates[0];
+            const signature = (target.params || []).map((param) => ({
+              kind: this.typeKindFromText(param.type),
+              name: param.type
+            }));
+            callee = target.cLinkage
+              ? target.name
+              : mangle(target.name, signature, null, target.namespacePath || []);
+          }
+          return `${callee}(${renderedArgs.join(', ')})`;
+        }
+      }
+      if (current.name === 'castExpression') {
+        const typeId = directChild(current, 'typeId');
+        const operand = directChild(current, 'castExpression');
+        if (typeId && operand) {
+          const cType = this.sanitizeTypeForC(typeText(typeId));
+          const expression = render(operand);
+          return expression === null ? null : `(${cType})(${expression})`;
+        }
+      }
+      if (current.name === 'unaryExpression') {
+        const cast = (current.children || []).find((child) => child && child.kind === 'terminal'
+          && c89LoweredCastTokens.has(child.token));
+        if (cast) {
+          const typeId = directChild(current, 'typeId');
+          const operand = directChild(current, 'expression');
+          const cType = this.sanitizeTypeForC(typeText(typeId));
+          const expression = render(operand);
+          return expression === null ? null : `(${cType})(${expression})`;
+        }
+      }
+      const children = (current.children || []).map(render);
+      if (children.some((child) => child === null)) return null;
+      return children.join(' ');
+    };
+    return render(node);
   }
 
   emitLoweringDiagnosticsSummary() {
@@ -2739,23 +2982,34 @@ class CppToCTranspiler {
     this.em.line('/* Target: C89 */');
     this.em.line();
     this.em.line('/* Minimal bridge prelude for MaiaC */');
-    this.em.line('/* Runtime interface */');
-    this.em.line('extern void   __exc_push(void);');
-    this.em.line('extern void   __exc_pop(void);');
-    this.em.line('extern int    __exc_active(void);');
-    this.em.line('extern int    __exc_type(void);');
-    this.em.line('extern void*  __exc_data(void);');
-    this.em.line('extern void   __exc_throw(int type, void* data);');
-    this.em.line('extern void   __exc_clear(void);');
-    this.em.line('extern int    __exc_matches(int thrown_type, int catch_type);');
-    this.em.line('extern void*  __malloc(unsigned long size);');
-    this.em.line('extern void   __free(void* ptr);');
-    this.em.line('extern int    sprintf(char* dest, const char* format, ...);');
-    this.em.line();
+    const runtimeTokens = this.analysis.runtimeTokens instanceof Set ? this.analysis.runtimeTokens : new Set();
+    const needsExceptions = !this.astStrict || ['try', 'catch', 'throw'].some((token) => runtimeTokens.has(token));
+    const needsAllocator = !this.astStrict || ['new', 'delete'].some((token) => runtimeTokens.has(token))
+      || Boolean(this.analysis.classes && this.analysis.classes.size > 0);
+    const needsSprintf = !this.astStrict || runtimeTokens.has('sprintf');
+    if (needsExceptions || needsAllocator || needsSprintf) {
+      this.em.line('/* Runtime interface */');
+      if (needsExceptions) {
+        this.em.line('extern void   __exc_push(void);');
+        this.em.line('extern void   __exc_pop(void);');
+        this.em.line('extern int    __exc_active(void);');
+        this.em.line('extern int    __exc_type(void);');
+        this.em.line('extern void*  __exc_data(void);');
+        this.em.line('extern void   __exc_throw(int type, void* data);');
+        this.em.line('extern void   __exc_clear(void);');
+        this.em.line('extern int    __exc_matches(int thrown_type, int catch_type);');
+      }
+      if (needsAllocator) {
+        this.em.line('extern void*  __malloc(unsigned long size);');
+        this.em.line('extern void   __free(void* ptr);');
+      }
+      if (needsSprintf) this.em.line('extern int    sprintf(char* dest, const char* format, ...);');
+      this.em.line();
+    }
     this.emitStdioPrelude(this.options.source || '');
     this.emitStringPrelude(this.options.source || '');
     this.emitCtypeInlines(this.options.source || '');
-    this.emitHostImportDecls(this.options.source || '');
+    this.emitHostImportDecls(this.analysis.hostImports || []);
   }
 
   /**
@@ -2872,52 +3126,27 @@ class CppToCTranspiler {
     this.em.line();
   }
 
-  /**
-   * Scan the C++ source for forward-declarations of host import functions
-   * (names starting with __  but not the built-in __exc_/__malloc/__free family)
-   * and emit them as C extern declarations so MaiaC can generate WAT imports.
-   */
-  emitHostImportDecls(sourceText) {
-    const clean = String(sourceText || '')
-      .replace(/\/\*[\s\S]*?\*\//g, '')
-      .replace(/\/\/[^\n]*/g, '');
-
+  emitHostImportDecls(hostImports) {
     const seen = new Set();
-    // Skip names that are already in the hard-coded prelude above.
     const PRELUDE = new Set(['__exc_push','__exc_pop','__exc_active','__exc_type',
       '__exc_data','__exc_throw','__exc_clear','__exc_matches','__malloc','__free']);
-
-    // Collect text from both top-level and from inside extern "C" { ... } blocks.
-    let allText = clean;
-    const externCRx = /extern\s+"C"\s*\{([^}]*)\}/gs;
-    let em;
-    while ((em = externCRx.exec(clean)) !== null) {
-      allText += '\n' + em[1];
-    }
-
-    // Match: returnType __funcName(params);
-    const declRx = /\b([A-Za-z_][A-Za-z0-9_\s*]*?)\s+(__[A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*;/g;
-    const invalidTypeKeywordRx = /\b(return|throw|new|delete|if|for|while|switch|case|else|do|goto|break|continue|try|catch)\b/;
     const lines = [];
-    let m;
-    while ((m = declRx.exec(allText)) !== null) {
-      let retType = m[1].trim().replace(/\s+/g, ' ');
-      const funcName = m[2];
-      const params = (m[3] || '').trim();
-      if (seen.has(funcName) || PRELUDE.has(funcName)) continue;
-      retType = retType.replace(/^extern\s+/, '').trim();
-      if (!retType) continue;
-      // Skip storage-class prefixed matches — those are variable declarations,
-      // not function declarations (e.g. "static T __name(args);").
-      if (/\b(static|inline|auto|register|typedef)\b/.test(retType)) continue;
-      if (invalidTypeKeywordRx.test(retType)) continue;
-      seen.add(funcName);
-      lines.push(`extern ${retType} ${funcName}(${params || 'void'});`);
+    const aliases = [];
+    for (const hostImport of Array.isArray(hostImports) ? hostImports : []) {
+      const sourceName = String(hostImport.name || '');
+      const cName = String(hostImport.cName || sourceName);
+      if (!sourceName || !cName || seen.has(cName) || PRELUDE.has(cName)) continue;
+      seen.add(cName);
+      const returnType = this.sanitizeTypeForC(hostImport.returnType || 'int');
+      const params = this.formatGlobalFunctionParams(hostImport);
+      lines.push(`extern ${returnType} ${cName}(${params || 'void'});`);
+      if (sourceName !== cName) aliases.push(`#define ${sourceName} ${cName}`);
     }
 
     if (lines.length > 0) {
       this.em.line('/* Host import declarations */');
       for (const l of lines) this.em.line(l);
+      for (const alias of aliases) this.em.line(alias);
       this.em.line();
     }
   }
@@ -3603,7 +3832,7 @@ class CppToCTranspiler {
             return m;
           });
           // Replace bare class member identifiers (own or inherited, not params, not after ->)
-          expr = expr.replace(/(?<!>)\b([A-Za-z_][A-Za-z0-9_]*)\b/g, (m, id) => {
+          expr = expr.replace(/(?<![.>])\b([A-Za-z_][A-Za-z0-9_]*)\b/g, (m, id) => {
             if (!allParamNames.has(id)) {
               const ref = resolveFieldRef(id);
               if (ref) return ref;
@@ -3683,6 +3912,264 @@ class CppToCTranspiler {
     }
   }
 
+  lowerSimpleAstReturnBody(fn) {
+    const body = fn && fn.bodyAst;
+    const directChild = (node, name) => (node && node.children || []).find((child) =>
+      child && child.kind === 'nonterminal' && child.name === name) || null;
+    const compound = directChild(body, 'compoundStatement');
+    if (!compound) return null;
+
+    const blockItems = (compound.children || []).filter((child) =>
+      child && child.kind === 'nonterminal' && child.name === 'blockItem');
+    if (blockItems.length !== 1) return null;
+
+    const statement = directChild(blockItems[0], 'statement');
+    const jump = directChild(statement, 'jumpStatement');
+    if (!jump) return null;
+    const firstTerminal = (jump.children || []).find((child) => child && child.kind === 'terminal');
+    if (!firstTerminal || firstTerminal.value !== 'return') return null;
+
+    const expressionNode = directChild(jump, 'expression');
+    if (!expressionNode) return null;
+
+    const c89LoweredCastTokens = new Set(['TOKEN_static_5F_cast', 'TOKEN_const_5F_cast']);
+    const castTypeTerminals = new Set();
+    const collectTerminals = (node, out = [], inCastType = false) => {
+      if (!node) return out;
+      if (node.kind === 'terminal') {
+        out.push(node);
+        if (inCastType) castTypeTerminals.add(node);
+        return out;
+      }
+      const hasSupportedCast = node.name === 'unaryExpression'
+        && (node.children || []).some((child) => child && child.kind === 'terminal'
+          && c89LoweredCastTokens.has(child.token));
+      for (const child of node.children || []) {
+        collectTerminals(child, out, inCastType || (hasSupportedCast && child.name === 'typeId'));
+      }
+      return out;
+    };
+    const nodeText = (node) => collectTerminals(node).map((terminal) => terminal.value).join(' ').trim();
+    const renderExpression = (node) => {
+      if (!node) return null;
+      if (node.kind === 'terminal') return node.value;
+      if (node.name === 'castExpression') {
+        const typeId = directChild(node, 'typeId');
+        const operand = directChild(node, 'castExpression');
+        if (typeId && operand) {
+          const cType = this.sanitizeTypeForC(nodeText(typeId));
+          const cExpression = renderExpression(operand);
+          return cType && cExpression !== null ? `(${cType})(${cExpression})` : null;
+        }
+      }
+      if (node.name === 'unaryExpression') {
+        const cast = (node.children || []).find((child) => child && child.kind === 'terminal'
+          && ['TOKEN_static_5F_cast', 'TOKEN_const_5F_cast'].includes(child.token));
+        if (cast) {
+          const typeId = directChild(node, 'typeId');
+          const operand = directChild(node, 'expression');
+          const cType = this.sanitizeTypeForC(nodeText(typeId));
+          const cExpression = renderExpression(operand);
+          return cType && cExpression !== null ? `(${cType})(${cExpression})` : null;
+        }
+      }
+      const rendered = (node.children || []).map(renderExpression);
+      if (rendered.some((child) => child === null)) return null;
+      return rendered.join(' ');
+    };
+
+    const terminals = collectTerminals(expressionNode);
+
+    const c89Operators = new Set([
+      '(', ')', '[', ']', '.', '->', '++', '--', '&', '*', '+', '-', '~', '!',
+      '/', '%', '<<', '>>', '<', '>', '<=', '>=', '==', '!=', '^', '|', '&&',
+      '||', '?', ':', ',',
+    ]);
+    const cxxOnlyIdentifiers = new Set([
+      'false', 'new', 'nullptr', 'this', 'throw', 'true', 'typeid',
+    ]);
+    for (const terminal of terminals) {
+      if (castTypeTerminals.has(terminal)) continue;
+      if (['IntegerConstant', 'FloatingConstant', 'CharacterConstant', 'StringLiteral'].includes(terminal.token)) {
+        continue;
+      }
+      if (c89LoweredCastTokens.has(terminal.token)) continue;
+      if (terminal.token === 'Identifier' && !cxxOnlyIdentifiers.has(terminal.value)) continue;
+      if (c89Operators.has(terminal.value) || terminal.token === 'TOKEN_sizeof') continue;
+      return null;
+    }
+
+    const expression = renderExpression(expressionNode);
+    if (!expression || /\b(?:dynamic_cast|reinterpret_cast|static_cast|const_cast)\b/.test(expression)) return null;
+    return { lines: [`return ${expression};`], detail: 'ast-return-expression' };
+  }
+
+  lowerAstC89FunctionBody(fn) {
+    const directChild = (node, name) => (node && node.children || []).find((child) =>
+      child && child.kind === 'nonterminal' && child.name === name) || null;
+    const collectTerminals = (node, out = []) => {
+      if (!node) return out;
+      if (node.kind === 'terminal') {
+        out.push(node);
+        return out;
+      }
+      for (const child of node.children || []) collectTerminals(child, out);
+      return out;
+    };
+    const compound = directChild(fn && fn.bodyAst, 'compoundStatement');
+    if (!compound) return null;
+
+    const indent = (depth) => '  '.repeat(depth);
+    const lowerDeclaration = (declaration) => {
+      const simple = directChild(directChild(declaration, 'blockDeclaration'), 'simpleDeclaration')
+        || directChild(declaration, 'simpleDeclaration')
+        || declaration;
+      const specifiers = directChild(simple, 'declarationSpecifiers');
+      const typeSpecifier = directChild(specifiers, 'declarationTypeSpecifier');
+      const typeName = collectTerminals(typeSpecifier || specifiers).map((terminal) => terminal.value).join(' ').trim();
+      const list = directChild(simple, 'initDeclaratorList');
+      const declarations = [];
+      const initializers = [];
+      for (const item of (list && list.children || []).filter((child) => child && child.name === 'initDeclarator')) {
+        const declarator = directChild(item, 'declarator');
+        const name = collectTerminals(declarator).find((terminal) => terminal.token === 'Identifier')?.value;
+        if (!name) return null;
+        const pointerDepth = collectTerminals(declarator).filter((terminal) => terminal.token === 'TOKEN__2A_').length;
+        const type = this.sanitizeTypeForC(`${typeName}${pointerDepth ? ` ${'*'.repeat(pointerDepth)}` : ''}`);
+        const suffixes = (declarator.children || []).filter((child) => child && child.name === 'directDeclarator')
+          .flatMap((direct) => (direct.children || []).filter((child) => child && child.name === 'directDeclaratorSuffix'));
+        let arraySuffix = '';
+        for (const suffix of suffixes) {
+          if (!(suffix.children || []).some((child) => child && child.kind === 'terminal' && child.value === '[')) continue;
+          const size = collectTerminals(suffix).find((terminal) => terminal.token === 'IntegerConstant');
+          arraySuffix += `[${size ? size.value : ''}]`;
+        }
+        declarations.push(`${type} ${name}${arraySuffix};`);
+        const initializer = directChild(item, 'initializer');
+        const clause = directChild(initializer, 'initializerClause');
+        const expression = directChild(clause, 'assignmentExpression');
+        if (expression) {
+          const rendered = this.renderAstCExpression(expression, fn);
+          if (rendered === null) return null;
+          initializers.push(`${name} = ${rendered};`);
+        }
+      }
+      return { declarations, initializers };
+    };
+
+    const lowerStatement = (node, depth = 0, scopeDeclarations = []) => {
+      if (!node) return null;
+      if (node.name === 'statement' || node.name === 'blockItem') {
+        const child = (node.children || []).find((item) => item && item.kind === 'nonterminal');
+        return lowerStatement(child, depth, scopeDeclarations);
+      }
+      if (node.name === 'compoundStatement') return lowerCompound(node, depth, false);
+      if (node.name === 'expressionStatement') {
+        const expression = directChild(node, 'expression');
+        if (!expression) return [`${indent(depth)};`];
+        const rendered = this.renderAstCExpression(expression, fn);
+        return rendered === null ? null : [`${indent(depth)}${rendered};`];
+      }
+      if (node.name === 'jumpStatement') {
+        const action = (node.children || []).find((child) => child && child.kind === 'terminal');
+        if (!action) return null;
+        if (action.value === 'return') {
+          const expression = directChild(node, 'expression');
+          if (!expression) return [`${indent(depth)}return;`];
+          const rendered = this.renderAstCExpression(expression, fn);
+          return rendered === null ? null : [`${indent(depth)}return ${rendered};`];
+        }
+        if (action.value === 'break' || action.value === 'continue') return [`${indent(depth)}${action.value};`];
+        return null;
+      }
+      if (node.name === 'iterationStatement') {
+        const isForLoop = (node.children || []).some((child) =>
+          child && child.kind === 'terminal' && child.value === 'for');
+        if (!isForLoop) return null;
+        const init = directChild(node, 'forInitStatement');
+        const condition = directChild(node, 'condition');
+        const update = directChild(node, 'expression');
+        const loopBody = directChild(node, 'statement');
+        let initText = '';
+        const prelude = [];
+        const declaration = directChild(init, 'simpleDeclaration');
+        if (declaration) {
+          const lowered = lowerDeclaration(declaration);
+          if (!lowered) return null;
+          scopeDeclarations.push(...lowered.declarations);
+          prelude.push(...lowered.initializers.map((line) => `${indent(depth)}${line}`));
+        } else {
+          const expressionStatement = directChild(init, 'expressionStatement');
+          const initExpression = directChild(expressionStatement, 'expression');
+          if (initExpression) {
+            initText = this.renderAstCExpression(initExpression, fn);
+            if (initText === null) return null;
+          }
+        }
+        const conditionText = condition ? this.renderAstCExpression(condition, fn) : '';
+        const updateText = update ? this.renderAstCExpression(update, fn) : '';
+        if (conditionText === null || updateText === null) return null;
+        const bodyLines = lowerStatement(loopBody, depth + 1, scopeDeclarations);
+        if (bodyLines === null) return null;
+        return [
+          ...prelude,
+          `${indent(depth)}for (${initText}; ${conditionText}; ${updateText}) {`,
+          ...bodyLines,
+          `${indent(depth)}}`
+        ];
+      }
+      if (node.name === 'selectionStatement') {
+        const condition = directChild(node, 'condition');
+        const branches = (node.children || []).filter((child) => child && child.name === 'statement');
+        const conditionText = this.renderAstCExpression(condition, fn);
+        if (conditionText === null || branches.length === 0) return null;
+        const lines = [`${indent(depth)}if (${conditionText}) {`];
+        const thenLines = lowerStatement(branches[0], depth + 1, scopeDeclarations);
+        if (thenLines === null) return null;
+        lines.push(...thenLines, `${indent(depth)}}`);
+        if (branches.length > 1) {
+          const elseLines = lowerStatement(branches[1], depth + 1, scopeDeclarations);
+          if (elseLines === null) return null;
+          lines[lines.length - 1] += ' else {';
+          lines.push(...elseLines, `${indent(depth)}}`);
+        }
+        return lines;
+      }
+      return null;
+    };
+
+    const lowerCompound = (node, depth = 0, root = false) => {
+      const declarations = [];
+      const statements = [];
+      for (const item of (node.children || []).filter((child) => child && child.name === 'blockItem')) {
+        const child = (item.children || []).find((part) => part && part.kind === 'nonterminal');
+        if (!child) continue;
+        const statementDeclaration = child.name === 'statement'
+          ? directChild(directChild(child, 'declarationStatement'), 'blockDeclaration')
+          : null;
+        const declaration = child.name === 'declaration' ? child : statementDeclaration;
+        if (declaration) {
+          const lowered = lowerDeclaration(declaration);
+          if (!lowered) return null;
+          declarations.push(...lowered.declarations);
+          statements.push(...lowered.initializers.map((line) => `${indent(depth + (root ? 0 : 1))}${line}`));
+        } else {
+          const lowered = lowerStatement(child, depth + (root ? 0 : 1), declarations);
+          if (lowered === null) return null;
+          statements.push(...lowered);
+        }
+      }
+      const body = [
+        ...declarations.map((line) => `${indent(depth + (root ? 0 : 1))}${line}`),
+        ...statements
+      ];
+      return root ? body : [`${indent(depth)}{`, ...body, `${indent(depth)}}`];
+    };
+
+    const lines = lowerCompound(compound, 0, true);
+    return lines === null ? null : { lines, detail: 'ast-c89-statements' };
+  }
+
   emitGlobalFunctionStubs() {
     const rawFns = Array.isArray(this.analysis.functions) ? this.analysis.functions : [];
     const seenFnKeys = new Set();
@@ -3708,7 +4195,7 @@ class CppToCTranspiler {
       const sigTypes = (fn.params || []).map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
       const paramsText = this.formatGlobalFunctionParams(fn);
       const mangled = mangle(fn.name, sigTypes, null, fn.namespacePath || []);
-      const emittedName = fn.name === 'main' && !fn.namespacePath?.length ? 'main' : mangled;
+      const emittedName = fn.cLinkage || (fn.name === 'main' && !fn.namespacePath?.length) ? fn.name : mangled;
       const returnType = this.sanitizeTypeForC(fn.returnType);
       const declKey = `${returnType} ${emittedName}(${paramsText || 'void'})`;
       if (emittedDecls.has(declKey)) continue;
@@ -3723,7 +4210,7 @@ class CppToCTranspiler {
       const sigTypes = (fn.params || []).map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
       const paramsText = this.formatGlobalFunctionParams(fn);
       const mangled = mangle(fn.name, sigTypes, null, fn.namespacePath || []);
-      const emittedName = fn.name === 'main' && !fn.namespacePath?.length ? 'main' : mangled;
+      const emittedName = fn.cLinkage || (fn.name === 'main' && !fn.namespacePath?.length) ? fn.name : mangled;
       const returnType = this.sanitizeTypeForC(fn.returnType);
       const defKey = `${returnType} ${emittedName}(${paramsText || 'void'})`;
       if (emittedDefs.has(defKey)) continue;
@@ -3745,6 +4232,8 @@ class CppToCTranspiler {
       );
       const unsupportedArgvMain = fn.name === 'main' && !fn.namespacePath?.length && Array.isArray(fn.params) && fn.params.length >= 2;
       const loweredTryCatch = unsupportedArgvMain ? null : this.lowerSimpleTryCatchFunction(fn);
+      const loweredAstC89 = this.astStrict ? this.lowerAstC89FunctionBody(fn) : null;
+      const loweredAstBody = this.astStrict ? this.lowerSimpleAstReturnBody(fn) : null;
       this.em.line(`${returnType} ${emittedName}(${paramsText || 'void'}) {`);
       this.em.level += 1;
       if (unsupportedArgvMain) {
@@ -3756,6 +4245,20 @@ class CppToCTranspiler {
           functionName: fn.name,
           kind: 'structured-try-catch-runtime',
           detail: loweredTryCatch.detail || 'simple-try-catch-runtime'
+        });
+      } else if (loweredAstC89 && Array.isArray(loweredAstC89.lines)) {
+        for (const line of loweredAstC89.lines) this.em.line(line);
+        this.loweringEvents.push({
+          functionName: fn.name,
+          kind: 'ast-c89-body',
+          detail: loweredAstC89.detail
+        });
+      } else if (loweredAstBody && Array.isArray(loweredAstBody.lines) && loweredAstBody.lines.length > 0) {
+        for (const line of loweredAstBody.lines) this.em.line(line);
+        this.loweringEvents.push({
+          functionName: fn.name,
+          kind: 'ast-c89-body',
+          detail: loweredAstBody.detail
         });
       } else if (fn.name === 'main' && !fn.namespacePath?.length && structuredMain && !preferCStyleMain && !skipStructuredMain) {
         this.emitStructuredMain(structuredMain);
@@ -4209,7 +4712,9 @@ class CppToCTranspiler {
       if (resolution && resolution.match) {
         const match = resolution.match;
         const sigTypes = (match.params || []).map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
-        const mangled = mangle(match.name, sigTypes, null, match.namespacePath || []);
+        const mangled = match.cLinkage
+          ? match.name
+          : mangle(match.name, sigTypes, null, match.namespacePath || []);
         return `${mangled}(${rewrittenArgs.join(', ')})`;
       }
       return `${rawCallee}(${rewrittenArgs.join(', ')})`;
@@ -9257,7 +9762,7 @@ class CppToCTranspiler {
       return baseName;
     }
     const sigTypes = (fn.params || []).map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
-    return mangle(fn.name, sigTypes, null, fn.namespacePath || []);
+    return fn.cLinkage ? fn.name : mangle(fn.name, sigTypes, null, fn.namespacePath || []);
   }
 
   resolveCMainCallInfo(name, arityOrArgs, argTypes) {
@@ -9332,7 +9837,7 @@ class CppToCTranspiler {
 
     const sigTypes = (fn.params || []).map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
     return {
-      callee: mangle(fn.name, sigTypes, null, fn.namespacePath || []),
+      callee: fn.cLinkage ? fn.name : mangle(fn.name, sigTypes, null, fn.namespacePath || []),
       returnType: normalizeTypeText(fn.returnType || 'int') || 'int',
       isVariadic: Boolean(fn.isVariadic),
       simpleVariadicIntSum: Boolean(fn.simpleVariadicIntSum),
@@ -9394,7 +9899,9 @@ class CppToCTranspiler {
     }
 
     const sigTypes = (match.params || []).map((p) => ({ kind: this.typeKindFromText(p.type), name: p.type }));
-    const calleeMangled = mangle(match.name, sigTypes, null, match.namespacePath || []);
+    const calleeMangled = match.cLinkage
+      ? match.name
+      : mangle(match.name, sigTypes, null, match.namespacePath || []);
     const ambiguity = resolution && resolution.ambiguity
       ? {
         caller: this.functionStableKey(fn),
@@ -10601,6 +11108,7 @@ class Cpp98Compiler {
     const transpiler = new CppToCTranspiler(analysis, {
       filePath: this.filePath,
       source,
+      astStrict: this.options.astStrict === true,
       allowDeterministicFunctionFolding: this.options.allowDeterministicFunctionFolding,
       emitLoweringDiagnostics: this.options.emitLoweringDiagnostics
     });
