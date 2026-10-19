@@ -1,6 +1,6 @@
 {
   "name": "maiacpp",
-  "version": "1.5.2",
+  "version": "1.5.4",
   "description": "MaiaCpp (WebCpp): C++98 to C transpiler integrated with MaiaC.",
   "author": "The MaiaScript Team (https://www.maiascript.com)",
   "license": "Apache-2.0",
@@ -14,6 +14,7 @@
     "bin/run-test-node.sh",
     "bin/run-test-console.sh",
     "compiler/cpp-compiler.js",
+    "compiler/cpp-preprocessor.js",
     "compiler/cpp-parser.js",
     "compiler/parse-tree-collector.js",
     "compiler/runtime.wat",
