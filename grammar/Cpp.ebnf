@@ -672,8 +672,9 @@ BinaryExponentPart ::= [pP] [+#x2D]? [0-9]+
 
 CharacterConstant ::= '\\'? "'" CChar+ "'"
 
-CChar ::= [!-~]
-        | #x20
+CChar ::= [#x20-#x26]
+        | [#x28-#x5B]
+        | [#x5D-#x7E]
         | EscapeSequence
 
 EscapeSequence ::= SimpleEscapeSequence

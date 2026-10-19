@@ -2810,6 +2810,7 @@ class CppToCTranspiler {
   transpile() {
     this.emitHeaders();
     this.emitSourceTypedefs();
+    this.emitClassDefinitions();
     this.emitSourceGlobalDeclarations();
     this.emitClasses();
     this.emitGlobalFunctionStubs();
@@ -3278,7 +3279,7 @@ class CppToCTranspiler {
     return 'int';
   }
 
-  emitClasses() {
+  emitClassDefinitions() {
     let id = 1;
     for (const [name] of this.analysis.classes) {
       this.em.line(`#define EXC_${name} ${id++}`);
@@ -3286,7 +3287,6 @@ class CppToCTranspiler {
     if (this.analysis.classes.size) this.em.line();
 
     for (const [name, cls] of this.analysis.classes) {
-      const nsPath = Array.isArray(cls.namespacePath) ? cls.namespacePath : [];
       this.em.line(`typedef struct ${name} {`);
       this.em.level += 1;
       let hasPayload = false;
@@ -3328,7 +3328,12 @@ class CppToCTranspiler {
       this.em.level -= 1;
       this.em.line(`} ${name};`);
       this.em.line();
+    }
+  }
 
+  emitClasses() {
+    for (const [name, cls] of this.analysis.classes) {
+      const nsPath = Array.isArray(cls.namespacePath) ? cls.namespacePath : [];
       const ctorDeclSet = new Set();
       if (cls.constructors.length === 0) {
         const ctorName = mangle('init', [], name, nsPath);
@@ -4085,6 +4090,21 @@ class CppToCTranspiler {
       if (node.name === 'iterationStatement') {
         const isForLoop = (node.children || []).some((child) =>
           child && child.kind === 'terminal' && child.value === 'for');
+        const isWhileLoop = (node.children || []).some((child) =>
+          child && child.kind === 'terminal' && child.value === 'while');
+        if (isWhileLoop) {
+          const condition = directChild(node, 'condition');
+          const loopBody = directChild(node, 'statement');
+          const conditionText = condition ? this.renderAstCExpression(condition, fn) : null;
+          if (conditionText === null) return null;
+          const bodyLines = lowerStatement(loopBody, depth + 1, scopeDeclarations);
+          if (bodyLines === null) return null;
+          return [
+            `${indent(depth)}while (${conditionText}) {`,
+            ...bodyLines,
+            `${indent(depth)}}`
+          ];
+        }
         if (!isForLoop) return null;
         const init = directChild(node, 'forInitStatement');
         const condition = directChild(node, 'condition');
