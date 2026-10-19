@@ -30,7 +30,7 @@
   ],
   "scripts": {
     "build:libs": "node ./tools/build-libs.js",
-    "test": "bash ./bin/webcpp.sh --file ./compiler/examples/test.cpp --ast-json-out ./out/test.ast.json --c-out ./out/test.c && npm run check:maiaCC-parser-wasm",
+    "test": "bash ./bin/webcpp.sh --file ./compiler/examples/test.cpp --ast-json-out ./out/test.ast.json --c-out ./out/test.c && npm run check:maiaCC-parser-wasm && npm --prefix maiac run test:maiaregex",
     "check:maiaCC-parser-wasm": "node ./compiler/tests/test-maiacc-cpp98-parser-wasm.js",
     "compile:test": "bash ./bin/webcpp.sh --file ./compiler/examples/test.cpp --c-out ./out/test.c",
     "report:tiers": "node ./compiler/tests/run_tiered_cpp98.js",

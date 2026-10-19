@@ -470,6 +470,10 @@ function normalizeTypeText(type) {
     .trim();
   if (!t) return 'int';
   const fixedWidthTypeAliases = {
+    size_t: 'unsigned int',
+    'std::size_t': 'unsigned int',
+    ptrdiff_t: 'int',
+    'std::ptrdiff_t': 'int',
     int8_t: 'signed char',
     uint8_t: 'unsigned char',
     int16_t: 'short',
@@ -3106,8 +3110,10 @@ class CppToCTranspiler {
     }
     if (usesMalloc) {
       this.em.line('/* malloc/free → MaiaC __malloc/__free bridge */');
+      this.em.line('#ifndef MAIACPP_USE_C_ALLOCATOR');
       this.em.line('#define malloc(n) __malloc((unsigned long)(n))');
       this.em.line('#define free(p) __free((void*)(p))');
+      this.em.line('#endif');
     }
     this.em.line();
   }

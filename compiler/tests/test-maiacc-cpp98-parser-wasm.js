@@ -39,9 +39,11 @@ function main() {
   const driverPath = path.join(tempRoot, 'parser-driver.cpp');
   const cPath = path.join(tempRoot, 'parser-driver.c');
   const wasmPath = path.join(tempRoot, 'parser-driver.wasm');
+  const linkedPath = path.join(tempRoot, 'linked-driver.c');
   const keepTemp = process.env.MAIACPP_PARSER_TEST_KEEP_TEMP === '1';
 
   try {
+    fs.copyFileSync(path.join(root, 'maiaregex/maia_regex.h'), path.join(tempRoot, 'maia_regex.h'));
     fs.writeFileSync(grammarPath, arithmeticGrammar);
     run('bash', [
       trex,
@@ -57,6 +59,8 @@ function main() {
     fs.writeFileSync(driverPath, `#include "generated-parser.cpp"
 
 int main() {
+  size_t bound = (size_t)-1;
+  if (bound / 4 != 1073741823) return 3;
   MaiaCCParserToken validToken;
   validToken.type = MAIACC_TOKEN_Number;
   validToken.value = "7";
@@ -86,14 +90,19 @@ int main() {
       driverPath,
       '--c-out',
       cPath,
-      '--wasm-out',
-      wasmPath,
       '--ast-strict',
       '--no-legacy-function-hints',
       '--no-system-includes',
     ]);
     const cSource = fs.readFileSync(cPath, 'utf8');
     assert.doesNotMatch(cSource, /MAIACC_TOKEN_/, 'MaiaCpp must expand generated token-ID macros');
+    fs.writeFileSync(linkedPath, `#define MAIACPP_USE_C_ALLOCATOR\n#include "${path.join(root, 'maiac/src/stdlib.c')}"\n#include "${cPath}"\n`);
+    const { compileSource } = require(path.join(root, 'maiac/compiler/c-compiler.js'));
+    const result = compileSource(fs.readFileSync(linkedPath, 'utf8'), {
+      sourcePath: linkedPath, resolveSystemIncludes: true, validate: true,
+    });
+    assert.ok(result.wasm, result.validationError && result.validationError.message);
+    fs.writeFileSync(wasmPath, Buffer.from(result.wasm));
     assert.ok(fs.existsSync(wasmPath), 'MaiaCpp/MaiaC did not produce WASM');
     assert.ok(fs.statSync(wasmPath).size > 0, 'Generated WASM is empty');
 

@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { createC89JsHosts } = require('../../maiac/src/runtime/c89-js-hosts.js');
+const { createDefaultHostBuiltins } = require('../../maiac/src/runtime/default-host-builtins.js');
 
 function usage() {
   console.log('Usage: node tools/node/run-wasm-node.js <file.wasm>');
@@ -40,9 +41,12 @@ function createEnvImports() {
   const c89Hosts = createC89JsHosts(getMemory, {
     write: (text) => process.stdout.write(String(text))
   });
+  const memoryHosts = createDefaultHostBuiltins(getMemory);
 
   const env = {
     ...c89Hosts,
+    __builtin_wasm_memory_grow: memoryHosts._memory_grow_js,
+    __builtin_wasm_memory_size: memoryHosts._memory_size_js,
     // MaiaCpp-specific bridge symbols not exposed by the C89 host bundle.
     printf: (formatPtr, a1, a2, a3, a4, a5, a6, a7) => c89Hosts.fprintf(2, formatPtr, a1, a2, a3, a4, a5, a6, a7),
     __malloc: allocate,

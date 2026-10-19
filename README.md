@@ -74,6 +74,13 @@ Note:
 
 - The `cpp-compiler.js` file only outputs C code.
 
+- Define `MAIACPP_USE_C_ALLOCATOR` when compiling emitted C together with a real
+	C allocator to disable the default `malloc/free` host-bridge macros. The
+	generated-parser WASM regression uses the in-repository MaiaC C89 libc this way.
+- `npm test` also runs the authoritative MaiaRegex C89 program tests in WASM
+	through the local MaiaC submodule. This is separate from the pre-tokenized
+	C++ parser regression, not proof of a complete C++ lexer or self-hosted generator.
+
 - The only WAT file maintained in the project is `compiler/runtime.wat`, reserved for the runtime that covers what doesn't fit in the target C code, such as support for `try`/`catch`.
 
 ## Execution of test.cpp (console, Node, browser)
