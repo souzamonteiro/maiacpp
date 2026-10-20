@@ -11579,16 +11579,16 @@ class Cpp98Compiler {
       'extern int __arr__indexOf($1);'
     );
 
-    // Translate C++ scalar allocation pattern emitted by runtime helpers.
+    // Translate runtime allocations only in code. String assets may themselves
+    // contain source code (for example the MaiaCC JavaScript lexer template).
+    // Consume literals/comments first so their contents remain byte-identical.
     out = out.replace(
-      /=\s*new\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*\)\s*;/g,
-      '= ($1*)__malloc((unsigned long)sizeof($1));'
-    );
-
-    // Translate C++ array allocation pattern emitted by runtime helpers.
-    out = out.replace(
-      /=\s*new\s+([A-Za-z_][A-Za-z0-9_]*)\s*\[\s*([^\]]+)\s*\]\s*;/g,
-      '= ($1*)__malloc((unsigned long)(sizeof($1) * ($2)));'
+      /"(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'|\/\/[^\n]*|\/\*[\s\S]*?\*\/|=\s*new\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*\)\s*;|=\s*new\s+([A-Za-z_][A-Za-z0-9_]*)\s*\[\s*([^\]]+)\s*\]\s*;/g,
+      (match, scalarType, arrayType, arraySize) => {
+        if (scalarType) return `= (${scalarType}*)__malloc((unsigned long)sizeof(${scalarType}));`;
+        if (arrayType) return `= (${arrayType}*)__malloc((unsigned long)(sizeof(${arrayType}) * (${arraySize})));`;
+        return match;
+      }
     );
 
     // Some MaiaJS prototype helper stubs can still leak C++-style `this->`
