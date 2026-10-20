@@ -77,9 +77,22 @@ Note:
 - Define `MAIACPP_USE_C_ALLOCATOR` when compiling emitted C together with a real
 	C allocator to disable the default `malloc/free` host-bridge macros. The
 	generated-parser WASM regression uses the in-repository MaiaC C89 libc this way.
-- `npm test` also runs the authoritative MaiaRegex C89 program tests in WASM
-	through the local MaiaC submodule. This is separate from the pre-tokenized
-	C++ parser regression, not proof of a complete C++ lexer or self-hosted generator.
+- `npm test` requires native C++98/emitted C89 equivalence for the lexer data
+	contracts, then raw-text generated lexing, parsing, rollback and tree callbacks
+	in actual WASM through the repository-local MaiaC and MaiaRegex submodules.
+	It also runs the authoritative MaiaRegex C89 program tests in WASM. The full
+	REx frontend and complete generator self-hosting remain separate gates.
+- The preprocessor searches the repository-local C compatibility headers and
+	MaiaCpp headers, without an implicit sibling MaiaC dependency. System-header
+	macros are processed; standard declaration preludes remain the existing path.
+	It defines `__cplusplus` as `199711L` for C++98 header linkage guards.
+- AST lowering retains pointer-to-const parameters and return types, C linkage
+	prototypes and postfix members after calls. Known type names resolve ambiguous
+	`Type* name = value` statements into declarations at the start of their C89
+	block, while initialization keeps its original execution order.
+- `npm run check:maiaCC-rex-wasm` is the separate full REx
+	frontend gate: strict C89 syntax validation, then guest lexing, parsing and XML
+	serialization compared with the JavaScript oracle. It does not port the emitter.
 
 - The only WAT file maintained in the project is `compiler/runtime.wat`, reserved for the runtime that covers what doesn't fit in the target C code, such as support for `try`/`catch`.
 

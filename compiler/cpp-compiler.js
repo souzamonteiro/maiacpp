@@ -1682,8 +1682,10 @@ class SemanticAnalyzer {
     this.globals = new SymbolTable();
     this.classes = new Map();
     this.functions = [];
+    this.cFunctionDeclarations = [];
     this.hostImports = [];
     this.globalVariables = [];
+    this.typeAliases = new Map();
     this.runtimeTokens = new Set();
     this.cLinkageDepth = 0;
     this.namespaceStack = [];
@@ -1695,8 +1697,10 @@ class SemanticAnalyzer {
       symbols: this.globals,
       classes: this.classes,
       functions: this.functions,
+      cFunctionDeclarations: this.cFunctionDeclarations,
       hostImports: this.hostImports,
       globalVariables: this.globalVariables,
+      typeAliases: this.typeAliases,
       runtimeTokens: this.runtimeTokens
     };
   }
@@ -1709,6 +1713,9 @@ class SemanticAnalyzer {
     const enteredCLinkage = this.enterCLinkageIfNeeded(node);
 
     if (node.kind === 'nonterminal' && node.name === 'externalDeclaration') {
+      this.collectTypeAliases(node);
+      const cDeclaration = this.extractCFunctionDeclaration(node, this.cLinkageDepth > 0);
+      if (cDeclaration) this.cFunctionDeclarations.push(cDeclaration);
       const hostImport = this.extractHostImport(node);
       if (hostImport) this.hostImports.push(hostImport);
 
@@ -1916,6 +1923,7 @@ class SemanticAnalyzer {
         cls.members.push({
           name: `${name}${suffix}`,
           type: this.extractDeclaratorType(specifiers, fieldDeclarator) || 'int',
+          callbackParameters: this.extractCallbackParameters(fieldDeclarator),
           access
         });
       }
@@ -1929,15 +1937,29 @@ class SemanticAnalyzer {
       cls.members.push({
         name: `${name}${suffix}`,
         type: this.extractDeclaratorType(specifiers, declarator) || 'int',
+        callbackParameters: this.extractCallbackParameters(declarator),
         access
       });
     }
   }
 
-  extractDeclaratorType(specifiersNode, declaratorNode) {
+  extractDeclaratorType(specifiersNode, declaratorNode, qualifierNode = specifiersNode) {
     const base = this.text(specifiersNode).trim();
     const ptr = this.extractPointerSuffix(declaratorNode);
-    return normalizeTypeText(`${base} ${ptr}`.trim());
+    const normalized = normalizeTypeText(`${base} ${ptr}`.trim());
+    return /\bconst\b/.test(this.text(qualifierNode)) && ptr.includes('*') ? `const ${normalized}` : normalized;
+  }
+
+  extractCallbackParameters(node) {
+    const direct = this.findDirectChildNonterminal(node, 'directDeclarator');
+    const core = this.findDirectChildNonterminal(direct, 'directDeclaratorCore');
+    const nested = this.findDirectChildNonterminal(core, 'declarator');
+    if (!nested || this.extractPointerSuffix(nested) !== '*') return null;
+    const suffix = (direct.children || []).find((child) => child
+      && child.name === 'directDeclaratorSuffix'
+      && this.findDirectChildNonterminal(child, 'parameterDeclarationClause'));
+    if (!suffix) return null;
+    return this.extractParametersFromDeclarator(suffix);
   }
 
   extractPointerSuffix(node) {
@@ -2116,7 +2138,7 @@ class SemanticAnalyzer {
 
     const specifiers = this.findFirstNonterminal(declaration, 'declarationSpecifiers');
     const typeSpecifier = this.findDirectChildNonterminal(specifiers, 'declarationTypeSpecifier');
-    const returnType = this.extractDeclaratorType(typeSpecifier || specifiers, declarator);
+    const returnType = this.extractDeclaratorType(typeSpecifier || specifiers, declarator, specifiers);
     const params = this.extractParametersFromDeclarator(declarator);
     const bodyText = this.text(functionBody);
 
@@ -2176,7 +2198,7 @@ class SemanticAnalyzer {
 
     const specifiers = this.findDirectChildNonterminal(declaration, 'declarationSpecifiers');
     const typeSpecifier = this.findDirectChildNonterminal(specifiers, 'declarationTypeSpecifier');
-    const returnType = this.extractDeclaratorType(typeSpecifier || specifiers, declarator) || 'int';
+    const returnType = this.extractDeclaratorType(typeSpecifier || specifiers, declarator, specifiers) || 'int';
     const params = this.extractParametersFromDeclarator(declarator);
     const toIdentifierPart = (value) => String(value).replace(/[^A-Za-z0-9_]/g, '_');
     const cName = hasImportAttribute
@@ -2191,6 +2213,49 @@ class SemanticAnalyzer {
       returnType,
       params
     };
+  }
+
+  extractCFunctionDeclaration(node, cLinkage) {
+    let declaration = this.findDirectChildNonterminal(node, 'declaration');
+    const linkage = this.findDirectChildNonterminal(node, 'linkageSpecification');
+    if (!declaration && linkage) {
+      declaration = this.findDirectChildNonterminal(linkage, 'declaration');
+      cLinkage = true;
+    }
+    if (!cLinkage || !declaration || this.findDirectChildNonterminal(declaration, 'functionBody')) return null;
+    const item = this.findDirectChildNonterminal(this.findDirectChildNonterminal(declaration, 'initDeclaratorList'), 'initDeclarator');
+    const declarator = this.findDirectChildNonterminal(declaration, 'declarator')
+      || this.findDirectChildNonterminal(item, 'declarator');
+    const direct = this.findDirectChildNonterminal(declarator, 'directDeclarator');
+    if (!(direct?.children || []).some((child) => child.name === 'directDeclaratorSuffix'
+      && this.findDirectChildNonterminal(child, 'parameterDeclarationClause'))) return null;
+    const specifiers = this.findDirectChildNonterminal(declaration, 'declarationSpecifiers');
+    if (this.findAllTerminals(specifiers, 'TOKEN_typedef').length) return null;
+    const type = this.findDirectChildNonterminal(specifiers, 'declarationTypeSpecifier') || specifiers;
+    return {
+      name: this.extractDeclaratorName(declarator),
+      returnType: this.extractDeclaratorType(type, declarator, specifiers),
+      params: this.extractParametersFromDeclarator(declarator),
+      isVariadic: this.findAllTerminals(declarator, 'TOKEN__2E__2E__2E_').length > 0
+    };
+  }
+
+  collectTypeAliases(node) {
+    const declaration = this.findDirectChildNonterminal(node, 'declaration');
+    const specifiers = this.findDirectChildNonterminal(declaration, 'declarationSpecifiers');
+    if (!specifiers || !this.findAllTerminals(specifiers, 'TOKEN_typedef').length
+        || this.findFirstNonterminal(specifiers, 'classSpecifier')) return;
+    const typeSpecifier = this.findDirectChildNonterminal(specifiers, 'declarationTypeSpecifier');
+    const initList = this.findDirectChildNonterminal(declaration, 'initDeclaratorList');
+    for (const item of this.findAllNonterminals(initList, 'initDeclarator')) {
+      const declarator = this.findDirectChildNonterminal(item, 'declarator');
+      const name = this.extractDeclaratorName(declarator);
+      if (!name || this.findFirstTerminal(declarator, 'TOKEN__28_')
+          || this.extractArraySuffix(declarator)) continue;
+      const type = this.extractDeclaratorType(typeSpecifier || specifiers, declarator)
+        .replace(/\btypedef\b/g, '').trim();
+      if (type && type !== name) this.typeAliases.set(name, type);
+    }
   }
 
   extractGlobalVariables(node) {
@@ -2218,7 +2283,8 @@ class SemanticAnalyzer {
       const initializer = this.findDirectChildNonterminal(initDeclarator, 'initializer');
       const initializerClause = this.findDirectChildNonterminal(initializer, 'initializerClause');
       const expression = this.findDirectChildNonterminal(initializerClause, 'assignmentExpression');
-      const initializerTerminals = this.findAllTerminals(expression);
+      const initializerAst = expression || initializerClause;
+      const initializerTerminals = this.findAllTerminals(initializerAst);
       let initializerText = null;
       if (initializerTerminals.length > 0) {
         const values = initializerTerminals.map((terminal) => terminal.value);
@@ -2232,7 +2298,7 @@ class SemanticAnalyzer {
         isConst,
         arraySuffix: this.extractArraySuffix(declarator),
         initializerText,
-        initializerAst: expression
+        initializerAst
       });
     }
     return variables;
@@ -2251,7 +2317,8 @@ class SemanticAnalyzer {
     const params = this.findAllNonterminals(clause, 'parameterDeclaration');
     return params.map((param, index) => {
       const specifiers = this.findFirstNonterminal(param, 'declarationSpecifiers');
-      const declarator = this.findFirstNonterminal(param, 'declarator');
+      const declarator = this.findDirectChildNonterminal(param, 'declarator')
+        || this.findDirectChildNonterminal(param, 'abstractDeclarator');
       const baseType = normalizeTypeText(this.text(specifiers));
       const declText = this.text(declarator).trim();
 
@@ -2266,8 +2333,9 @@ class SemanticAnalyzer {
 
       // Count pointer stars in the declarator text (before the identifier).
       // The declarator may look like "* name" or "** name" — each '*' adds one pointer level.
-      const ptrStars = (declText.match(/^\*+/) || [''])[0];
-      const type = ptrStars ? `${baseType}${ptrStars}` : baseType;
+      const ptrStars = this.extractPointerSuffix(declarator).replace(/&/g, '');
+      const constPointee = ptrStars && /\bconst\b/.test(this.text(specifiers));
+      const type = ptrStars ? `${constPointee ? 'const ' : ''}${baseType}${ptrStars}` : baseType;
       const name = this.extractDeclaratorName(declarator) || `p${index + 1}`;
       return { type, name };
     });
@@ -2806,6 +2874,7 @@ class CppToCTranspiler {
     this.knownTypeNames = new Set([
       ...Object.keys(BUILTIN_TYPES),
       ...Array.from((analysis && analysis.classes) ? analysis.classes.keys() : []),
+      ...Array.from((analysis && analysis.typeAliases) ? analysis.typeAliases.keys() : []),
       ...this.extractFunctionPointerTypedefNames(options.source || ''),
       ...this.extractBuiltinTypedefNames(options.source || '')
     ]);
@@ -2815,12 +2884,25 @@ class CppToCTranspiler {
     this.emitHeaders();
     this.emitSourceTypedefs();
     this.emitClassDefinitions();
+    this.emitCFunctionDeclarations();
     this.emitSourceGlobalDeclarations();
     this.emitClasses();
     this.emitGlobalFunctionStubs();
     this.emitLoweringDiagnosticsSummary();
     this.emitAmbiguitySummary();
     return this.em.code();
+  }
+
+  emitCFunctionDeclarations() {
+    const emitted = new Set();
+    for (const fn of this.analysis.cFunctionDeclarations || []) {
+      if (!fn.name || emitted.has(fn.name)) continue;
+      emitted.add(fn.name);
+      const params = (fn.params || []).map((param) => this.sanitizeTypeForC(param.type));
+      if (fn.isVariadic) params.push('...');
+      this.em.line(`extern ${this.sanitizeTypeForC(fn.returnType)} ${fn.name}(${params.join(', ') || 'void'});`);
+    }
+    if (emitted.size) this.em.line();
   }
 
   emitSourceGlobalDeclarations() {
@@ -2850,6 +2932,34 @@ class CppToCTranspiler {
     if (emitted.size > 0) this.em.line();
   }
 
+  findLocalDeclaratorNames(body) {
+    const names = new Set();
+    const visit = (node) => {
+      if (!node) return;
+      if (node.name === 'initDeclarator') {
+        const declarator = (node.children || []).find((child) => child && child.name === 'declarator');
+        const collect = (current) => {
+          if (!current) return;
+          if (current.name === 'declaratorId') {
+            const terminals = [];
+            const flatten = (part) => {
+              if (part.kind === 'terminal') terminals.push(part.value);
+              else for (const child of part.children || []) flatten(child);
+            };
+            flatten(current);
+            names.add(terminals.join(''));
+            return;
+          }
+          for (const child of current.children || []) collect(child);
+        };
+        collect(declarator);
+      }
+      for (const child of node.children || []) visit(child);
+    };
+    visit(body);
+    return names;
+  }
+
   renderAstCExpression(node, currentFunction = null) {
     const directChild = (parent, name) => (parent && parent.children || []).find((child) =>
       child && child.kind === 'nonterminal' && child.name === name) || null;
@@ -2874,7 +2984,23 @@ class CppToCTranspiler {
         const identifier = directChild(primary, 'idExpression');
         const callSuffix = (current.children || []).find((child) => child && child.name === 'postfixSuffix'
           && (child.children || []).some((part) => part && part.kind === 'terminal' && part.value === '('));
-        if (identifier && callSuffix) {
+        const suffixes = (current.children || []).filter((child) => child && child.name === 'postfixSuffix');
+        if (identifier && suffixes.length === 0) {
+          const name = typeText(identifier).replace(/\s+/g, '');
+          const shadowed = currentFunction && (
+            (currentFunction.params || []).some((param) => param.name === name)
+            || this.findLocalDeclaratorNames(currentFunction.bodyAst).has(name));
+          const targets = (this.analysis.functions || []).filter((candidate) => candidate.name === name);
+          if (!shadowed && targets.length === 1) {
+            const target = targets[0];
+            if (target.cLinkage) return target.name;
+            const signature = (target.params || []).map((param) => ({
+              kind: this.typeKindFromText(param.type), name: param.type
+            }));
+            return mangle(target.name, signature, null, target.namespacePath || []);
+          }
+        }
+        if (identifier && callSuffix && suffixes[0] === callSuffix) {
           const identifierText = collectTerminals(identifier)
             .filter((terminal) => terminal.token === 'Identifier')
             .map((terminal) => terminal.value)
@@ -2902,7 +3028,9 @@ class CppToCTranspiler {
               ? target.name
               : mangle(target.name, signature, null, target.namespacePath || []);
           }
-          return `${callee}(${renderedArgs.join(', ')})`;
+          const remaining = suffixes.slice(1).map(render);
+          if (remaining.some((suffix) => suffix === null)) return null;
+          return `${callee}(${renderedArgs.join(', ')})${remaining.length ? ` ${remaining.join(' ')}` : ''}`;
         }
       }
       if (current.name === 'castExpression') {
@@ -3109,8 +3237,13 @@ class CppToCTranspiler {
       this.em.line('extern void* memchr(const void* s, int c, unsigned int n);');
     }
     if (usesMalloc) {
+      this.em.line('extern void* calloc(unsigned int count, unsigned int size);');
+      this.em.line('extern void* realloc(void* ptr, unsigned int size);');
       this.em.line('/* malloc/free → MaiaC __malloc/__free bridge */');
-      this.em.line('#ifndef MAIACPP_USE_C_ALLOCATOR');
+      this.em.line('#ifdef MAIACPP_USE_C_ALLOCATOR');
+      this.em.line('extern void* malloc(unsigned int size);');
+      this.em.line('extern void free(void* ptr);');
+      this.em.line('#else');
       this.em.line('#define malloc(n) __malloc((unsigned long)(n))');
       this.em.line('#define free(p) __free((void*)(p))');
       this.em.line('#endif');
@@ -3254,7 +3387,17 @@ class CppToCTranspiler {
   }
 
   sanitizeTypeForC(typeText) {
-    const normalized = normalizeTypeText(typeText || '');
+    const constPointee = /\bconst\b/.test(typeText || '') && /\*\s*$/.test(typeText || '');
+    let normalized = normalizeTypeText(typeText || '');
+    const visited = new Set();
+    while (this.analysis.typeAliases) {
+      const aliasMatch = normalized.match(/^(.*?)\s*(\**)$/);
+      const alias = aliasMatch && aliasMatch[1].trim();
+      if (!alias || !this.analysis.typeAliases.has(alias)) break;
+      if (visited.has(alias)) throw new Error(`Cyclic typedef '${alias}'`);
+      visited.add(alias);
+      normalized = normalizeTypeText(`${this.analysis.typeAliases.get(alias)}${aliasMatch[2]}`);
+    }
     if (!normalized) return 'int';
     if (normalized === 'string' || normalized === 'std::string') return 'char*';
 
@@ -3275,10 +3418,10 @@ class CppToCTranspiler {
     const safePtrSuffix = ptrSuffix.length > 0 ? '*' : '';
     const structTypeMatch = base.match(/^struct\s+([A-Za-z_][A-Za-z0-9_]*)$/);
     if (structTypeMatch && this.knownTypeNames.has(structTypeMatch[1])) {
-      return `${structTypeMatch[1]}${safePtrSuffix}`;
+      return `${constPointee ? 'const ' : ''}${structTypeMatch[1]}${safePtrSuffix}`;
     }
     if (isBuiltinPhrase || this.knownTypeNames.has(base)) {
-      return `${base}${safePtrSuffix}`;
+      return `${constPointee ? 'const ' : ''}${base}${safePtrSuffix}`;
     }
 
     if (safePtrSuffix) return `void*`;
@@ -3306,7 +3449,12 @@ class CppToCTranspiler {
       for (const member of cls.members) {
         const memberName = String(member.name || '__field')
           .replace(/\[\s*([A-Za-z_][A-Za-z0-9_]*)\s*\]/g, '[16]');
-        this.em.line(`${this.sanitizeTypeForC(member.type)} ${memberName};`);
+        if (member.callbackParameters) {
+          const parameters = member.callbackParameters.map((param) => this.sanitizeTypeForC(param.type));
+          this.em.line(`${this.sanitizeTypeForC(member.type)} (*${memberName})(${parameters.join(', ') || 'void'});`);
+        } else {
+          this.em.line(`${this.sanitizeTypeForC(member.type)} ${memberName};`);
+        }
         hasPayload = true;
       }
       if (cls.hasVtable) {
@@ -4046,7 +4194,9 @@ class CppToCTranspiler {
         const name = collectTerminals(declarator).find((terminal) => terminal.token === 'Identifier')?.value;
         if (!name) return null;
         const pointerDepth = collectTerminals(declarator).filter((terminal) => terminal.token === 'TOKEN__2A_').length;
-        const type = this.sanitizeTypeForC(`${typeName}${pointerDepth ? ` ${'*'.repeat(pointerDepth)}` : ''}`);
+        const pointeeQualifier = pointerDepth && collectTerminals(specifiers).some((terminal) => terminal.value === 'const')
+          ? 'const ' : '';
+        const type = this.sanitizeTypeForC(`${pointeeQualifier}${typeName}${pointerDepth ? ` ${'*'.repeat(pointerDepth)}` : ''}`);
         const suffixes = (declarator.children || []).filter((child) => child && child.name === 'directDeclarator')
           .flatMap((direct) => (direct.children || []).filter((child) => child && child.name === 'directDeclaratorSuffix'));
         let arraySuffix = '';
@@ -4063,6 +4213,22 @@ class CppToCTranspiler {
           const rendered = this.renderAstCExpression(expression, fn);
           if (rendered === null) return null;
           initializers.push(`${name} = ${rendered};`);
+        } else if (clause) {
+          const aggregate = this.analysis.classes.get(type);
+          const listNode = directChild(clause, 'initializerList');
+          const values = (listNode && listNode.children || []).filter((child) =>
+            child && child.kind === 'nonterminal' && child.name === 'initializerClause');
+          if (!aggregate || arraySuffix || aggregate.bases.length
+              || (aggregate.constructors || []).length || aggregate.methods.length
+              || values.length > aggregate.members.length) return null;
+          for (const [index, member] of aggregate.members.entries()) {
+            if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(member.name)) return null;
+            const value = values[index] ? directChild(values[index], 'assignmentExpression') : null;
+            if (values[index] && !value) return null;
+            const rendered = value ? this.renderAstCExpression(value, fn) : '0';
+            if (rendered === null) return null;
+            initializers.push(`${name}.${member.name} = ${rendered};`);
+          }
         }
       }
       return { declarations, initializers };
@@ -4078,6 +4244,26 @@ class CppToCTranspiler {
       if (node.name === 'expressionStatement') {
         const expression = directChild(node, 'expression');
         if (!expression) return [`${indent(depth)};`];
+        // The grammar's expression/declaration ambiguity is resolved using the
+        // semantic type table: `Type *name = value` declares a pointer when
+        // Type denotes a type. Hoist its declaration, retaining initialization
+        // at the original sequence point for C89.
+        const assignment = directChild(expression, 'assignmentExpression');
+        const operator = directChild(assignment, 'assignmentOperator');
+        const left = directChild(assignment, 'conditionalExpression');
+        const target = collectTerminals(left);
+        const rhs = directChild(assignment, 'assignmentExpression');
+        if (collectTerminals(operator).map((part) => part.value).join('') === '='
+            && target.length === 3 && target[0].token === 'Identifier'
+            && target[1].value === '*' && target[2].token === 'Identifier'
+            && this.knownTypeNames.has(target[0].value)
+            && !this.findLocalDeclaratorNames(fn.bodyAst).has(target[0].value)
+            && !(fn.params || []).some((param) => param.name === target[0].value)) {
+          const initializer = this.renderAstCExpression(rhs, fn);
+          if (initializer === null) return null;
+          scopeDeclarations.push(`${this.sanitizeTypeForC(`${target[0].value}*`)} ${target[2].value};`);
+          return [`${indent(depth)}${target[2].value} = ${initializer};`];
+        }
         const rendered = this.renderAstCExpression(expression, fn);
         return rendered === null ? null : [`${indent(depth)}${rendered};`];
       }

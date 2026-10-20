@@ -98,14 +98,11 @@ class CppPreprocessor {
   buildIncludeDirs(extraDirs = []) {
     const compilerDir = __dirname;
     const repoRoot = path.resolve(compilerDir, '..');
-    const projectsRoot = path.resolve(repoRoot, '..');
-
     // Precedence: source dir (handled in resolveIncludePath for quoted includes),
-    // then MaiaCpp include, then sibling MaiaC include, then vendored MaiaC include.
+    // then repository-local C compatibility headers, then MaiaCpp headers.
     const defaults = [
-      path.resolve(repoRoot, 'include'),
-      path.resolve(projectsRoot, 'maiac', 'include'),
-      path.resolve(repoRoot, 'maiac', 'include')
+      path.resolve(repoRoot, 'maiac', 'include'),
+      path.resolve(repoRoot, 'include')
     ];
 
     return dedupeExistingDirs([...extraDirs, ...defaults]);
@@ -130,6 +127,7 @@ class CppPreprocessor {
   preprocess(source, filePath = 'input.cpp') {
     this.includes.clear();
     this.defines.clear();
+    this.defines.set('__cplusplus', { kind: 'object', params: null, body: '199711L' });
 
     const sourceDir = path.dirname(filePath);
     return this.processLines(source, filePath, sourceDir);
@@ -219,8 +217,13 @@ class CppPreprocessor {
             const fullPath = this.resolveIncludePath(includePath, sourceDir, isSystemInclude);
             if (fullPath) {
               if (isSystemInclude) {
-                // Keep parser stability for system headers while still validating
-                // header lookup against MaiaCpp/MaiaC include roots.
+                // Preserve the established declaration preludes while collecting
+                // header macros (limits, guards, NULL, etc.) through the actual
+                // preprocessor, including conditional and nested includes.
+                if (!this.includes.has(fullPath)) {
+                  this.includes.set(fullPath, true);
+                  this.processLines(fs.readFileSync(fullPath, 'utf8'), fullPath, path.dirname(fullPath), depth + 1);
+                }
                 result.push(`/* System include <${includePath}> resolved */`);
               } else if (!this.includes.has(fullPath)) {
                 this.includes.set(fullPath, true);
