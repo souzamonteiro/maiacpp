@@ -11,6 +11,13 @@ Mandatory cross-repository synchronization workflow:
 
 ## Wrapper CLI
 
+The AST C89 path preserves adjacent C++98 string literals, global pointer
+declarators, multiple pointer levels and forward/self-referencing struct types.
+Global enum definitions and fixed scalar local array initializers retain their
+values; variables declared in `for` initializers keep their loop scopes.
+`npm run check:ast-c89-generator-contracts` requires executable parity between
+native C++98 and emitted strict C89 for these generator contracts.
+
 Use `bin/webcpp.sh` to generate AST and compilation artifacts:
 
 ```bash

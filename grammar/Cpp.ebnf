@@ -514,7 +514,7 @@ primaryExpression ::= literal
 literal ::= IntegerConstant
           | CharacterConstant
           | FloatingConstant
-          | StringLiteral
+          | StringLiteral+
           | booleanLiteral
 
 booleanLiteral ::= 'false' | 'true'

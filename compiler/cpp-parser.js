@@ -10603,6 +10603,7 @@ class Parser {
       const _ruleMark = this.markEventState();
       try {
     this.consume('StringLiteral');
+    while (this.match('StringLiteral')) { /* one or more */ }
         _matched = true;
       } catch (e) {
         this.position = _ruleStart;

@@ -1686,6 +1686,7 @@ class SemanticAnalyzer {
     this.hostImports = [];
     this.globalVariables = [];
     this.typeAliases = new Map();
+    this.enums = new Map();
     this.runtimeTokens = new Set();
     this.cLinkageDepth = 0;
     this.namespaceStack = [];
@@ -1701,6 +1702,7 @@ class SemanticAnalyzer {
       hostImports: this.hostImports,
       globalVariables: this.globalVariables,
       typeAliases: this.typeAliases,
+      enums: this.enums,
       runtimeTokens: this.runtimeTokens
     };
   }
@@ -1713,6 +1715,15 @@ class SemanticAnalyzer {
     const enteredCLinkage = this.enterCLinkageIfNeeded(node);
 
     if (node.kind === 'nonterminal' && node.name === 'externalDeclaration') {
+      const declaration = this.findDirectChildNonterminal(node, 'declaration');
+      const specifiers = this.findDirectChildNonterminal(declaration, 'declarationSpecifiers');
+      const enumeration = this.findFirstNonterminal(specifiers, 'enumSpecifier');
+      if (enumeration && this.findFirstTerminal(enumeration, 'TOKEN__7B_')
+          && !this.findDirectChildNonterminal(declaration, 'functionBody')) {
+        const identifier = (enumeration.children || []).find((child) => child.kind === 'terminal' && child.token === 'Identifier');
+        const name = identifier ? identifier.value : '';
+        this.enums.set(name || `__anonymous_enum_${this.enums.size}`, { name, text: this.text(enumeration) });
+      }
       this.collectTypeAliases(node);
       const cDeclaration = this.extractCFunctionDeclaration(node, this.cLinkageDepth > 0);
       if (cDeclaration) this.cFunctionDeclarations.push(cDeclaration);
@@ -2293,7 +2304,7 @@ class SemanticAnalyzer {
 
       variables.push({
         name,
-        type,
+        type: this.extractDeclaratorType(typeSpecifier || specifiers, declarator),
         storage,
         isConst,
         arraySuffix: this.extractArraySuffix(declarator),
@@ -2875,6 +2886,7 @@ class CppToCTranspiler {
       ...Object.keys(BUILTIN_TYPES),
       ...Array.from((analysis && analysis.classes) ? analysis.classes.keys() : []),
       ...Array.from((analysis && analysis.typeAliases) ? analysis.typeAliases.keys() : []),
+      ...Array.from((analysis && analysis.enums) ? analysis.enums.values() : []).map((value) => value.name).filter(Boolean),
       ...this.extractFunctionPointerTypedefNames(options.source || ''),
       ...this.extractBuiltinTypedefNames(options.source || '')
     ]);
@@ -2882,6 +2894,8 @@ class CppToCTranspiler {
 
   transpile() {
     this.emitHeaders();
+    this.emitEnumDefinitions();
+    this.emitClassForwardDeclarations();
     this.emitSourceTypedefs();
     this.emitClassDefinitions();
     this.emitCFunctionDeclarations();
@@ -3413,9 +3427,7 @@ class CppToCTranspiler {
     const builtinWords = new Set(['signed', 'unsigned', 'short', 'long', 'int', 'char', 'float', 'double', 'void']);
     const baseWords = base.split(/\s+/).filter(Boolean);
     const isBuiltinPhrase = baseWords.length > 0 && baseWords.every((word) => builtinWords.has(word));
-    // MaiaC C89 parser does not support multi-level pointers (**).
-    // Always cap pointer depth at one level ('*') in the emitted C.
-    const safePtrSuffix = ptrSuffix.length > 0 ? '*' : '';
+    const safePtrSuffix = ptrSuffix;
     const structTypeMatch = base.match(/^struct\s+([A-Za-z_][A-Za-z0-9_]*)$/);
     if (structTypeMatch && this.knownTypeNames.has(structTypeMatch[1])) {
       return `${constPointee ? 'const ' : ''}${structTypeMatch[1]}${safePtrSuffix}`;
@@ -3428,6 +3440,19 @@ class CppToCTranspiler {
     return 'int';
   }
 
+  emitEnumDefinitions() {
+    for (const enumeration of (this.analysis.enums || new Map()).values()) {
+      this.em.line(`${enumeration.text};`);
+      if (enumeration.name) this.em.line(`typedef enum ${enumeration.name} ${enumeration.name};`);
+    }
+    if (this.analysis.enums && this.analysis.enums.size) this.em.line();
+  }
+
+  emitClassForwardDeclarations() {
+    for (const [name] of this.analysis.classes) this.em.line(`typedef struct ${name} ${name};`);
+    if (this.analysis.classes.size) this.em.line();
+  }
+
   emitClassDefinitions() {
     let id = 1;
     for (const [name] of this.analysis.classes) {
@@ -3436,7 +3461,7 @@ class CppToCTranspiler {
     if (this.analysis.classes.size) this.em.line();
 
     for (const [name, cls] of this.analysis.classes) {
-      this.em.line(`typedef struct ${name} {`);
+      this.em.line(`struct ${name} {`);
       this.em.level += 1;
       let hasPayload = false;
       for (const base of cls.bases) {
@@ -3480,7 +3505,7 @@ class CppToCTranspiler {
         this.em.line('int __dummy;');
       }
       this.em.level -= 1;
-      this.em.line(`} ${name};`);
+      this.em.line('};');
       this.em.line();
     }
   }
@@ -4218,6 +4243,18 @@ class CppToCTranspiler {
           const listNode = directChild(clause, 'initializerList');
           const values = (listNode && listNode.children || []).filter((child) =>
             child && child.kind === 'nonterminal' && child.name === 'initializerClause');
+          if (arraySuffix && /^\[(\d+)\]$/.test(arraySuffix)) {
+            const size = Number(arraySuffix.slice(1, -1));
+            if (values.length > size || aggregate) return null;
+            for (let index = 0; index < size; ++index) {
+              const value = values[index] ? directChild(values[index], 'assignmentExpression') : null;
+              if (values[index] && !value) return null;
+              const rendered = value ? this.renderAstCExpression(value, fn) : '0';
+              if (rendered === null) return null;
+              initializers.push(`${name}[${index}] = ${rendered};`);
+            }
+            continue;
+          }
           if (!aggregate || arraySuffix || aggregate.bases.length
               || (aggregate.constructors || []).length || aggregate.methods.length
               || values.length > aggregate.members.length) return null;
@@ -4254,15 +4291,15 @@ class CppToCTranspiler {
         const target = collectTerminals(left);
         const rhs = directChild(assignment, 'assignmentExpression');
         if (collectTerminals(operator).map((part) => part.value).join('') === '='
-            && target.length === 3 && target[0].token === 'Identifier'
-            && target[1].value === '*' && target[2].token === 'Identifier'
+            && target.length >= 3 && target[0].token === 'Identifier'
+            && target.slice(1, -1).every((part) => part.value === '*') && target.at(-1).token === 'Identifier'
             && this.knownTypeNames.has(target[0].value)
             && !this.findLocalDeclaratorNames(fn.bodyAst).has(target[0].value)
             && !(fn.params || []).some((param) => param.name === target[0].value)) {
           const initializer = this.renderAstCExpression(rhs, fn);
           if (initializer === null) return null;
-          scopeDeclarations.push(`${this.sanitizeTypeForC(`${target[0].value}*`)} ${target[2].value};`);
-          return [`${indent(depth)}${target[2].value} = ${initializer};`];
+          scopeDeclarations.push(`${this.sanitizeTypeForC(`${target[0].value}${'*'.repeat(target.length - 2)}`)} ${target.at(-1).value};`);
+          return [`${indent(depth)}${target.at(-1).value} = ${initializer};`];
         }
         const rendered = this.renderAstCExpression(expression, fn);
         return rendered === null ? null : [`${indent(depth)}${rendered};`];
@@ -4303,13 +4340,14 @@ class CppToCTranspiler {
         const update = directChild(node, 'expression');
         const loopBody = directChild(node, 'statement');
         let initText = '';
+        const loopDeclarations = [];
         const prelude = [];
         const declaration = directChild(init, 'simpleDeclaration');
         if (declaration) {
           const lowered = lowerDeclaration(declaration);
           if (!lowered) return null;
-          scopeDeclarations.push(...lowered.declarations);
-          prelude.push(...lowered.initializers.map((line) => `${indent(depth)}${line}`));
+          loopDeclarations.push(...lowered.declarations);
+          prelude.push(...lowered.initializers.map((line) => `${indent(depth + 1)}${line}`));
         } else {
           const expressionStatement = directChild(init, 'expressionStatement');
           const initExpression = directChild(expressionStatement, 'expression');
@@ -4321,12 +4359,15 @@ class CppToCTranspiler {
         const conditionText = condition ? this.renderAstCExpression(condition, fn) : '';
         const updateText = update ? this.renderAstCExpression(update, fn) : '';
         if (conditionText === null || updateText === null) return null;
-        const bodyLines = lowerStatement(loopBody, depth + 1, scopeDeclarations);
+        const bodyLines = lowerStatement(loopBody, depth + 2, loopDeclarations);
         if (bodyLines === null) return null;
         return [
+          `${indent(depth)}{`,
+          ...loopDeclarations.map((line) => `${indent(depth + 1)}${line}`),
           ...prelude,
-          `${indent(depth)}for (${initText}; ${conditionText}; ${updateText}) {`,
+          `${indent(depth + 1)}for (${initText}; ${conditionText}; ${updateText}) {`,
           ...bodyLines,
+          `${indent(depth + 1)}}`,
           `${indent(depth)}}`
         ];
       }
@@ -11568,7 +11609,7 @@ class Cpp98Compiler {
     // value. Patch those late using the emitted C signatures and local struct
     // declarations so MaiaC receives consistent pointer arguments.
     const knownStructTypes = new Set();
-    out.replace(/typedef\s+struct\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{/g, (_match, structName) => {
+    out.replace(/typedef\s+struct\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:\{|\1\s*;)/g, (_match, structName) => {
       knownStructTypes.add(String(structName || '').trim());
       return _match;
     });
