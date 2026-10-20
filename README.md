@@ -17,6 +17,8 @@ Global enum definitions and fixed scalar local array initializers retain their
 values; variables declared in `for` initializers keep their loop scopes.
 `npm run check:ast-c89-generator-contracts` requires executable parity between
 native C++98 and emitted strict C89 for these generator contracts.
+Allocation normalization also preserves quoted source templates and comments;
+an embedded `new Set()` is data, while actual runtime allocations are lowered.
 
 Use `bin/webcpp.sh` to generate AST and compilation artifacts:
 
@@ -100,6 +102,19 @@ Note:
 - `npm run check:maiaCC-rex-wasm` is the separate full REx
 	frontend gate: strict C89 syntax validation, then guest lexing, parsing and XML
 	serialization compared with the JavaScript oracle. It does not port the emitter.
+- `npm run check:maiaCC-selfhost-wasm` builds the complete parallel C++98 MaiaCC
+	frontend and both-language emitter through the local C89/WASM toolchain. It
+	requires three stable guest bootstrap generations, final EBNF/XML and emitted
+	source parity on REx/XML/WAT/shell/sample grammars, invalid-input rejection,
+	stack restoration and real memory growth. JavaScript seeds generation zero
+	and provides comparison oracles; guest code performs parsing and generation.
+	Set `MAIACPP_SELFHOST_KEEP_TEMP=1` to retain emitted C and WASM for inspection.
+	The native syntax check permits template string lengths beyond C89's required
+	minimum using `-Wno-overlength-strings`, without permitting C99 syntax.
+	Allow tens of minutes for the complete gate: large XML inputs repeatedly
+	initialize the Regex runtime's dense memo tables. Device memory/time budgets
+	and MaiaWASMVM execution require their own measurements; this gate runs in
+	Node's WebAssembly engine.
 
 - The only WAT file maintained in the project is `compiler/runtime.wat`, reserved for the runtime that covers what doesn't fit in the target C code, such as support for `try`/`catch`.
 

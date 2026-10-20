@@ -68,7 +68,8 @@
     "check:equiv:browser-host": "node ./compiler/tests/compare_cpp_vs_pipeline.js --file ./compiler/tests/equivalence/401_namespace_overload.cpp --runtime browser-host",
     "ready:release": "node ./compiler/tests/run_tiered_cpp98.js && node ./compiler/tests/run_fixtures.js --fixtures-dir ./compiler/tests/fixtures --parser ./compiler/cpp-compiler.js --mode compiler && npm run check:equiv:release-gate && npm run check:equiv:no-stub-lowering && npm run check:equiv:global-class-array-order",
     "check:ast-c89-lexer-contracts": "node compiler/tests/test-ast-c89-lexer-contracts.js",
-    "check:ast-c89-generator-contracts": "node compiler/tests/test-ast-c89-generator-contracts.js"
+    "check:ast-c89-generator-contracts": "node compiler/tests/test-ast-c89-generator-contracts.js",
+    "check:maiaCC-selfhost-wasm": "node compiler/tests/test-maiacc-cpp98-selfhost-wasm.js"
   },
   "repository": {
     "type": "git",
