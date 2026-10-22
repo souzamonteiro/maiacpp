@@ -15,7 +15,7 @@
   (import "env" "__free" (func $imp___free (param i32)))
   (import "env" "printf" (func $imp_printf (param f64 f64 f64 f64 f64 f64 f64 f64) (result i32)))
 
-  (memory $mem 1)
+  (memory $mem 2)
 
   (table $fn_table 1 funcref)
 
@@ -60,6 +60,8 @@
     i32.const 4
     i32.add
     i32.const 4
+    i64.extend_i32_s
+    i32.wrap_i64
     call $imp___malloc
     i32.store
     local.get $__frame
@@ -126,6 +128,8 @@
     i32.const 6
     i32.const 4
     i32.mul
+    i64.extend_i32_s
+    i32.wrap_i64
     call $imp___malloc
     i32.store
     local.get $__frame
@@ -271,6 +275,8 @@
     i32.const 12
     i32.add
     i32.const 8
+    i64.extend_i32_s
+    i32.wrap_i64
     call $imp___malloc
     i32.store
     local.get $__frame

@@ -226,6 +226,24 @@
             }
           );
 
+          let exceptionRuntime = null;
+          if (runtimeBridgeEntries.length > 0) {
+            await loadScript('./exception.js?v=' + Date.now());
+            const exceptionApi = globalThis.MaiaExceptionRuntime;
+            if (!exceptionApi || typeof exceptionApi.instantiateExceptionRuntime !== 'function') {
+              throw new Error('Async runtime requires exception.js with MaiaExceptionRuntime');
+            }
+            exceptionRuntime = await exceptionApi.instantiateExceptionRuntime({
+              wasmUrl: './exception.wasm',
+              getMemory: function () { return memoryRef; }
+            });
+            Object.assign(imports.env, exceptionRuntime.env);
+            if (typeof exceptionRuntime.attachPromiseImports === 'function') {
+              exceptionRuntime.attachPromiseImports(imports.env);
+            }
+            imports.env.__exceptionRuntime = exceptionRuntime;
+          }
+
           const copiedLibraries = Array.isArray(manifest.copiedLibraries)
             ? manifest.copiedLibraries
             : [];
@@ -253,13 +271,6 @@
           const instantiated = await WebAssembly.instantiate(bytes, imports);
           const instance = instantiated.instance || instantiated;
           memoryRef = instance.exports.memory || null;
-
-          const exceptionRuntime = imports
-            && imports.env
-            && imports.env.__exceptionRuntime
-            && imports.env.__exceptionRuntime.scheduler
-            ? imports.env.__exceptionRuntime
-            : null;
 
           if (exceptionRuntime && exceptionRuntime.scheduler && typeof exceptionRuntime.scheduler.setAutoResumeResolver === 'function') {
             exceptionRuntime.scheduler.setAutoResumeResolver(

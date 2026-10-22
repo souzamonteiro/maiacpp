@@ -2354,13 +2354,13 @@ const _buildHostEnv = // Auto-generated host env – do not edit manually
     }
   }
   return {
-    "__exc_push": () => { const target = __resolveHost(["exc_push"]); if (typeof target.fn !== 'function') return undefined; const result = target.fn.call(target.thisValue); return undefined; },
-    "__exc_pop": () => { const target = __resolveHost(["exc_pop"]); if (typeof target.fn !== 'function') return undefined; const result = target.fn.call(target.thisValue); return undefined; },
+    "__exc_push": () => { const target = __resolveHost(["exc_push"]); if (typeof target.fn !== 'function') return undefined; const result = target.fn.call(target.thisValue); return (result && typeof result.then === 'function' ? result : undefined); },
+    "__exc_pop": () => { const target = __resolveHost(["exc_pop"]); if (typeof target.fn !== 'function') return undefined; const result = target.fn.call(target.thisValue); return (result && typeof result.then === 'function' ? result : undefined); },
     "__exc_active": () => { const target = __resolveHost(["exc_active"]); if (typeof target.fn !== 'function') return 0; const result = target.fn.call(target.thisValue); return (result ?? 0); },
     "__exc_type": () => { const target = __resolveHost(["exc_type"]); if (typeof target.fn !== 'function') return 0; const result = target.fn.call(target.thisValue); return (result ?? 0); },
     "__exc_data": () => { const target = __resolveHost(["exc_data"]); if (typeof target.fn !== 'function') return 0; const result = target.fn.call(target.thisValue); return (result ?? 0); },
-    "__exc_throw": (p0, p1) => { const target = __resolveHost(["exc_throw"]); if (typeof target.fn !== 'function') return undefined; const result = target.fn.call(target.thisValue, p0, p1); return undefined; },
-    "__exc_clear": () => { const target = __resolveHost(["exc_clear"]); if (typeof target.fn !== 'function') return undefined; const result = target.fn.call(target.thisValue); return undefined; },
+    "__exc_throw": (p0, p1) => { const target = __resolveHost(["exc_throw"]); if (typeof target.fn !== 'function') return undefined; const result = target.fn.call(target.thisValue, p0, p1); return (result && typeof result.then === 'function' ? result : undefined); },
+    "__exc_clear": () => { const target = __resolveHost(["exc_clear"]); if (typeof target.fn !== 'function') return undefined; const result = target.fn.call(target.thisValue); return (result && typeof result.then === 'function' ? result : undefined); },
     "__exc_matches": (p0, p1) => { const target = __resolveHost(["exc_matches"]); if (typeof target.fn !== 'function') return 0; const result = target.fn.call(target.thisValue, p0, p1); return (result ?? 0); },
     "__malloc": (p0) => __malloc(p0),
     "__free": (p0) => __free(p0),
@@ -2403,6 +2403,33 @@ async function _loadLinkedLibraries(baseDir, imports) {
   }
 
   return loaded;
+}
+
+async function _attachOptionalExceptionRuntime(baseDir, imports, opts) {
+  const path = require('path');
+  const fs = require('fs');
+  const runtimeJs = path.join(baseDir, 'exception.js');
+  const runtimeWasm = path.join(baseDir, 'exception.wasm');
+  if (!fs.existsSync(runtimeJs) || !fs.existsSync(runtimeWasm)) {
+    return null;
+  }
+
+  const runtimeModule = require(runtimeJs);
+  if (!runtimeModule || typeof runtimeModule.instantiateExceptionRuntime !== 'function') {
+    return null;
+  }
+
+  const runtime = await runtimeModule.instantiateExceptionRuntime({
+    wasmBytes: fs.readFileSync(runtimeWasm),
+    resolveResumeExportName: opts && opts.resolveResumeExportName,
+    getMemory: opts && opts.getMemory
+  });
+  Object.assign(imports.env, runtime.env);
+  if (typeof runtime.attachPromiseImports === 'function') {
+    runtime.attachPromiseImports(imports.env);
+  }
+  imports.env.__exceptionRuntime = runtime;
+  return runtime;
 }
 
 function _runEntrypointWithLongjmpResume(entry, maxAttempts = 32) {
@@ -2525,9 +2552,20 @@ async function run(wasmPath, opts) {
 
   const baseDir = path.dirname(path.resolve(wasmPath));
   await _loadLinkedLibraries(baseDir, imports);
+  const exceptionRuntime = await _attachOptionalExceptionRuntime(baseDir, imports, {
+    ...(opts || {}),
+    getMemory: () => memoryRef
+  });
 
   const { instance } = await WebAssembly.instantiate(bytes, imports);
   memoryRef = instance.exports.memory || null;
+  if (exceptionRuntime && exceptionRuntime.scheduler
+    && typeof exceptionRuntime.scheduler.setAutoResumeResolver === 'function') {
+    exceptionRuntime.scheduler.setAutoResumeResolver(
+      instance.exports,
+      opts && opts.resolveResumeExportName
+    );
+  }
   const entry = instance.exports.main || instance.exports.test_entry;
   if (typeof entry !== 'function') throw new Error('No main() export found');
 

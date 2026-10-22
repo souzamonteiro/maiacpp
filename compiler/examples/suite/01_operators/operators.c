@@ -14,6 +14,7 @@ extern int    __exc_matches(int thrown_type, int catch_type);
 extern void*  __malloc(unsigned long size);
 extern void   __free(void* ptr);
 extern int    sprintf(char* dest, const char* format, ...);
+extern int    printf(const char* format, ...);
 
 /* Global functions */
 int test_arithmetic(void);
@@ -28,6 +29,7 @@ int main(void);
 
 int test_arithmetic(void) {
   int a = 17, b = 5;
+  {
   int ok = 0;
   if (a + b == 22) {
     printf("PASS add\n"); ++ok;
@@ -45,10 +47,12 @@ int test_arithmetic(void) {
     printf("PASS imod\n"); ++ok;
   }
   return ok;
+  }
 }
 
 int test_relational(void) {
   int a = 17, b = 5;
+  {
   int ok = 0;
   if (a == 17) {
     printf("PASS eq\n"); ++ok;
@@ -69,10 +73,12 @@ int test_relational(void) {
     printf("PASS ge\n"); ++ok;
   }
   return ok;
+  }
 }
 
 int test_logical(void) {
   int a = 17, b = 5;
+  {
   int ok = 0;
   if (a > 0 && b > 0) {
     printf("PASS land\n"); ++ok;
@@ -84,10 +90,12 @@ int test_logical(void) {
     printf("PASS lnot\n"); ++ok;
   }
   return ok;
+  }
 }
 
 int test_bitwise(void) {
   int a = 17, b = 5;
+  {
   int ok = 0;
   if ((a & b) == 1) {
     printf("PASS band\n"); ++ok;
@@ -108,6 +116,7 @@ int test_bitwise(void) {
     printf("PASS bnot\n"); ++ok;
   }
   return ok;
+  }
 }
 
 int test_compound(void) {
@@ -182,6 +191,7 @@ int test_prepost(void) {
 
 int test_ternary(void) {
   int a = 17, b = 5;
+  {
   int ok = 0;
   if ((a > b ? 1 : 0) == 1) {
     printf("PASS ternary_t\n"); ++ok;
@@ -190,10 +200,12 @@ int test_ternary(void) {
     printf("PASS ternary_f\n"); ++ok;
   }
   return ok;
+  }
 }
 
 int test_float(void) {
   double x = 7.5, y = 2.5;
+  {
   int ok = 0;
   if (x + y == 10.0) {
     printf("PASS fadd\n"); ++ok;
@@ -208,6 +220,7 @@ int test_float(void) {
     printf("PASS fdiv\n"); ++ok;
   }
   return ok;
+  }
 }
 
 int main(void) {

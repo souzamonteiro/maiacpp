@@ -15,7 +15,7 @@
   (import "env" "__free" (func $imp___free (param i32)))
   (import "env" "printf" (func $imp_printf (param f64 f64 f64 f64 f64 f64 f64 f64) (result i32)))
 
-  (memory $mem 1)
+  (memory $mem 2)
 
   (table $fn_table 5 funcref)
 
@@ -47,7 +47,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 16
+    i32.const 8
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -56,7 +56,7 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 8
+    i32.const 4
     i32.add
     local.get $t
     i32.store
@@ -72,7 +72,7 @@
     i32.const 0
     i32.add
     local.get $__frame
-    i32.const 8
+    i32.const 4
     i32.add
     i32.load
     local.set $__tmp_i32
@@ -80,6 +80,11 @@
     i32.store
     local.get $__tmp_i32
     drop
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
   )
 
   ;; function Base_destroy
@@ -106,6 +111,11 @@
     i32.add
     i32.load
     drop
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
   )
 
   ;; function Derived_init__ii
@@ -120,7 +130,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 24
+    i32.const 16
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -129,12 +139,12 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 12
+    i32.const 4
     i32.add
     local.get $t
     i32.store
     local.get $__frame
-    i32.const 16
+    i32.const 8
     i32.add
     local.get $e
     i32.store
@@ -148,7 +158,7 @@
     i32.add
     i32.load
     local.get $__frame
-    i32.const 12
+    i32.const 4
     i32.add
     i32.load
     call $Base_init__i
@@ -159,7 +169,7 @@
     i32.const 8
     i32.add
     local.get $__frame
-    i32.const 16
+    i32.const 8
     i32.add
     i32.load
     local.set $__tmp_i32
@@ -168,15 +178,20 @@
     local.get $__tmp_i32
     drop
     local.get $__frame
-    i32.const 12
+    i32.const 4
     i32.add
     i32.load
     drop
     local.get $__frame
-    i32.const 16
+    i32.const 8
     i32.add
     i32.load
     drop
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
   )
 
   ;; function Derived_destroy
@@ -190,7 +205,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 16
+    i32.const 8
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -203,6 +218,11 @@
     i32.add
     i32.load
     drop
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
   )
 
   ;; function main
@@ -229,7 +249,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 80
+    i32.const 72
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -279,6 +299,10 @@
     i32.const 12
     i32.add
     i32.load
+    i32.const 24
+    i32.shl
+    i32.const 24
+    i32.shr_s
     i32.store8
     local.get $__frame
     i32.const 16
@@ -341,7 +365,7 @@
       drop
     end
     local.get $__frame
-    i32.const 40
+    i32.const 36
     i32.add
     local.get $__frame
     i32.const 32
@@ -349,7 +373,7 @@
     i32.load
     i32.store
     local.get $__frame
-    i32.const 40
+    i32.const 36
     i32.add
     i32.load
     i32.const 8
@@ -373,27 +397,27 @@
       drop
     end
     local.get $__frame
-    i32.const 52
+    i32.const 40
     i32.add
     i32.const 55
     i32.store
     local.get $__frame
-    i32.const 56
+    i32.const 44
     i32.add
     local.get $__frame
-    i32.const 52
+    i32.const 40
     i32.add
     i32.store
     local.get $__frame
-    i32.const 60
+    i32.const 48
     i32.add
     local.get $__frame
-    i32.const 56
+    i32.const 44
     i32.add
     i32.load
     i32.store
     local.get $__frame
-    i32.const 60
+    i32.const 48
     i32.add
     i32.load
     i32.const 77
@@ -403,7 +427,7 @@
     local.get $__tmp_i32
     drop
     local.get $__frame
-    i32.const 52
+    i32.const 40
     i32.add
     i32.load
     i32.const 77
@@ -424,21 +448,21 @@
       drop
     end
     local.get $__frame
-    i32.const 64
+    i32.const 56
     i32.add
     f64.const 3.14159
     f64.store
     local.get $__frame
-    i32.const 72
+    i32.const 64
     i32.add
     local.get $__frame
-    i32.const 64
+    i32.const 56
     i32.add
     f64.load
     i32.trunc_f64_s
     i32.store
     local.get $__frame
-    i32.const 72
+    i32.const 64
     i32.add
     i32.load
     i32.const 3

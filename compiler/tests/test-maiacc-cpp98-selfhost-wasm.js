@@ -162,12 +162,16 @@ async function main() {
   }
   for (const file of fixtures) {
     console.log(`Checking final guest EBNF/XML/generation parity: ${path.basename(file)}`);
+    const frontendStart = Date.now();
     const parsed = execute(previous.frontend, fs.readFileSync(file, 'utf8'), false);
     assert.equal(parsed.status, 0); equalOutput(parsed.output, references.get(file).xml, path.basename(file) + '-xml');
+    console.log(`PASS ${path.basename(file)} frontend XML byte parity (${Date.now() - frontendStart} ms)`);
     for (const [cpp, key] of [[true, 'cpp'], [false, 'javascript']]) {
+      console.log(`Generating final guest ${path.basename(file)} ${key}`);
+      const generatorStart = Date.now();
       const generated = execute(previous.generator, parsed.output, true, cpp);
       assert.equal(generated.status, 0); equalOutput(generated.output, references.get(file)[key], path.basename(file) + '-' + key);
-      console.log(`PASS ${path.basename(file)} ${key} byte parity`);
+      console.log(`PASS ${path.basename(file)} ${key} byte parity (${Date.now() - generatorStart} ms)`);
     }
   }
   for (const invalid of ['Start ::= (', '@']) {

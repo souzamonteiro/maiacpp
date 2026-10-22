@@ -14,15 +14,31 @@ extern int    __exc_matches(int thrown_type, int catch_type);
 extern void*  __malloc(unsigned long size);
 extern void   __free(void* ptr);
 extern int    sprintf(char* dest, const char* format, ...);
+extern int    printf(const char* format, ...);
+
+typedef struct Shape Shape;
+typedef struct Rectangle Rectangle;
+typedef struct Circle Circle;
 
 #define EXC_Shape 1
 #define EXC_Rectangle 2
 #define EXC_Circle 3
 
-typedef struct Shape {
-  int area;
+struct Shape {
+  double area;
   void* __vptr;
-} Shape;
+};
+
+struct Rectangle {
+  Shape __base;
+  double w_;
+  double h_;
+};
+
+struct Circle {
+  Shape __base;
+  double r_;
+};
 
 void Shape_init(Shape* self);
 void Shape_destroy(Shape* self);
@@ -34,12 +50,6 @@ void Shape_init(Shape* self) {
 void Shape_destroy(Shape* self) {
   (void)self;
 }
-
-typedef struct Rectangle {
-  Shape __base;
-  double w_;
-  double h_;
-} Rectangle;
 
 void Rectangle_init__dd(Rectangle* self, double w, double h);
 void Rectangle_destroy(Rectangle* self);
@@ -61,11 +71,6 @@ int Rectangle_area(Rectangle* self) {
   (void)self;
   return self->w_ * self->h_;
 }
-
-typedef struct Circle {
-  Shape __base;
-  double r_;
-} Circle;
 
 void Circle_init__d(Circle* self, double r);
 void Circle_destroy(Circle* self);

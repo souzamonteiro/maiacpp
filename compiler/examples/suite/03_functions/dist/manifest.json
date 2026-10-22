@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-16T16:05:45.788Z",
+  "generatedAt": "2026-10-22T10:01:16.498Z",
   "input": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/suite/03_functions/functions.c",
   "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/suite/03_functions/dist",
   "appName": "functions",
@@ -16,5 +16,5 @@
   "copiedLibraries": [],
   "runtimeProvidedHeaders": [],
   "missingLibraries": [],
-  "sourceBytes": 3525
+  "sourceBytes": 3721
 }

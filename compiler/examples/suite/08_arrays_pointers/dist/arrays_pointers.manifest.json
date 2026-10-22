@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-16T16:05:49.859Z",
+  "generatedAt": "2026-10-22T10:01:19.616Z",
   "input": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/suite/08_arrays_pointers/arrays_pointers.c",
   "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/suite/08_arrays_pointers/dist",
   "appName": "arrays_pointers",
@@ -16,5 +16,5 @@
   "copiedLibraries": [],
   "runtimeProvidedHeaders": [],
   "missingLibraries": [],
-  "sourceBytes": 1543
+  "sourceBytes": 1590
 }

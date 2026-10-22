@@ -3134,7 +3134,8 @@ class CppToCTranspiler {
     const needsAllocator = !this.astStrict || ['new', 'delete'].some((token) => runtimeTokens.has(token))
       || Boolean(this.analysis.classes && this.analysis.classes.size > 0);
     const needsSprintf = !this.astStrict || runtimeTokens.has('sprintf');
-    if (needsExceptions || needsAllocator || needsSprintf) {
+    const needsPrintf = !this.astStrict || runtimeTokens.has('printf');
+    if (needsExceptions || needsAllocator || needsSprintf || needsPrintf) {
       this.em.line('/* Runtime interface */');
       if (needsExceptions) {
         this.em.line('extern void   __exc_push(void);');
@@ -3151,6 +3152,7 @@ class CppToCTranspiler {
         this.em.line('extern void   __free(void* ptr);');
       }
       if (needsSprintf) this.em.line('extern int    sprintf(char* dest, const char* format, ...);');
+      if (needsPrintf) this.em.line('extern int    printf(const char* format, ...);');
       this.em.line();
     }
     this.emitStdioPrelude(this.options.source || '');
@@ -4665,8 +4667,9 @@ class CppToCTranspiler {
       } else if (fn.returnType !== 'void') {
         const loweredStructuredIo = preferCStyleMain ? null : this.lowerStructuredIoDeterministicFunction(fn);
         if (loweredStructuredIo && Array.isArray(loweredStructuredIo.ops) && loweredStructuredIo.ops.length > 0) {
-          this.emitStructuredLocals(loweredStructuredIo.locals || []);
+          const scopes = this.emitStructuredLocals(loweredStructuredIo.locals || []);
           this.emitStructuredMainOps(loweredStructuredIo.ops || []);
+          this.closeStructuredLocalScopes(scopes);
           this.loweringEvents.push({
             functionName: fn.name,
             kind: 'structured-io-runtime',
@@ -4682,8 +4685,9 @@ class CppToCTranspiler {
               detail: lowered.detail || 'resource-pattern'
             });
           } else if (lowered && Array.isArray(lowered.ops) && lowered.ops.length > 0) {
-            this.emitStructuredLocals(lowered.locals || []);
+            const scopes = this.emitStructuredLocals(lowered.locals || []);
             this.emitStructuredMainOps(lowered.ops || []);
+            this.closeStructuredLocalScopes(scopes);
             this.loweringEvents.push({
               functionName: fn.name,
               kind: 'structured-resource-runtime',
@@ -4732,8 +4736,9 @@ class CppToCTranspiler {
       } else {
         const loweredStructuredIo = preferCStyleMain ? null : this.lowerStructuredIoDeterministicFunction(fn);
         if (loweredStructuredIo && Array.isArray(loweredStructuredIo.ops) && loweredStructuredIo.ops.length > 0) {
-          this.emitStructuredLocals(loweredStructuredIo.locals || []);
+          const scopes = this.emitStructuredLocals(loweredStructuredIo.locals || []);
           this.emitStructuredMainOps(loweredStructuredIo.ops || []);
+          this.closeStructuredLocalScopes(scopes);
           this.loweringEvents.push({
             functionName: fn.name,
             kind: 'structured-io-runtime',
@@ -4775,7 +4780,7 @@ class CppToCTranspiler {
     for (const p of this.normalizeCallableParams(fn.params)) {
       this.em.line(`(void)${p.name};`);
     }
-    if (fn.returnType !== 'void') {
+    if (this.sanitizeTypeForC(fn.returnType) !== 'void') {
       this.em.line(`return (${this.sanitizeTypeForC(fn.returnType)})0;`);
     }
   }
@@ -6048,8 +6053,15 @@ class CppToCTranspiler {
   emitStructuredLocals(locals) {
     const localNames = new Set((locals || []).map((local) => local && local.name).filter(Boolean));
     const rewriteLocalInitRaw = (expr) => this.rewriteRawExprWithBareFunctionRefs(expr, localNames);
-
+    let scopes = 0;
+    let afterStatement = false;
     for (const local of locals || []) {
+      // C89 requires a fresh declaration region after constructor statements.
+      // Nest the remaining locals and operations without moving initializers.
+      if (afterStatement) {
+        this.em.line('{'); this.em.level += 1; scopes += 1;
+        afterStatement = false;
+      }
       if (local.type === 'int_ptr' || local.type === 'char_ptr' || local.type === 'double_ptr' || local.type === 'float_ptr' || /_ptr(?:_ptr)*$/.test(String(local.type || ''))) {
         // Handle new[] and new allocations
         if (local.isNewScalar) {
@@ -6093,6 +6105,7 @@ class CppToCTranspiler {
         this.em.line(`${local.className} ${local.name};`);
         if (local.initCallee) {
           this.em.line(`${local.initCallee}(&${local.name}${local.initArgs ? `, ${local.initArgs}` : ''});`);
+          afterStatement = true;
         }
       } else if (local.type === 'int_array') {
         const sizeText = local.size && local.size.type === 'var'
@@ -6157,6 +6170,13 @@ class CppToCTranspiler {
       }
     }
     if ((locals || []).length > 0) this.em.line();
+    return scopes;
+  }
+
+  closeStructuredLocalScopes(scopes) {
+    for (let i = 0; i < scopes; i += 1) {
+      this.em.level -= 1; this.em.line('}');
+    }
   }
 
   rewriteRawExprWithBareFunctionRefs(expr, localNames = new Set()) {
@@ -6231,12 +6251,13 @@ class CppToCTranspiler {
         knownIntValues.set(local.name, local.init | 0);
       }
     }
-    this.emitStructuredLocals(plan.locals || []);
+    const scopes = this.emitStructuredLocals(plan.locals || []);
     const ops = plan.ops || [];
     this.emitStructuredMainOps(ops, knownIntValues);
     if (!this.hasTopLevelReturnOp(ops)) {
       this.em.line('return 0;');
     }
+    this.closeStructuredLocalScopes(scopes);
   }
 
   hasTopLevelReturnOp(ops) {
@@ -10555,6 +10576,38 @@ class CppToCTranspiler {
     let rest = normalizedBodyText.trim();
     if (!rest) return null;
 
+    // Reuse declaration identities from the generated C++ AST. Opening a
+    // block for a later declaration preserves bindings and initializer order;
+    // unlike hoisting, it cannot shadow an earlier use of a global name.
+    const astChild = (node, name) => (node?.children || []).find(child => child?.name === name);
+    const astTokens = node => node?.kind === 'terminal' ? [node]
+      : (node?.children || []).flatMap(astTokens);
+    const declarationPrefixes = new Set();
+    const compound = astChild(fn.bodyAst, 'compoundStatement');
+    for (const item of (compound?.children || []).filter(child => child?.name === 'blockItem')) {
+      const statement = astChild(item, 'statement');
+      const declaration = astChild(item, 'declaration')
+        || astChild(astChild(statement, 'declarationStatement'), 'blockDeclaration');
+      const simple = astChild(declaration, 'simpleDeclaration') || astChild(astChild(declaration, 'blockDeclaration'), 'simpleDeclaration');
+      const specs = astChild(simple, 'declarationSpecifiers');
+      const list = astChild(simple, 'initDeclaratorList');
+      const init = (list?.children || []).filter(child => child?.name === 'initDeclarator');
+      if (specs && init.length === 1) {
+        declarationPrefixes.add([...astTokens(specs), ...astTokens(astChild(init[0], 'declarator'))].map(t => t.value).join(''));
+      }
+      // Resolve the existing Type*name declaration/expression ambiguity using
+      // the semantic type table, as in lowerAstC89FunctionBody.
+      const expression = astChild(astChild(statement, 'expressionStatement'), 'expression');
+      const assignment = astChild(expression, 'assignmentExpression');
+      const target = astTokens(astChild(assignment, 'conditionalExpression'));
+      if (target.length >= 3 && this.knownTypeNames.has(target[0].value)
+          && target.slice(1, -1).every(t => t.value === '*') && target.at(-1).token === 'Identifier'
+          && !this.findLocalDeclaratorNames(fn.bodyAst).has(target[0].value)) {
+        declarationPrefixes.add(target.map(t => t.value).join(''));
+      }
+    }
+    let declarationScopes = 0;
+    let afterStatement = false;
     const lines = [];
     let statements = 0;
     let emittedReturn = false;
@@ -10842,7 +10895,7 @@ class CppToCTranspiler {
 
       const normalizedLines = normalizeForDeclsToC89(rawLines);
       if (normalizedLines.length === 0) return null;
-      if (fn.returnType !== 'void' && !normalizedLines.some((line) => /^return\b/.test(line))) {
+      if (this.sanitizeTypeForC(fn.returnType) !== 'void' && !normalizedLines.some((line) => /^return\b/.test(line))) {
         normalizedLines.push(`return (${this.sanitizeTypeForC(fn.returnType)})0;`);
       }
       return { lines: normalizedLines, detail: `raw-body ${normalizedLines.length} line(s)` };
@@ -10869,6 +10922,12 @@ class CppToCTranspiler {
     };
 
     while (rest.length > 0) {
+      const boundary = rest.search(/[=;]/);
+      const prefix = boundary < 0 ? '' : rest.slice(0, boundary).replace(/\s+/g, '');
+      const declaration = declarationPrefixes.has(prefix);
+      if (declaration && afterStatement) {
+        lines.push('{'); declarationScopes += 1; afterStatement = false;
+      } else if (!declaration) afterStatement = true;
       const ifHead = consumeKeywordParen(rest, 'if');
       if (ifHead) {
         const ifTail = rest.slice(ifHead.consumed).trimStart();
@@ -10967,11 +11026,12 @@ class CppToCTranspiler {
       statements += 1;
     }
 
-    if (!emittedReturn && fn.returnType !== 'void') {
+    if (!emittedReturn && this.sanitizeTypeForC(fn.returnType) !== 'void') {
       lines.push(`return (${this.sanitizeTypeForC(fn.returnType)})0;`);
     }
 
     if (statements === 0) return null;
+    for (let i = 0; i < declarationScopes; i += 1) lines.push('}');
     const normalizedLines = normalizeForDeclsToC89(lines);
     return { lines: normalizedLines, detail: `${statements} stmt(s)` };
   }
@@ -12482,6 +12542,7 @@ class Cpp98Compiler {
         const fallbackSimpleVariadicIntSum = hasInformativeTrueBoolean(fn.simpleVariadicIntSum);
         return {
           ...fn,
+          bodyAst: (astFn && astFn.bodyAst) || fn.bodyAst || null,
           name: fn.name || (astFn && astFn.name) || '',
           namespacePath: mergedNamespacePath,
           returnType: mergedReturnType,

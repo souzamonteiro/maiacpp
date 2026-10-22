@@ -14,6 +14,7 @@ extern int    __exc_matches(int thrown_type, int catch_type);
 extern void*  __malloc(unsigned long size);
 extern void   __free(void* ptr);
 extern int    sprintf(char* dest, const char* format, ...);
+extern int    printf(const char* format, ...);
 
 typedef int (*IntOp)(int);
 
@@ -21,14 +22,15 @@ typedef int (*IntOp)(int);
 int factorial__i(int n);
 int fib__i(int n);
 int square__i(int x);
-int square__d(double x);
-int swap_ref__pvpv(int* a, int* b);
+double square__d(double x);
+void swap_ref__pvpv(int* a, int* b);
 int sum_cref__ii(int x, int y);
 int clamp__iii(int x, int lo, int hi);
 int double_val__i(int x);
 int negate__i(int x);
 int apply__N5IntOpi(IntOp f, int x);
 int main(void);
+void swap_ref__ii(int a, int b);
 
 int factorial__i(int n) {
   if (n <= 1) {
@@ -48,15 +50,14 @@ int square__i(int x) {
   return x * x;
 }
 
-int square__d(double x) {
+double square__d(double x) {
   return x * x;
 }
 
-int swap_ref__pvpv(int* a, int* b) {
+void swap_ref__pvpv(int* a, int* b) {
   int tmp = *a;
   *a = *b;
   *b = tmp;
-  return (int)0;
 }
 
 int sum_cref__ii(int x, int y) {
@@ -161,8 +162,15 @@ int main(void) {
   return 0;
 }
 
-/* Lowering diagnostics: 4 event(s) (structured-cstyle-body=4) */
+void swap_ref__ii(int a, int b) {
+  int tmp = a;
+  a = b;
+  b = tmp;
+}
+
+/* Lowering diagnostics: 5 event(s) (structured-cstyle-body=5) */
 /* - factorial: structured-cstyle-body (2 stmt(s)) */
 /* - fib: structured-cstyle-body (2 stmt(s)) */
 /* - swap_ref: structured-cstyle-body (3 stmt(s)) */
 /* - clamp: structured-cstyle-body (3 stmt(s)) */
+/* - swap_ref: structured-cstyle-body (3 stmt(s)) */

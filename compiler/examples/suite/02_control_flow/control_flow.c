@@ -14,6 +14,7 @@ extern int    __exc_matches(int thrown_type, int catch_type);
 extern void*  __malloc(unsigned long size);
 extern void   __free(void* ptr);
 extern int    sprintf(char* dest, const char* format, ...);
+extern int    printf(const char* format, ...);
 
 /* Global functions */
 int main(void);

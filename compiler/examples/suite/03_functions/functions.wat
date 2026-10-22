@@ -17,9 +17,9 @@
 
   (type (func (param i32) (result i32)))
 
-  (memory $mem 1)
+  (memory $mem 2)
 
-  (table $fn_table 11 funcref)
+  (table $fn_table 12 funcref)
 
   ;; global __frame_ptr
   (global $__frame_ptr (mut i32) (i32.const 0))
@@ -51,7 +51,7 @@
   (data (i32.const 368) "PASS fptr_arr_2\0a\00")
   (data (i32.const 388) "ALL PASS\0a\00")
 
-  (elem (table $fn_table) (i32.const 0) func $factorial__i $fib__i $square__i $square__d $swap_ref__pvpv $sum_cref__ii $clamp__iii $double_val__i $negate__i $apply__N5IntOpi $main)
+  (elem (table $fn_table) (i32.const 0) func $factorial__i $fib__i $square__i $square__d $swap_ref__pvpv $sum_cref__ii $clamp__iii $double_val__i $negate__i $apply__N5IntOpi $main $swap_ref__ii)
 
   ;; function factorial__i
   (func $factorial__i (param $n i32) (result i32)
@@ -111,18 +111,17 @@
   )
 
   ;; function square__d
-  (func $square__d (param $x f64) (result i32)
+  (func $square__d (param $x f64) (result f64)
     local.get $x
     local.get $x
     f64.mul
-    i32.trunc_f64_s
     return
-    i32.const 0
+    f64.const 0
     return
   )
 
   ;; function swap_ref__pvpv
-  (func $swap_ref__pvpv (param $a i32) (param $b i32) (result i32)
+  (func $swap_ref__pvpv (param $a i32) (param $b i32)
     (local $__frame i32)
     (local $tmp i32)
     (local $__tmp_i32 i32)
@@ -183,13 +182,6 @@
     i32.store
     local.get $__tmp_i32
     drop
-    i32.const 0
-    local.get $__parent_frame
-    global.set $__frame_ptr
-    local.get $__frame
-    global.set $__stack_ptr
-    return
-    i32.const 0
     local.get $__parent_frame
     global.set $__frame_ptr
     local.get $__frame
@@ -518,7 +510,6 @@
     end
     f64.const 5
     call $square__d
-    f64.convert_i32_s
     f64.const 25
     f64.eq
     i32.eqz
@@ -543,7 +534,6 @@
     i32.const 4
     i32.add
     call $swap_ref__pvpv
-    drop
     local.get $__frame
     i32.const 0
     i32.add
@@ -854,6 +844,20 @@
     return
   )
 
+  ;; function swap_ref__ii
+  (func $swap_ref__ii (param $a i32) (param $b i32)
+    (local $tmp i32)
+    local.get $a
+    local.set $tmp
+    local.get $b
+    local.tee $a
+    drop
+    local.get $tmp
+    local.tee $b
+    drop
+    return
+  )
+
   (export "factorial__i" (func $factorial__i))
   (export "fib__i" (func $fib__i))
   (export "square__i" (func $square__i))
@@ -865,6 +869,7 @@
   (export "negate__i" (func $negate__i))
   (export "apply__N5IntOpi" (func $apply__N5IntOpi))
   (export "main" (func $main))
+  (export "swap_ref__ii" (func $swap_ref__ii))
   (export "memory" (memory $mem))
   (export "__frame_ptr" (global $__frame_ptr))
   (export "__stack_ptr" (global $__stack_ptr))

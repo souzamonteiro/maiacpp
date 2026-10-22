@@ -14,14 +14,23 @@ extern int    __exc_matches(int thrown_type, int catch_type);
 extern void*  __malloc(unsigned long size);
 extern void   __free(void* ptr);
 extern int    sprintf(char* dest, const char* format, ...);
+extern int    printf(const char* format, ...);
+
+typedef struct Base Base;
+typedef struct Derived Derived;
 
 #define EXC_Base 1
 #define EXC_Derived 2
 
-typedef struct Base {
+struct Base {
   int tag;
   void* __vptr;
-} Base;
+};
+
+struct Derived {
+  Base __base;
+  int extra;
+};
 
 void Base_init__i(Base* self, int t);
 void Base_destroy(Base* self);
@@ -34,11 +43,6 @@ void Base_init__i(Base* self, int t) {
 void Base_destroy(Base* self) {
   (void)self;
 }
-
-typedef struct Derived {
-  Base __base;
-  int extra;
-} Derived;
 
 void Derived_init__ii(Derived* self, int t, int e);
 void Derived_destroy(Derived* self);
@@ -64,21 +68,26 @@ int main(void) {
   if (di == 3) {
     (void)printf("PASS sc_double_to_int\n");
   }
+  {
   int j = 65;
   char ch = (char)(j);
   if (ch == 'A') {
     (void)printf("PASS sc_int_to_char\n");
   }
+  {
   Derived deriv;
   (void)Derived_init__ii(&deriv, 10, 99);
+  {
   Base* bp = (Base*)(&deriv);
   if (bp->tag == 10) {
     (void)printf("PASS sc_upcast\n");
   }
+  {
   Derived* dp = (Derived*)(bp);
   if (dp->extra == 99) {
     (void)printf("PASS sc_downcast\n");
   }
+  {
   int mutable_val = 55;
   const int* cptr = &mutable_val;
   int* mptr = (int*)(cptr);
@@ -86,6 +95,7 @@ int main(void) {
   if (mutable_val == 77) {
     (void)printf("PASS cc_write\n");
   }
+  {
   double pi = 3.14159;
   int pi_i = (int)pi;
   if (pi_i == 3) {
@@ -93,6 +103,12 @@ int main(void) {
   }
   (void)printf("ALL PASS\n");
   return 0;
+  }
+  }
+  }
+  }
+  }
+  }
 }
 
 /* Lowering diagnostics: 1 event(s) (structured-resource-runtime=1) */

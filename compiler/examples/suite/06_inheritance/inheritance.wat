@@ -15,7 +15,7 @@
   (import "env" "__free" (func $imp___free (param i32)))
   (import "env" "printf" (func $imp_printf (param f64 f64 f64 f64 f64 f64 f64 f64) (result i32)))
 
-  (memory $mem 1)
+  (memory $mem 2)
 
   (table $fn_table 9 funcref)
 
@@ -54,6 +54,11 @@
     i32.add
     i32.load
     drop
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
   )
 
   ;; function Shape_destroy
@@ -80,6 +85,11 @@
     i32.add
     i32.load
     drop
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
   )
 
   ;; function Rectangle_init__dd
@@ -94,7 +104,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 40
+    i32.const 24
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -103,12 +113,12 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 24
+    i32.const 8
     i32.add
     local.get $w
     f64.store
     local.get $__frame
-    i32.const 32
+    i32.const 16
     i32.add
     local.get $h
     f64.store
@@ -121,10 +131,10 @@
     i32.const 0
     i32.add
     i32.load
-    i32.const 8
+    i32.const 16
     i32.add
     local.get $__frame
-    i32.const 24
+    i32.const 8
     i32.add
     f64.load
     local.set $__tmp_f64
@@ -136,10 +146,10 @@
     i32.const 0
     i32.add
     i32.load
-    i32.const 16
+    i32.const 24
     i32.add
     local.get $__frame
-    i32.const 32
+    i32.const 16
     i32.add
     f64.load
     local.set $__tmp_f64
@@ -148,17 +158,22 @@
     local.get $__tmp_f64
     drop
     local.get $__frame
-    i32.const 24
+    i32.const 8
     i32.add
     f64.load
     i32.trunc_f64_s
     drop
     local.get $__frame
-    i32.const 32
+    i32.const 16
     i32.add
     f64.load
     i32.trunc_f64_s
     drop
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
   )
 
   ;; function Rectangle_destroy
@@ -172,7 +187,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 24
+    i32.const 8
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -185,6 +200,11 @@
     i32.add
     i32.load
     drop
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
   )
 
   ;; function Rectangle_area
@@ -198,7 +218,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 24
+    i32.const 8
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -215,14 +235,14 @@
     i32.const 0
     i32.add
     i32.load
-    i32.const 8
+    i32.const 16
     i32.add
     f64.load
     local.get $__frame
     i32.const 0
     i32.add
     i32.load
-    i32.const 16
+    i32.const 24
     i32.add
     f64.load
     f64.mul
@@ -252,7 +272,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 24
+    i32.const 16
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -261,7 +281,7 @@
     local.get $self
     i32.store
     local.get $__frame
-    i32.const 16
+    i32.const 8
     i32.add
     local.get $r
     f64.store
@@ -274,10 +294,10 @@
     i32.const 0
     i32.add
     i32.load
-    i32.const 8
+    i32.const 16
     i32.add
     local.get $__frame
-    i32.const 16
+    i32.const 8
     i32.add
     f64.load
     local.set $__tmp_f64
@@ -285,6 +305,11 @@
     f64.store
     local.get $__tmp_f64
     drop
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
   )
 
   ;; function Circle_destroy
@@ -298,7 +323,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 16
+    i32.const 8
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -311,6 +336,11 @@
     i32.add
     i32.load
     drop
+    local.get $__parent_frame
+    global.set $__frame_ptr
+    local.get $__frame
+    global.set $__stack_ptr
+    return
   )
 
   ;; function Circle_area
@@ -324,7 +354,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 16
+    i32.const 8
     i32.add
     global.set $__stack_ptr
     local.get $__frame
@@ -342,7 +372,7 @@
     i32.const 0
     i32.add
     i32.load
-    i32.const 8
+    i32.const 16
     i32.add
     f64.load
     f64.mul
@@ -350,7 +380,7 @@
     i32.const 0
     i32.add
     i32.load
-    i32.const 8
+    i32.const 16
     i32.add
     f64.load
     f64.mul
@@ -380,7 +410,7 @@
     local.get $__frame
     global.set $__frame_ptr
     global.get $__stack_ptr
-    i32.const 24
+    i32.const 32
     i32.add
     global.set $__stack_ptr
     local.get $__frame

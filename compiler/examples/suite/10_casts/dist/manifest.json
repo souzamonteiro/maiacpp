@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-16T16:05:51.709Z",
+  "generatedAt": "2026-10-22T10:01:20.861Z",
   "input": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/suite/10_casts/casts.c",
   "outDir": "/Volumes/External_SSD/Documentos/Projects/maiacpp/compiler/examples/suite/10_casts/dist",
   "appName": "casts",
@@ -16,5 +16,5 @@
   "copiedLibraries": [],
   "runtimeProvidedHeaders": [],
   "missingLibraries": [],
-  "sourceBytes": 2172
+  "sourceBytes": 2297
 }

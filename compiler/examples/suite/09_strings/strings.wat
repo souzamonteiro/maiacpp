@@ -19,7 +19,7 @@
   (import "env" "strcpy" (func $imp_strcpy (param i32 i32) (result i32)))
   (import "env" "strcat" (func $imp_strcat (param i32 i32) (result i32)))
 
-  (memory $mem 1)
+  (memory $mem 2)
 
   (table $fn_table 2 funcref)
 
