@@ -17,6 +17,10 @@ Global enum definitions and fixed scalar local array initializers retain their
 values; variables declared in `for` initializers keep their loop scopes.
 `npm run check:ast-c89-generator-contracts` requires executable parity between
 native C++98 and emitted strict C89 for these generator contracts.
+The AST C89 path also lowers do-while bodies and conditions through the existing
+expression generator, preserving casts, nested loops, break/continue and condition
+side effects. `node compiler/tests/test-do-while-casts.js` checks native C++98,
+strict C89 and actual WASM results.
 Allocation normalization also preserves quoted source templates and comments;
 an embedded `new Set()` is data, while actual runtime allocations are lowered.
 

@@ -4319,6 +4319,18 @@ class CppToCTranspiler {
         return null;
       }
       if (node.name === 'iterationStatement') {
+        const isDoLoop = (node.children || []).some((child) =>
+          child && child.kind === 'terminal' && child.value === 'do');
+        // A do-while also contains the terminal "while", but its condition is
+        // an expression and its body must run before the first condition test.
+        if (isDoLoop) {
+          const condition = directChild(node, 'expression');
+          const conditionText = condition ? this.renderAstCExpression(condition, fn) : null;
+          if (conditionText === null) return null;
+          const bodyLines = lowerStatement(directChild(node, 'statement'), depth + 1, scopeDeclarations);
+          if (bodyLines === null) return null;
+          return [`${indent(depth)}do {`, ...bodyLines, `${indent(depth)}} while (${conditionText});`];
+        }
         const isForLoop = (node.children || []).some((child) =>
           child && child.kind === 'terminal' && child.value === 'for');
         const isWhileLoop = (node.children || []).some((child) =>
