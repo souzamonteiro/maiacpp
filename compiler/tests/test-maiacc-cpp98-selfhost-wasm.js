@@ -129,7 +129,8 @@ async function main() {
   const rex = path.join(cc, 'grammar/REx.ebnf');
   const xmlGrammar = path.join(source, 'xml.ebnf');
   const fixtures = [rex, xmlGrammar, path.join(cc, 'parser-generator/examples/sample-grammar.ebnf'),
-    path.join(cc, 'parser-generator/examples/WAT.ebnf'), path.join(cc, 'parser-generator/tests/fixtures/shell.ebnf')];
+    path.join(cc, 'parser-generator/examples/WAT.ebnf'), path.join(cc, 'parser-generator/tests/fixtures/shell.ebnf'),
+    path.join(cc, 'parser-generator/tests/fixtures/lexical-context.ebnf')];
   const references = new Map();
   for (const file of fixtures) {
     const xml = run(process.execPath, [path.join(cc, 'parser-generator/REx.js'), file]);
