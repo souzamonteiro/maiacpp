@@ -95,6 +95,10 @@ Note:
 	in actual WASM through the repository-local MaiaC and MaiaRegex submodules.
 	It also runs the authoritative MaiaRegex C89 program tests in WASM. The full
 	REx frontend and complete generator self-hosting remain separate gates.
+	Unsigned compound assignments are also checked against native C++98 and actual
+	WASM across scalars, arrays, pointers and struct fields. `%=` remains a typed
+	C89 operator; the emitter does not force its operands to signed int. The pinned
+	MaiaC supplies signedness-aware division/remainder/right-shift lowering.
 - The preprocessor searches the repository-local C compatibility headers and
 	MaiaCpp headers, without an implicit sibling MaiaC dependency. System-header
 	macros are processed; standard declaration preludes remain the existing path.

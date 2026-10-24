@@ -11635,7 +11635,8 @@ class Cpp98Compiler {
     // Opaque void* member access that MaiaC cannot represent will error during MaiaC compilation,
     // which is better than silently producing incorrect behavior.
     out = out.replace(/^\s*0\s*=\s*([^;]+);\s*$/gm, '  (void)($1);');
-    out = out.replace(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*%=\s*([^;]+);\s*$/gm, '  $1 = ((int)($1) % (int)($2));');
+    // %= is already valid C89. Preserve operand types and single evaluation;
+    // forcing int casts here changes unsigned remainder semantics.
     // Preserve console host call payloads. Rewriting to __console__log(0)
     // hides runtime diagnostics and masks string-lowering regressions.
     // Some host imports are emitted as `void` declarations but are used in
