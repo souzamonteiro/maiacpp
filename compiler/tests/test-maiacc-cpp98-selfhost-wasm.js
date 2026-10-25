@@ -130,7 +130,8 @@ async function main() {
   const xmlGrammar = path.join(source, 'xml.ebnf');
   const fixtures = [rex, xmlGrammar, path.join(cc, 'parser-generator/examples/sample-grammar.ebnf'),
     path.join(cc, 'parser-generator/examples/WAT.ebnf'), path.join(cc, 'parser-generator/tests/fixtures/shell.ebnf'),
-    path.join(cc, 'parser-generator/tests/fixtures/lexical-context.ebnf')];
+    path.join(cc, 'parser-generator/tests/fixtures/lexical-context.ebnf'),
+    path.join(cc, 'parser-generator/tests/fixtures/unicode-scalars.ebnf')];
   const references = new Map();
   for (const file of fixtures) {
     const xml = run(process.execPath, [path.join(cc, 'parser-generator/REx.js'), file]);
@@ -182,6 +183,15 @@ async function main() {
   for (const invalid of ['', '<Grammar></Other>', '<Grammar>&missing;</Grammar>']) {
     const rejected = execute(previous.generator, invalid, true);
     assert.notEqual(rejected.status, 0); assert.equal(rejected.output, null);
+  }
+  for (const pattern of ['#x110000','[#x110000]','[#x10000-#x110000]','[#x10001-#x10000]']) {
+    const input = 'Input ::= Value EOF\n<?TOKENS?>\nValue ::= '+pattern+'\nEOF ::= $\n';
+    const parsed = execute(previous.frontend,input,false);
+    assert.equal(parsed.status,0);
+    for (const cpp of [true,false]) {
+      const rejected = execute(previous.generator,parsed.output,true,cpp);
+      assert.notEqual(rejected.status,0);assert.equal(rejected.output,null,pattern);
+    }
   }
   assert.ok(memoryGrowths > 0, 'The complete guest bootstrap must exercise real memory growth');
   console.log(`PASS complete MaiaCC C++98 -> C89 -> WASM self-hosting: three stable generations, both backends, ${memoryGrowths} memory growths`);

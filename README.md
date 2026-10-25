@@ -11,6 +11,14 @@ Mandatory cross-repository synchronization workflow:
 
 ## Wrapper CLI
 
+Unicode toolchain validation (2026-10-24): `npm test` and
+`npm run check:maiaCC-selfhost-wasm` pass against the published MaiaCC Unicode
+correction. The complete MaiaCC guest performs three stable C++98 -> C89 ->
+WASM bootstrap generations and reproduces both emitters byte-for-byte on seven
+grammars, including `unicode-scalars.ebnf`; invalid numeric ranges are rejected
+inside WASM. The run exercises 27 actual memory growths. This is reference
+WebAssembly execution, not MaiaWASMVM/device conformance.
+
 The AST C89 path preserves adjacent C++98 string literals, global pointer
 declarators, multiple pointer levels and forward/self-referencing struct types.
 Global enum definitions and fixed scalar local array initializers retain their
