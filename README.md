@@ -11,6 +11,13 @@ Mandatory cross-repository synchronization workflow:
 
 ## Wrapper CLI
 
+The published MaiaC static-member correction is consumed through this repository's
+own submodule. `node compiler/tests/test-static-struct-members.js` checks direct
+global/nested collector fields, unsigned updates, initialized static-local lifetime,
+whole-object copies and callbacks against native C++98 with ASan/UBSan, strict
+emitted C89 and actual WASM execution. The test runs in the default suite.
+
+
 Unicode toolchain validation (2026-10-24): `npm test` and
 `npm run check:maiaCC-selfhost-wasm` pass against the published MaiaCC Unicode
 correction. The complete MaiaCC guest performs three stable C++98 -> C89 ->
