@@ -4206,6 +4206,28 @@ class CppToCTranspiler {
     if (!compound) return null;
 
     const indent = (depth) => '  '.repeat(depth);
+    // This slice supports C89 constant initialization, not C++ dynamic guards.
+    // Inspect generated AST nodes; never reinterpret raw declaration text.
+    const staticConstantOperators = new Set([
+      '(', ')', '{', '}', '+', '-', '*', '/', '%', '~', '!', '&', '|', '^',
+      '<<', '>>', '<', '>', '<=', '>=', '==', '!=', '&&', '||', '?', ':'
+    ]);
+    const isStaticConstant = (node, parentName = '') => {
+      if (!node) return false;
+      if (node.kind === 'terminal') {
+        return ['IntegerConstant', 'FloatingConstant', 'CharacterConstant', 'StringLiteral'].includes(node.token)
+          || staticConstantOperators.has(node.value)
+          || (node.value === ',' && parentName === 'initializerList');
+      }
+      if (node.name === 'typeId') return true; // Cast type, not an evaluated operand.
+      if (node.name === 'postfixSuffix') return false; // Calls/indexing/member reads.
+      if (node.name === 'unaryExpression' && (node.children || []).some((child) =>
+        child && child.kind === 'terminal' && ['TOKEN_static_5F_cast', 'TOKEN_const_5F_cast'].includes(child.token))) {
+        return (node.children || []).filter((child) => child && child.kind === 'nonterminal')
+          .every((child) => isStaticConstant(child, node.name));
+      }
+      return (node.children || []).every((child) => isStaticConstant(child, node.name));
+    };
     const lowerDeclaration = (declaration) => {
       const simple = directChild(directChild(declaration, 'blockDeclaration'), 'simpleDeclaration')
         || directChild(declaration, 'simpleDeclaration')
@@ -4213,6 +4235,9 @@ class CppToCTranspiler {
       const specifiers = directChild(simple, 'declarationSpecifiers');
       const typeSpecifier = directChild(specifiers, 'declarationTypeSpecifier');
       const typeName = collectTerminals(typeSpecifier || specifiers).map((terminal) => terminal.value).join(' ').trim();
+      const specifierTerminals = collectTerminals(specifiers);
+      const isStatic = specifierTerminals.some((terminal) => terminal.token === 'TOKEN_static');
+      const isConst = specifierTerminals.some((terminal) => terminal.value === 'const');
       const list = directChild(simple, 'initDeclaratorList');
       const declarations = [];
       const initializers = [];
@@ -4232,9 +4257,24 @@ class CppToCTranspiler {
           const size = collectTerminals(suffix).find((terminal) => terminal.token === 'IntegerConstant');
           arraySuffix += `[${size ? size.value : ''}]`;
         }
-        declarations.push(`${type} ${name}${arraySuffix};`);
         const initializer = directChild(item, 'initializer');
         const clause = directChild(initializer, 'initializerClause');
+        if (isStatic) {
+          const unsupported = () => {
+            throw new Error(`Unsupported static local initialization for '${name}': requires a plain object and C89 constant initializer; C++ dynamic initialization is not implemented`);
+          };
+          const aggregate = this.analysis.classes.get(type);
+          if ((!pointerDepth && aggregate && (aggregate.bases.length
+              || (aggregate.constructors || []).length || aggregate.methods.length))
+              || collectTerminals(declarator).some((terminal) => terminal.value === '(')) unsupported();
+          if (initializer && (!clause || !isStaticConstant(clause))) unsupported();
+          const rendered = clause ? this.renderAstCExpression(clause, fn) : null;
+          if (clause && rendered === null) unsupported();
+          const qualifier = isConst && !pointerDepth ? 'const ' : '';
+          declarations.push(`static ${qualifier}${type} ${name}${arraySuffix}${clause ? ` = ${rendered}` : ''};`);
+          continue;
+        }
+        declarations.push(`${type} ${name}${arraySuffix};`);
         const expression = directChild(clause, 'assignmentExpression');
         if (expression) {
           const rendered = this.renderAstCExpression(expression, fn);

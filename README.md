@@ -16,6 +16,9 @@ own submodule. `node compiler/tests/test-static-struct-members.js` checks direct
 global/nested collector fields, unsigned updates, initialized static-local lifetime,
 whole-object copies and callbacks against native C++98 with ASan/UBSan, strict
 emitted C89 and actual WASM execution. The test runs in the default suite.
+Local static constant initialization also stays on its C89 declaration, retaining
+storage duration across calls. See [static local lifetime](docs/STATIC_LOCAL_LIFETIME.md)
+for the supported initializer subset and explicit dynamic-initialization limit.
 
 
 Unicode toolchain validation (2026-10-24): `npm test` and
