@@ -30,7 +30,7 @@
   ],
   "scripts": {
     "build:libs": "node ./tools/build-libs.js",
-    "test": "node compiler/tests/test-static-struct-members.js && node compiler/tests/test-unsigned-compound-wasm.js && node compiler/tests/test-do-while-casts.js && npm run check:ast-c89-generator-contracts && npm run check:ast-c89-lexer-contracts && node compiler/tests/test-legacy-c89-output-contracts.js && bash ./bin/webcpp.sh --file ./compiler/examples/test.cpp --ast-json-out ./out/test.ast.json --c-out ./out/test.c && npm run check:maiaCC-parser-wasm && npm --prefix maiac run test:maiaregex",
+    "test": "node compiler/tests/test-utf8-string-literals.js && node compiler/tests/test-static-struct-members.js && node compiler/tests/test-unsigned-compound-wasm.js && node compiler/tests/test-do-while-casts.js && npm run check:ast-c89-generator-contracts && npm run check:ast-c89-lexer-contracts && node compiler/tests/test-legacy-c89-output-contracts.js && bash ./bin/webcpp.sh --file ./compiler/examples/test.cpp --ast-json-out ./out/test.ast.json --c-out ./out/test.c && npm run check:maiaCC-parser-wasm && npm --prefix maiac run test:maiaregex",
     "check:maiaCC-parser-wasm": "node ./compiler/tests/test-maiacc-cpp98-parser-wasm.js",
     "check:maiaCC-rex-wasm": "node ./compiler/tests/test-maiacc-cpp98-rex-wasm.js",
     "compile:test": "bash ./bin/webcpp.sh --file ./compiler/examples/test.cpp --c-out ./out/test.c",

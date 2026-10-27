@@ -29,6 +29,11 @@ grammars, including `unicode-scalars.ebnf`; invalid numeric ranges are rejected
 inside WASM. The run exercises 27 actual memory growths. This is reference
 WebAssembly execution, not MaiaWASMVM/device conformance.
 
+Raw Unicode narrow strings preserve UTF-8 bytes through the AST-strict C89 and
+WASM pipeline, with explicit numeric byte escapes kept distinct. See
+[UTF-8 string literals](docs/UTF8_STRING_LITERALS.md) for the selected scope and
+independent native/WASM regression.
+
 The AST C89 path preserves adjacent C++98 string literals, global pointer
 declarators, multiple pointer levels and forward/self-referencing struct types.
 Global enum definitions and fixed scalar local array initializers retain their

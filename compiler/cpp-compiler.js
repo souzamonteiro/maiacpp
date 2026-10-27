@@ -4274,8 +4274,19 @@ class CppToCTranspiler {
           declarations.push(`static ${qualifier}${type} ${name}${arraySuffix}${clause ? ` = ${rendered}` : ''};`);
           continue;
         }
-        declarations.push(`${type} ${name}${arraySuffix};`);
         const expression = directChild(clause, 'assignmentExpression');
+        const literalTokens = collectTerminals(expression);
+        if (!pointerDepth && type === 'char' && /^\[(?:\d+)?\]$/.test(arraySuffix)
+            && literalTokens.length && literalTokens.every((token) => token.token === 'StringLiteral')) {
+          // A narrow array literal is a C89 initializer, never an array
+          // assignment. Keep adjacent fragments intact so the C backend owns
+          // UTF-8 bytes, numeric escape boundaries and inferred array size.
+          const rendered = this.renderAstCExpression(expression, fn);
+          if (rendered === null) return null;
+          declarations.push(`${isConst ? 'const ' : ''}${type} ${name}${arraySuffix} = ${rendered};`);
+          continue;
+        }
+        declarations.push(`${type} ${name}${arraySuffix};`);
         if (expression) {
           const rendered = this.renderAstCExpression(expression, fn);
           if (rendered === null) return null;
