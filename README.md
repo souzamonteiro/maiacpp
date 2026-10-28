@@ -11,6 +11,14 @@ Mandatory cross-repository synchronization workflow:
 
 ## Wrapper CLI
 
+Named local plain structs in the AST-strict path retain distinct lexical type
+identities, including inline object declarations and local/global name shadowing.
+See [scope and validation](docs/LOCAL_STRUCT_TYPES.md); the focused native C++98 /
+strict C89 / WASM regression runs through `npm run check:local-struct-types` and
+npm test. Focused/default/readiness and the complete MaiaCC bootstrap pass:
+three stable WASM generations, both emitters/seven grammars and27memory growths.
+
+
 The published MaiaC static-member correction is consumed through this repository's
 own submodule. `node compiler/tests/test-static-struct-members.js` checks direct
 global/nested collector fields, unsigned updates, initialized static-local lifetime,

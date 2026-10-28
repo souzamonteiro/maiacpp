@@ -1690,6 +1690,12 @@ class SemanticAnalyzer {
     this.runtimeTokens = new Set();
     this.cLinkageDepth = 0;
     this.namespaceStack = [];
+    this.functionBodyDepth = 0;
+    this.localTypeScopes = [];
+    this.localClassNodes = new WeakMap();
+    this.localTypeNames = new Set();
+    this.localClassSerial = 0;
+    this.sourceIdentifiers = new Set(this.findAllTerminals(parseTree, 'Identifier').map(node => node.value));
   }
 
   analyze() {
@@ -1697,6 +1703,8 @@ class SemanticAnalyzer {
     return {
       symbols: this.globals,
       classes: this.classes,
+      localClassNodes: this.localClassNodes,
+      localTypeNames: this.localTypeNames,
       functions: this.functions,
       cFunctionDeclarations: this.cFunctionDeclarations,
       hostImports: this.hostImports,
@@ -1710,6 +1718,12 @@ class SemanticAnalyzer {
   walk(node) {
     if (!node) return;
     if (node.kind === 'terminal') this.runtimeTokens.add(node.value);
+
+    const enteredFunction = node.kind === 'nonterminal' && node.name === 'functionBody';
+    if (enteredFunction) this.functionBodyDepth += 1;
+    const enteredLocalScope = this.functionBodyDepth > 0 && node.kind === 'nonterminal'
+      && ['compoundStatement', 'iterationStatement'].includes(node.name);
+    if (enteredLocalScope) this.localTypeScopes.push(new Map());
 
     const enteredNamespace = this.enterNamespaceIfNeeded(node);
     const enteredCLinkage = this.enterCLinkageIfNeeded(node);
@@ -1756,7 +1770,29 @@ class SemanticAnalyzer {
 
     if (node.kind === 'nonterminal' && (node.name === 'classDefinition' || node.name === 'classSpecifier')) {
       const cls = this.extractClassInfo(node);
-      if (cls) {
+      if (this.functionBodyDepth > 0 && this.options.astStrict) {
+        if (!cls || !this.extractClassHeadName(node) || this.extractClassKey(node) !== 'struct' || cls.bases.length
+            || cls.constructors.length || cls.methods.length || cls.destructor
+            || cls.members.some(member => member.access !== 'public')
+            || this.findAllNonterminals(node, 'classSpecifier').length > 1) {
+          throw new Error('Unsupported local class: requires a named plain struct with public data members');
+        }
+        const sourceName = cls.name;
+        this.localTypeNames.add(sourceName);
+        let identity;
+        do { identity = `__maia_local_struct_${++this.localClassSerial}_${sourceName}`; }
+        while (this.sourceIdentifiers.has(identity));
+        const scope = this.localTypeScopes[this.localTypeScopes.length - 1];
+        if (!scope || scope.has(sourceName)) throw new Error(`Duplicate local struct '${sourceName}'`);
+        scope.set(sourceName, identity);
+        cls.name = identity; cls.namespacePath = []; cls.localSourceName = sourceName;
+        for (const member of cls.members) {
+          member.type = this.resolveLocalType(member.type);
+          for (const param of member.callbackParameters || []) param.type = this.resolveLocalType(param.type);
+        }
+        this.localClassNodes.set(node, cls);
+        this.classes.set(identity, cls);
+      } else if (cls) {
         this.classes.set(cls.name, cls);
         this.globals.define(cls.name, new Symbol(SymbolKind.CLASS, cls.name, cls));
         const fqName = cls.namespacePath.length ? `${cls.namespacePath.join('::')}::${cls.name}` : cls.name;
@@ -1768,10 +1804,23 @@ class SemanticAnalyzer {
       this.walk(child);
     }
 
+    if (enteredLocalScope) this.localTypeScopes.pop();
+    if (enteredFunction) this.functionBodyDepth -= 1;
     if (enteredCLinkage) this.cLinkageDepth -= 1;
     if (enteredNamespace) {
       this.namespaceStack.pop();
     }
+  }
+
+  resolveLocalType(type) {
+    // Resolve a semantic type spelling only, never arbitrary source identifiers.
+    const match = normalizeTypeText(type).match(/^(const )?(?:struct )?([A-Za-z_][A-Za-z0-9_]*)([ *&]*)$/);
+    if (!match) return type;
+    for (let i = this.localTypeScopes.length - 1; i >= 0; --i) {
+      const resolved = this.localTypeScopes[i].get(match[2]);
+      if (resolved) return `${/\bconst\b/.test(type) ? 'const ' : ''}${resolved}${match[3]}`;
+    }
+    return type;
   }
 
   enterCLinkageIfNeeded(node) {
@@ -3057,6 +3106,21 @@ class CppToCTranspiler {
         }
       }
       if (current.name === 'unaryExpression') {
+        const isSizeof = (current.children || []).some(child => child.kind === 'terminal' && child.value === 'sizeof');
+        const typeId = directChild(current, 'typeId');
+        const specifiers = directChild(typeId, 'typeSpecifierSeq');
+        const typeName = typeText(specifiers).replace(/\b(?:const|struct)\b/g, '').trim();
+        if (isSizeof && this.localTypeBindings && this.localTypeBindings.has(typeName)) {
+          const abstract = directChild(typeId, 'abstractDeclarator');
+          return `sizeof(${this.sanitizeTypeForC(typeText(specifiers))}${abstract ? ' ' + render(abstract) : ''})`;
+        }
+        const operand = directChild(current, 'unaryExpression');
+        const tokens = collectTerminals(operand);
+        if (isSizeof && tokens.length === 3 && tokens[0].value === '(' && tokens[2].value === ')'
+            && this.localTypeBindings && this.localTypeBindings.has(tokens[1].value)
+            && !this.localValueNames.has(tokens[1].value)) {
+          return `sizeof(${this.localTypeBindings.get(tokens[1].value)})`;
+        }
         const cast = (current.children || []).find((child) => child && child.kind === 'terminal'
           && c89LoweredCastTokens.has(child.token));
         if (cast) {
@@ -3420,10 +3484,14 @@ class CppToCTranspiler {
     const ptrMatch = normalized.match(/(\*+)$/);
     const ptrSuffix = ptrMatch ? ptrMatch[1] : '';
     const rawBase = ptrSuffix ? normalized.slice(0, -ptrSuffix.length).trim() : normalized;
-    const base = rawBase
+    let base = rawBase
       .replace(/\b(?:static|extern|inline|virtual|friend|constexpr|mutable)\b/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
+    const localName = base.replace(/^struct\s+/, '');
+    if (this.localTypeBindings && this.localTypeBindings.has(localName)) base = this.localTypeBindings.get(localName);
+    else if (this.analysis.localTypeNames && this.analysis.localTypeNames.has(localName)
+        && !this.knownTypeNames.has(localName)) throw new Error(`Local struct type '${localName}' is out of scope`);
     if (!base) return 'void*';  // unknown empty base → opaque pointer
 
     const builtinWords = new Set(['signed', 'unsigned', 'short', 'long', 'int', 'char', 'float', 'double', 'void']);
@@ -4202,6 +4270,12 @@ class CppToCTranspiler {
       for (const child of node.children || []) collectTerminals(child, out);
       return out;
     };
+    const findClassNode = node => {
+      if (!node || node.kind === 'terminal') return null;
+      if (this.analysis.localClassNodes && this.analysis.localClassNodes.has(node)) return node;
+      for (const child of node.children || []) { const found = findClassNode(child); if (found) return found; }
+      return null;
+    };
     const compound = directChild(fn && fn.bodyAst, 'compoundStatement');
     if (!compound) return null;
 
@@ -4234,8 +4308,15 @@ class CppToCTranspiler {
         || declaration;
       const specifiers = directChild(simple, 'declarationSpecifiers');
       const typeSpecifier = directChild(specifiers, 'declarationTypeSpecifier');
-      const typeName = collectTerminals(typeSpecifier || specifiers).map((terminal) => terminal.value).join(' ').trim();
-      const specifierTerminals = collectTerminals(specifiers);
+      const classNode = findClassNode(typeSpecifier || specifiers);
+      const localClass = classNode && this.analysis.localClassNodes && this.analysis.localClassNodes.get(classNode);
+      if (localClass) this.localTypeBindings.set(localClass.localSourceName, localClass.name);
+      const typeName = localClass ? localClass.name
+        : collectTerminals(typeSpecifier || specifiers).map((terminal) => terminal.value).join(' ').trim();
+      const qualifierTerminals = node => node === classNode ? []
+        : node && node.kind === 'terminal' ? [node]
+        : (node && node.children || []).flatMap(qualifierTerminals);
+      const specifierTerminals = qualifierTerminals(specifiers);
       const isStatic = specifierTerminals.some((terminal) => terminal.token === 'TOKEN_static');
       const isConst = specifierTerminals.some((terminal) => terminal.value === 'const');
       const list = directChild(simple, 'initDeclaratorList');
@@ -4246,9 +4327,10 @@ class CppToCTranspiler {
         const name = collectTerminals(declarator).find((terminal) => terminal.token === 'Identifier')?.value;
         if (!name) return null;
         const pointerDepth = collectTerminals(declarator).filter((terminal) => terminal.token === 'TOKEN__2A_').length;
-        const pointeeQualifier = pointerDepth && collectTerminals(specifiers).some((terminal) => terminal.value === 'const')
+        const pointeeQualifier = pointerDepth && specifierTerminals.some((terminal) => terminal.value === 'const')
           ? 'const ' : '';
         const type = this.sanitizeTypeForC(`${pointeeQualifier}${typeName}${pointerDepth ? ` ${'*'.repeat(pointerDepth)}` : ''}`);
+        this.localValueNames.add(name);
         const suffixes = (declarator.children || []).filter((child) => child && child.name === 'directDeclarator')
           .flatMap((direct) => (direct.children || []).filter((child) => child && child.name === 'directDeclaratorSuffix'));
         let arraySuffix = '';
@@ -4346,7 +4428,7 @@ class CppToCTranspiler {
         if (collectTerminals(operator).map((part) => part.value).join('') === '='
             && target.length >= 3 && target[0].token === 'Identifier'
             && target.slice(1, -1).every((part) => part.value === '*') && target.at(-1).token === 'Identifier'
-            && this.knownTypeNames.has(target[0].value)
+            && (this.knownTypeNames.has(target[0].value) || this.localTypeBindings.has(target[0].value))
             && !this.findLocalDeclaratorNames(fn.bodyAst).has(target[0].value)
             && !(fn.params || []).some((param) => param.name === target[0].value)) {
           const initializer = this.renderAstCExpression(rhs, fn);
@@ -4370,71 +4452,76 @@ class CppToCTranspiler {
         return null;
       }
       if (node.name === 'iterationStatement') {
-        const isDoLoop = (node.children || []).some((child) =>
-          child && child.kind === 'terminal' && child.value === 'do');
-        // A do-while also contains the terminal "while", but its condition is
-        // an expression and its body must run before the first condition test.
-        if (isDoLoop) {
-          const condition = directChild(node, 'expression');
-          const conditionText = condition ? this.renderAstCExpression(condition, fn) : null;
-          if (conditionText === null) return null;
-          const bodyLines = lowerStatement(directChild(node, 'statement'), depth + 1, scopeDeclarations);
-          if (bodyLines === null) return null;
-          return [`${indent(depth)}do {`, ...bodyLines, `${indent(depth)}} while (${conditionText});`];
-        }
-        const isForLoop = (node.children || []).some((child) =>
-          child && child.kind === 'terminal' && child.value === 'for');
-        const isWhileLoop = (node.children || []).some((child) =>
-          child && child.kind === 'terminal' && child.value === 'while');
-        if (isWhileLoop) {
+        const previousTypes = this.localTypeBindings, previousValues = this.localValueNames;
+        this.localTypeBindings = new Map(previousTypes || []);
+        this.localValueNames = new Set(previousValues || (fn.params || []).map(param => param.name));
+        try {
+          const isDoLoop = (node.children || []).some((child) =>
+            child && child.kind === 'terminal' && child.value === 'do');
+          // A do-while also contains the terminal "while", but its condition is
+          // an expression and its body must run before the first condition test.
+          if (isDoLoop) {
+            const condition = directChild(node, 'expression');
+            const conditionText = condition ? this.renderAstCExpression(condition, fn) : null;
+            if (conditionText === null) return null;
+            const bodyLines = lowerStatement(directChild(node, 'statement'), depth + 1, scopeDeclarations);
+            if (bodyLines === null) return null;
+            return [`${indent(depth)}do {`, ...bodyLines, `${indent(depth)}} while (${conditionText});`];
+          }
+          const isForLoop = (node.children || []).some((child) =>
+            child && child.kind === 'terminal' && child.value === 'for');
+          const isWhileLoop = (node.children || []).some((child) =>
+            child && child.kind === 'terminal' && child.value === 'while');
+          if (isWhileLoop) {
+            const condition = directChild(node, 'condition');
+            const loopBody = directChild(node, 'statement');
+            const conditionText = condition ? this.renderAstCExpression(condition, fn) : null;
+            if (conditionText === null) return null;
+            const bodyLines = lowerStatement(loopBody, depth + 1, scopeDeclarations);
+            if (bodyLines === null) return null;
+            return [
+              `${indent(depth)}while (${conditionText}) {`,
+              ...bodyLines,
+              `${indent(depth)}}`
+            ];
+          }
+          if (!isForLoop) return null;
+          const init = directChild(node, 'forInitStatement');
           const condition = directChild(node, 'condition');
+          const update = directChild(node, 'expression');
           const loopBody = directChild(node, 'statement');
-          const conditionText = condition ? this.renderAstCExpression(condition, fn) : null;
-          if (conditionText === null) return null;
-          const bodyLines = lowerStatement(loopBody, depth + 1, scopeDeclarations);
+          let initText = '';
+          const loopDeclarations = [];
+          const prelude = [];
+          const declaration = directChild(init, 'simpleDeclaration');
+          if (declaration) {
+            const lowered = lowerDeclaration(declaration);
+            if (!lowered) return null;
+            loopDeclarations.push(...lowered.declarations);
+            prelude.push(...lowered.initializers.map((line) => `${indent(depth + 1)}${line}`));
+          } else {
+            const expressionStatement = directChild(init, 'expressionStatement');
+            const initExpression = directChild(expressionStatement, 'expression');
+            if (initExpression) {
+              initText = this.renderAstCExpression(initExpression, fn);
+              if (initText === null) return null;
+            }
+          }
+          const conditionText = condition ? this.renderAstCExpression(condition, fn) : '';
+          const updateText = update ? this.renderAstCExpression(update, fn) : '';
+          if (conditionText === null || updateText === null) return null;
+          const bodyLines = lowerStatement(loopBody, depth + 2, loopDeclarations);
           if (bodyLines === null) return null;
           return [
-            `${indent(depth)}while (${conditionText}) {`,
+            `${indent(depth)}{`,
+            ...loopDeclarations.map((line) => `${indent(depth + 1)}${line}`),
+            ...prelude,
+            `${indent(depth + 1)}for (${initText}; ${conditionText}; ${updateText}) {`,
             ...bodyLines,
+            `${indent(depth + 1)}}`,
             `${indent(depth)}}`
           ];
-        }
-        if (!isForLoop) return null;
-        const init = directChild(node, 'forInitStatement');
-        const condition = directChild(node, 'condition');
-        const update = directChild(node, 'expression');
-        const loopBody = directChild(node, 'statement');
-        let initText = '';
-        const loopDeclarations = [];
-        const prelude = [];
-        const declaration = directChild(init, 'simpleDeclaration');
-        if (declaration) {
-          const lowered = lowerDeclaration(declaration);
-          if (!lowered) return null;
-          loopDeclarations.push(...lowered.declarations);
-          prelude.push(...lowered.initializers.map((line) => `${indent(depth + 1)}${line}`));
-        } else {
-          const expressionStatement = directChild(init, 'expressionStatement');
-          const initExpression = directChild(expressionStatement, 'expression');
-          if (initExpression) {
-            initText = this.renderAstCExpression(initExpression, fn);
-            if (initText === null) return null;
-          }
-        }
-        const conditionText = condition ? this.renderAstCExpression(condition, fn) : '';
-        const updateText = update ? this.renderAstCExpression(update, fn) : '';
-        if (conditionText === null || updateText === null) return null;
-        const bodyLines = lowerStatement(loopBody, depth + 2, loopDeclarations);
-        if (bodyLines === null) return null;
-        return [
-          `${indent(depth)}{`,
-          ...loopDeclarations.map((line) => `${indent(depth + 1)}${line}`),
-          ...prelude,
-          `${indent(depth + 1)}for (${initText}; ${conditionText}; ${updateText}) {`,
-          ...bodyLines,
-          `${indent(depth + 1)}}`,
-          `${indent(depth)}}`
-        ];
+        } finally { this.localTypeBindings = previousTypes; this.localValueNames = previousValues; }
       }
       if (node.name === 'selectionStatement') {
         const condition = directChild(node, 'condition');
@@ -4457,34 +4544,42 @@ class CppToCTranspiler {
     };
 
     const lowerCompound = (node, depth = 0, root = false) => {
-      const declarations = [];
-      const statements = [];
-      for (const item of (node.children || []).filter((child) => child && child.name === 'blockItem')) {
-        const child = (item.children || []).find((part) => part && part.kind === 'nonterminal');
-        if (!child) continue;
-        const statementDeclaration = child.name === 'statement'
-          ? directChild(directChild(child, 'declarationStatement'), 'blockDeclaration')
-          : null;
-        const declaration = child.name === 'declaration' ? child : statementDeclaration;
-        if (declaration) {
-          const lowered = lowerDeclaration(declaration);
-          if (!lowered) return null;
-          declarations.push(...lowered.declarations);
-          statements.push(...lowered.initializers.map((line) => `${indent(depth + (root ? 0 : 1))}${line}`));
-        } else {
-          const lowered = lowerStatement(child, depth + (root ? 0 : 1), declarations);
-          if (lowered === null) return null;
-          statements.push(...lowered);
+      const previousTypes = this.localTypeBindings, previousValues = this.localValueNames;
+      this.localTypeBindings = new Map(previousTypes || []);
+      this.localValueNames = new Set(previousValues || (fn.params || []).map(param => param.name));
+      try {
+        const declarations = [];
+        const statements = [];
+        for (const item of (node.children || []).filter((child) => child && child.name === 'blockItem')) {
+          const child = (item.children || []).find((part) => part && part.kind === 'nonterminal');
+          if (!child) continue;
+          const statementDeclaration = child.name === 'statement'
+            ? directChild(directChild(child, 'declarationStatement'), 'blockDeclaration')
+            : null;
+          const declaration = child.name === 'declaration' ? child : statementDeclaration;
+          if (declaration) {
+            const lowered = lowerDeclaration(declaration);
+            if (!lowered) return null;
+            declarations.push(...lowered.declarations);
+            statements.push(...lowered.initializers.map((line) => `${indent(depth + (root ? 0 : 1))}${line}`));
+          } else {
+            const lowered = lowerStatement(child, depth + (root ? 0 : 1), declarations);
+            if (lowered === null) return null;
+            statements.push(...lowered);
+          }
         }
-      }
-      const body = [
-        ...declarations.map((line) => `${indent(depth + (root ? 0 : 1))}${line}`),
-        ...statements
-      ];
-      return root ? body : [`${indent(depth)}{`, ...body, `${indent(depth)}}`];
+        const body = [
+          ...declarations.map((line) => `${indent(depth + (root ? 0 : 1))}${line}`),
+          ...statements
+        ];
+        return root ? body : [`${indent(depth)}{`, ...body, `${indent(depth)}}`];
+      } finally { this.localTypeBindings = previousTypes; this.localValueNames = previousValues; }
     };
 
     const lines = lowerCompound(compound, 0, true);
+    if (lines === null && findClassNode(compound)) {
+      throw new Error('Unsupported local struct operation in AST C89 lowering');
+    }
     return lines === null ? null : { lines, detail: 'ast-c89-statements' };
   }
 
@@ -12045,7 +12140,7 @@ class Cpp98Compiler {
       const { collector, candidate, usedNormalized } = this.collectParseTree(source);
       mark('collectParseTree');
       console.log(candidate.label);
-      const sema = new SemanticAnalyzer(collector.root, { source });
+      const sema = new SemanticAnalyzer(collector.root, { source, astStrict });
       const analysis = sema.analyze();
       mark('semantic');
       if (!astStrict || (this.options && this.options.sourceHints)) {
