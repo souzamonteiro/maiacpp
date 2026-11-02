@@ -1,6 +1,10 @@
 # MaiaCpp (WebCpp)
 Maia C++ Compiler.
 
+Published MaiaCC parser resource statuses and MaiaC indexed pointer-member
+arithmetic are covered by [own-chain integration tests](docs/PARSER_RESOURCE_POINTER_VALIDATION.md),
+including a real 32-bit memo-size overflow.
+
 ## Process Documentation
 
 Mandatory cross-repository synchronization workflow:
