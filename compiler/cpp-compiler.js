@@ -957,10 +957,28 @@ function inferResourceDeterministicReturnHintFromBody(bodyText, params) {
   return hasGuardedIf && hasResourceOps;
 }
 
+function skipQuotedLiteral(text, i) {
+  const quote = text[i];
+  if (quote !== '"' && quote !== "'") return i;
+  let j = i + 1;
+  while (j < text.length) {
+    if (text[j] === '\\') { j += 2; continue; }
+    if (text[j] === quote) return j + 1;
+    j += 1;
+  }
+  return text.length;
+}
+
 function stripClassLikeBlocks(segment) {
   const text = String(segment || '');
   let out = '';
   for (let i = 0; i < text.length;) {
+    if (text[i] === '"' || text[i] === "'") {
+      const next = skipQuotedLiteral(text, i);
+      out += text.slice(i, next);
+      i = next;
+      continue;
+    }
     const classMatch = text.slice(i).match(/^\s*(class|struct|union)\s+[A-Za-z_][A-Za-z0-9_]*[^\{]*\{/);
     if (!classMatch) {
       out += text[i];
@@ -986,6 +1004,12 @@ function stripNamespaceBlocks(segment) {
   const text = String(segment || '');
   let out = '';
   for (let i = 0; i < text.length;) {
+    if (text[i] === '"' || text[i] === "'") {
+      const next = skipQuotedLiteral(text, i);
+      out += text.slice(i, next);
+      i = next;
+      continue;
+    }
     const nsMatch = text.slice(i).match(/^\s*namespace\s+[A-Za-z_][A-Za-z0-9_]*\s*\{/);
     if (!nsMatch) {
       out += text[i];

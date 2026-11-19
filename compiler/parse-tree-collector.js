@@ -2,7 +2,7 @@ class ParseTreeCollector {
   constructor() {
     this.stack = [];
     this.root = null;
-    this.events = [];
+    this.lastClosedNode = null;
   }
 
   parse(parser, inputLabel = 'input') {
@@ -31,63 +31,30 @@ class ParseTreeCollector {
   }
 
   checkpoint() {
+    const len = this.stack.length;
     return {
-      eventLen: this.events.length,
+      stackLength: len,
+      topChildCount: len > 0 ? this.stack[len - 1].children.length : 0,
       root: this.root
     };
   }
 
   restore(mark) {
     if (!mark) return;
-
-    if (Number.isFinite(mark.eventLen)) {
-      for (let i = this.events.length - 1; i >= mark.eventLen; i -= 1) {
-        const event = this.events[i];
-        if (!event) continue;
-        if (event.kind === 'start') {
-          this.stack.pop();
-        } else if (event.kind === 'terminal') {
-          event.parent.children.pop();
-        } else if (event.kind === 'end') {
-          if (event.parent) {
-            event.parent.children.pop();
-          }
-          this.stack.push(event.node);
-          this.root = event.previousRoot;
-        } else if (event.kind === 'abort') {
-          this.stack.push(event.node);
-        }
-      }
-      this.events.length = mark.eventLen;
-      this.root = mark.root || null;
-      return;
+    while (this.stack.length > mark.stackLength) {
+      this.stack.pop();
     }
-
-    const targetLen = Number.isFinite(mark.stackLen) ? mark.stackLen : 0;
-    const childLens = Array.isArray(mark.stackChildLens) ? mark.stackChildLens : [];
-
-    // Remove speculative nodes created after checkpoint.
-    if (this.stack.length > targetLen) {
-      this.stack.length = targetLen;
-    }
-
-    // Truncate children appended during speculative parses.
-    for (let i = 0; i < this.stack.length; i += 1) {
-      const node = this.stack[i];
-      if (!node || !Array.isArray(node.children)) continue;
-      const keep = Number.isFinite(childLens[i]) ? childLens[i] : node.children.length;
-      if (node.children.length > keep) {
-        node.children.length = keep;
+    if (mark.stackLength > 0) {
+      const top = this.stack[mark.stackLength - 1];
+      if (top && top.children.length > mark.topChildCount) {
+        top.children.length = mark.topChildCount;
       }
     }
-
     this.root = mark.root || null;
   }
 
   startNonterminal(name) {
-    const node = { kind: 'nonterminal', name, children: [] };
-    this.stack.push(node);
-    this.events.push({ kind: 'start', node });
+    this.stack.push({ kind: 'nonterminal', name, children: [] });
   }
 
   terminal(expectedType, tokenValue) {
@@ -98,28 +65,32 @@ class ParseTreeCollector {
       token: expectedType,
       value: tokenValue
     });
-    this.events.push({ kind: 'terminal', parent });
   }
 
   endNonterminal() {
     const node = this.stack.pop();
     if (!node) return;
+    this.lastClosedNode = node;
 
-    const parent = this.stack[this.stack.length - 1] || null;
-    const previousRoot = this.root;
-    if (!parent) {
+    if (this.stack.length === 0) {
       this.root = node;
     } else {
-      parent.children.push(node);
+      this.stack[this.stack.length - 1].children.push(node);
     }
-    this.events.push({ kind: 'end', node, parent, previousRoot });
+  }
+
+  appendNode(node) {
+    if (!node) return;
+    this.lastClosedNode = node;
+    if (this.stack.length === 0) {
+      this.root = node;
+    } else {
+      this.stack[this.stack.length - 1].children.push(node);
+    }
   }
 
   abortNonterminal() {
-    const node = this.stack.pop();
-    if (node) {
-      this.events.push({ kind: 'abort', node });
-    }
+    this.stack.pop();
   }
 
   toJSON(space = 2) {
